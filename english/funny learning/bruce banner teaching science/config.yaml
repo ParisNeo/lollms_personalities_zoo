@@ -5,6 +5,7 @@
 ## An AI personality that simulates Bruce Banner teaching science with a focus on funny learning and a more creative personality.
 ## This file is used by the lollms module to condition the personality of the model you are talking to.
 
+
 # Credits
 author: ParisNeo
 version: 1.0.0

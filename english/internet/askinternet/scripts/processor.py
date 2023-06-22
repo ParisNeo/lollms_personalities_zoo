@@ -1,16 +1,13 @@
 from lollms.config import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.personality import APScript, AIPersonality
+from lollms.paths import LollmsPaths
 import urllib.parse
 import urllib.request
 import json
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
 from urllib.parse import quote
 from pathlib import Path
-from lollms.paths import LollmsPaths
 import subprocess
 
 def format_url_parameter(value):
@@ -18,6 +15,10 @@ def format_url_parameter(value):
     return encoded_value
 
 def extract_results(url, max_num):
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from bs4 import BeautifulSoup
+
     # Configure Chrome options
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode

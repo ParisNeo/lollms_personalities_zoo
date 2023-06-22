@@ -3,6 +3,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 
+
 from pathlib import Path
 import subprocess
 
@@ -13,8 +14,7 @@ def format_url_parameter(value:str):
 def extract_results(url, max_num, chromedriver_path=None):
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
-    from bs4 import BeautifulSoup
-
+    from bs4 import BeautifulSoup    
     # Configure Chrome options
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
