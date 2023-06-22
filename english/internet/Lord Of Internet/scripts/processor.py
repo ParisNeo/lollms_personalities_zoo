@@ -11,9 +11,11 @@ def format_url_parameter(value:str):
     encoded_value = value.strip().replace("\"","")
     return encoded_value
 
-def get_webpage_content(url):
+def get_relevant_text_block(url, question, similarity_threshold=0.5):
     import requests
-    from bs4 import BeautifulSoup    
+    from bs4 import BeautifulSoup
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
 
     response = requests.get(url)
     html_content = response.content
@@ -21,11 +23,32 @@ def get_webpage_content(url):
     # Example: Remove all <script> and <style> tags
     for script in soup(["script", "style"]):
         script.extract()
-    
-    core_text = soup.get_text()
+
+    all_text = soup.get_text()
     # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
-    core_text = ' '.join(core_text.strip().splitlines())
-    return core_text
+    all_text = ' '.join(all_text.strip().splitlines())
+
+    # Vectorize the page content
+    vectorizer = TfidfVectorizer()
+    vectorized_text = vectorizer.fit_transform([all_text])
+
+    # Vectorize the question
+    vectorized_question = vectorizer.transform([question])
+
+    # Calculate document similarity
+    similarity_scores = cosine_similarity(vectorized_text, vectorized_question)
+
+    # Retrieve relevant text chunks based on similarity threshold
+    relevant_chunks = []
+    for i, score in enumerate(similarity_scores):
+        if score >= similarity_threshold:
+            relevant_chunks.append(all_text)
+
+    # Concatenate relevant text chunks into a single text block
+    relevant_text_block = ' '.join(relevant_chunks)
+
+    return relevant_text_block
+
 
 
 def extract_results(url, max_num, chromedriver_path=None):
@@ -169,7 +192,7 @@ class Processor(APScript):
             title = result["title"]
             content = result["content"]
             link = result["link"]
-            content = get_webpage_content(link)
+            content = get_relevant_text_block(link, query)
             formatted_text += f"web:\n"+content+"\n"
 
         print("Searchengine results : ")
