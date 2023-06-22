@@ -11,6 +11,23 @@ def format_url_parameter(value:str):
     encoded_value = value.strip().replace("\"","")
     return encoded_value
 
+def get_webpage_content(url):
+    import requests
+    from bs4 import BeautifulSoup    
+
+    response = requests.get(url)
+    html_content = response.content
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # Example: Remove all <script> and <style> tags
+    for script in soup(["script", "style"]):
+        script.extract()
+    
+    core_text = soup.get_text()
+    # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
+    core_text = ' '.join(core_text.strip().splitlines())
+    return core_text
+
+
 def extract_results(url, max_num, chromedriver_path=None):
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
@@ -152,8 +169,8 @@ class Processor(APScript):
             title = result["title"]
             content = result["content"]
             link = result["link"]
-            href = result["href"]
-            formatted_text += f"index: {i+1}\nsource: {href}\ntitle: {title}\n"
+            content = get_webpage_content(link)
+            formatted_text += f"web:\n"+content+"\n"
 
         print("Searchengine results : ")
         print(formatted_text)
