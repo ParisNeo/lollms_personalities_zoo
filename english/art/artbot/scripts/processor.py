@@ -153,8 +153,15 @@ class Processor(APScript):
         output = sd_prompt.strip()+"\n"
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
-            output += f"![]({files[i]})\n"
+            pth = files[i].split('/')
+            idx = pth.index("outputs")
+            pth = "/".join(pth[idx:])
+            file_path = f"![]({files[i]})\n"
+            output += file_path
+            print(f"Generated file in here : {files[i]}")
 
+        if callback:
+            callback(output,MSG_TYPE.MSG_TYPE_FULL)
         return output
 
 
