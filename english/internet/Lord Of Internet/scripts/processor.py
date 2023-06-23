@@ -13,14 +13,21 @@ def format_url_parameter(value:str):
     return encoded_value
 
 
-def get_relevant_text_block(url, question, max_global_size=512, chunk_size=512, overlap_size=50, similarity_threshold=0.5, callback=None):
+def get_relevant_text_block(
+                                url, 
+                                question, 
+                                max_nb_chunks=2, 
+                                max_global_size=512, 
+                                max_chunk_size=256, 
+                                overlap_size=50,
+                                callback=None):
     import requests
     from bs4 import BeautifulSoup
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
     if callback:
         callback("Recovering data", MSG_TYPE.MSG_TYPE_STEP_START)
-
+        
     response = requests.get(url)
     html_content = response.content
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -43,15 +50,20 @@ def get_relevant_text_block(url, question, max_global_size=512, chunk_size=512, 
     chunk=""
     for i in range(len(sentences)):
         sentence_size = len(sentences[i])
-        print(sentences[i])
         current_chunk_size = len(chunk)+sentence_size
-        if current_chunk_size<chunk_size:
+        if current_chunk_size<max_chunk_size:
             chunk+=sentences[i]
         else:
             chunks.append(chunk)
-            chunk = '. '.join(sentences[i-overlap_size:i+1])
-            if i==len(sentences)-1:
-                chunk=""
+            
+            chunk = ""
+            ol = []
+            j=0
+            while len(chunk)<overlap_size and i-j>=0:
+                ol.append(sentences[i-j])
+                j+=1
+                chunk=chunk+sentences[i-j]+".\n"
+            chunk += ".\n".join(reversed(ol))
     if chunk!="":
         chunks.append(chunk)
 
@@ -79,11 +91,12 @@ def get_relevant_text_block(url, question, max_global_size=512, chunk_size=512, 
 
         # Retrieve relevant text chunks based on similarity threshold
         relevant_chunks = []
-        while len(relevant_chunks) == 0 and similarity_threshold >= 0:
-            for i, score in enumerate(similarity_scores):
-                if score >= similarity_threshold:
-                    relevant_chunks.append(chunks[i])
-            similarity_threshold -= 0.1
+        # Sort similarity scores in descending order and get the indices of top n scores
+        top_n_indices = similarity_scores.argsort(axis=0)[-max_nb_chunks:][::-1]
+
+        # Retrieve the corresponding chunks
+        for index in top_n_indices:
+            relevant_chunks.append(chunks[index[0]])
 
         if callback:
             callback("Searching relevant data", MSG_TYPE.MSG_TYPE_STEP_END)
@@ -158,37 +171,39 @@ def extract_results(url, max_num, chromedriver_path=None):
     # Initialize an empty list to store the results
     results_list = []
 
-    # Find all <li> tags within the <ol> tag
-    li_tags = ol_tag.find_all("li")
+    try:
+        # Find all <li> tags within the <ol> tag
+        li_tags = ol_tag.find_all("li")
 
-    # Loop through each <li> tag, limited by max_num
-    for index, li_tag in enumerate(li_tags):
-        if index > max_num:
-            break
+        # Loop through each <li> tag, limited by max_num
+        for index, li_tag in enumerate(li_tags):
+            if index > max_num:
+                break
 
-        try:
-            # Find the three <div> tags within the <article> tag
-            div_tags = li_tag.find_all("div")
+            try:
+                # Find the three <div> tags within the <article> tag
+                div_tags = li_tag.find_all("div")
 
-            # Extract the link, title, and content from the <div> tags
-            links = div_tags[0].find_all("a")
-            href_value = links[1].get('href')
-            span = links[1].find_all("span")
-            link = span[0].text.strip()
+                # Extract the link, title, and content from the <div> tags
+                links = div_tags[0].find_all("a")
+                href_value = links[1].get('href')
+                span = links[1].find_all("span")
+                link = span[0].text.strip()
 
-            title = div_tags[2].text.strip()
-            content = div_tags[3].text.strip()
+                title = div_tags[2].text.strip()
+                content = div_tags[3].text.strip()
 
-            # Add the extracted information to the list
-            results_list.append({
-                "link": link,
-                "href": href_value,
-                "title": title,
-                "content": content
-            })
-        except Exception:
-            pass
-
+                # Add the extracted information to the list
+                results_list.append({
+                    "link": link,
+                    "href": href_value,
+                    "title": title,
+                    "content": content
+                })
+            except Exception:
+                pass
+    except:
+        pass
     return results_list
 
    
@@ -208,23 +223,17 @@ class Processor(APScript):
         self.summaries=[]
         self.word_callback = None
         self.generate_fn = None
-        
-        personality_config = TypedConfig(
-            ConfigTemplate([
-                
-                {"name":"chromedriver_path","type":"bool","value":""},
+        template = ConfigTemplate([
+                {"name":"craft_search_query","type":"bool","value":False},
                 {"name":"chromedriver_path","type":"str","value":""},
-                {"name":"num_results","type":"int","value":3, "min":2, "max":100},
+                {"name":"num_results","type":"int","value":5, "min":2, "max":100},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
-                
-            ]),
-            BaseConfig(config={
-                'chromedriver_path'         : "",
-                'num_results'               : 3,
-                'max_query_size'            : 50,
-                'max_summery_size'          : 256
-            })
+            ])
+        config = BaseConfig.from_template(template)
+        personality_config = TypedConfig(
+            template,
+            config
         )
         super().__init__(
                             personality,
@@ -257,7 +266,7 @@ class Processor(APScript):
             content = result["content"]
             href = result["href"]
             content = get_relevant_text_block(href, query, callback=self.word_callback)
-            formatted_text += f"web:\n"+content+"\n"
+            formatted_text += f"web:{result['href']}\n"+content+"\n"
 
         print("Searchengine results : ")
         print(formatted_text)
@@ -279,28 +288,32 @@ class Processor(APScript):
             None
         """
         self.word_callback = callback
-
-        # 1 first ask the model to formulate a query
-        search_formulation_prompt = f"""### Instructions:
-Formulate a search query text out of the user prompt.
-Keep all important information in the query and do not add unnecessary text.
-Write a short query.
-Do not explain the query.
-## question:
-{prompt}
-### search query:
-"""
-        if callback is not None:
-            callback("Crafting search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP_START)
-        search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
-        if search_query=="":
-            search_query=prompt
-        if callback is not None:
-            callback("Crafted search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP_END)
+        if self.personality_config.craft_search_query:
+            # 1 first ask the model to formulate a query
+            search_formulation_prompt = f"""### Instructions:
+    Formulate a search query text out of the user prompt.
+    Keep all important information in the query and do not add unnecessary text.
+    Write a short query.
+    Do not explain the query.
+    ## question:
+    {prompt}
+    ### search query:
+    """
+            if callback is not None:
+                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
+            search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
+            if search_query=="":
+                search_query=prompt
+            if callback is not None:
+                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
+        else:
+            search_query = prompt
+            
         search_result, results = self.internet_search(search_query)
         prompt = f"""### Instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
 Place the citation links in front of each relevant information.
+Citation is mandatory.
 ### search results:
 {search_result}
 ### question:
