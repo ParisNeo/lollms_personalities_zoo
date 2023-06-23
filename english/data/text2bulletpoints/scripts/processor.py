@@ -180,7 +180,7 @@ class Processor(APScript):
         try:
             self.build_db()
             if self.word_callback:
-                self.word_callback("File added successfully",MSG_TYPE.MSG_TYPE_STEP)
+                self.word_callback("File added successfully",MSG_TYPE.MSG_TYPE_STEP_END)
             return True
         except Exception as ex:
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")

@@ -290,11 +290,13 @@ Do not explain the query.
 {prompt}
 ### search query:
 """
+        if callback is not None:
+            callback("Crafting search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP_START)
         search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
         if search_query=="":
             search_query=prompt
         if callback is not None:
-            callback("Crafted search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP)
+            callback("Crafted search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP_END)
         search_result, results = self.internet_search(search_query)
         prompt = f"""### Instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
