@@ -6,16 +6,20 @@ from lollms.personality import APScript, AIPersonality
 
 from pathlib import Path
 import subprocess
+import re
 
 def format_url_parameter(value:str):
     encoded_value = value.strip().replace("\"","")
     return encoded_value
 
-def get_relevant_text_block(url, question, similarity_threshold=0.5):
+
+def get_relevant_text_block(url, question, max_global_size=512, chunk_size=512, overlap_size=50, similarity_threshold=0.5, callback=None):
     import requests
     from bs4 import BeautifulSoup
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
+    if callback:
+        callback("Recovering data", MSG_TYPE.MSG_TYPE_STEP_START)
 
     response = requests.get(url)
     html_content = response.content
@@ -27,27 +31,85 @@ def get_relevant_text_block(url, question, similarity_threshold=0.5):
     all_text = soup.get_text()
     # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
     all_text = ' '.join(all_text.strip().splitlines())
+    if callback:
+        callback("Recovering data", MSG_TYPE.MSG_TYPE_STEP_END)
 
-    # Vectorize the page content
-    vectorizer = TfidfVectorizer()
-    vectorized_text = vectorizer.fit_transform([all_text])
+    # Split the text into sentences
+    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)[\.\?\s]{2,}', all_text)
 
-    # Vectorize the question
-    vectorized_question = vectorizer.transform([question])
 
-    # Calculate document similarity
-    similarity_scores = cosine_similarity(vectorized_text, vectorized_question)
+    # Chunk the sentences into consistent blocks with overlap
+    chunks = []
+    chunk=""
+    for i in range(len(sentences)):
+        sentence_size = len(sentences[i])
+        print(sentences[i])
+        current_chunk_size = len(chunk)+sentence_size
+        if current_chunk_size<chunk_size:
+            chunk+=sentences[i]
+        else:
+            chunks.append(chunk)
+            chunk = '. '.join(sentences[i-overlap_size:i+1])
+            if i==len(sentences)-1:
+                chunk=""
+    if chunk!="":
+        chunks.append(chunk)
 
-    # Retrieve relevant text chunks based on similarity threshold
-    relevant_chunks = []
-    for i, score in enumerate(similarity_scores):
-        if score >= similarity_threshold:
-            relevant_chunks.append(all_text)
+    if len(chunks)==1:
+        return chunks[0]
+    else:
+        if callback:
+            callback("Vectorizing data", MSG_TYPE.MSG_TYPE_STEP_START)
+        # Vectorize the chunks
+        vectorizer = TfidfVectorizer()
+        vectorized_text = vectorizer.fit_transform(chunks)
 
-    # Concatenate relevant text chunks into a single text block
-    relevant_text_block = ' '.join(relevant_chunks)
+        if callback:
+            callback("Vectorizing data", MSG_TYPE.MSG_TYPE_STEP_END)
 
-    return relevant_text_block
+        if callback:
+            callback("Searching relevant data", MSG_TYPE.MSG_TYPE_STEP_START)
+
+        # Vectorize the question
+        vectorized_question = vectorizer.transform([question])
+
+        # Calculate document similarity
+        similarity_scores = cosine_similarity(vectorized_text, vectorized_question)
+
+
+        # Retrieve relevant text chunks based on similarity threshold
+        relevant_chunks = []
+        while len(relevant_chunks) == 0 and similarity_threshold >= 0:
+            for i, score in enumerate(similarity_scores):
+                if score >= similarity_threshold:
+                    relevant_chunks.append(chunks[i])
+            similarity_threshold -= 0.1
+
+        if callback:
+            callback("Searching relevant data", MSG_TYPE.MSG_TYPE_STEP_END)
+
+        if callback:
+            callback("Preprocessing data", MSG_TYPE.MSG_TYPE_STEP_START)
+
+        # Cap the relevant chunks to not exceed max_global_size
+        capped_relevant_chunks = []
+        current_size = 0
+        for chunk in relevant_chunks:
+            chunk_size = len(chunk)
+            if current_size + chunk_size <= max_global_size:
+                capped_relevant_chunks.append(chunk)
+                current_size += chunk_size
+            else:
+                break
+
+        # Concatenate relevant text chunks into a single text block
+        relevant_text_block = ' '.join(capped_relevant_chunks)
+        if callback:
+            callback("Preprocessing data", MSG_TYPE.MSG_TYPE_STEP_END)
+
+        return relevant_text_block
+
+
 
 
 
@@ -149,6 +211,8 @@ class Processor(APScript):
         
         personality_config = TypedConfig(
             ConfigTemplate([
+                
+                {"name":"chromedriver_path","type":"bool","value":""},
                 {"name":"chromedriver_path","type":"str","value":""},
                 {"name":"num_results","type":"int","value":3, "min":2, "max":100},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
@@ -191,8 +255,8 @@ class Processor(APScript):
         for i, result in enumerate(results):
             title = result["title"]
             content = result["content"]
-            link = result["link"]
-            content = get_relevant_text_block(link, query)
+            href = result["href"]
+            content = get_relevant_text_block(href, query, callback=self.word_callback)
             formatted_text += f"web:\n"+content+"\n"
 
         print("Searchengine results : ")
@@ -230,10 +294,8 @@ Do not explain the query.
         if search_query=="":
             search_query=prompt
         if callback is not None:
-            callback("Crafted search query :"+search_query+"\nSearching...", MSG_TYPE.MSG_TYPE_FULL)
+            callback("Crafted search query: "+search_query, MSG_TYPE.MSG_TYPE_STEP)
         search_result, results = self.internet_search(search_query)
-        if callback is not None:
-            callback("Crafted search query :"+search_query+"\nSearching... OK\nSummerizing...", MSG_TYPE.MSG_TYPE_FULL)
         prompt = f"""### Instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
 Place the citation links in front of each relevant information.
