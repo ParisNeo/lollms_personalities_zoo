@@ -266,7 +266,7 @@ class Processor(APScript):
             content = result["content"]
             href = result["href"]
             content = get_relevant_text_block(href, query, callback=self.word_callback)
-            formatted_text += f"web:{result['href']}\n"+content+"\n"
+            formatted_text += f"link:{result['href']}\n"+"content:"+content+"\n"
 
         print("Searchengine results : ")
         print(formatted_text)
