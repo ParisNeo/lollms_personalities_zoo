@@ -240,6 +240,14 @@ class Processor(APScript):
                             personality_config
                         )
         
+        #Now try to import stuff to verify that installation succeeded
+        import requests
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from bs4 import BeautifulSoup
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        
     def install(self):
         super().install()
         requirements_file = self.personality.personality_package_path / "requirements.txt"
@@ -247,6 +255,8 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "--no-cache-dir", "-r", str(requirements_file)])        
         ASCIIColors.success("Installed successfully")
 
+    def uninstall(self):
+        super().uninstall()
 
      
     def internet_search(self, query):
