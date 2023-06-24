@@ -16,21 +16,23 @@ def format_url_parameter(value:str):
 def get_relevant_text_block(
                                 url, 
                                 question, 
+                                driver,
                                 max_nb_chunks=2, 
                                 max_global_size=512, 
                                 max_chunk_size=256, 
                                 overlap_size=50,
                                 callback=None):
-    import requests
-    from bs4 import BeautifulSoup
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
-    if callback:
-        callback("Recovering data", MSG_TYPE.MSG_TYPE_STEP_START)
-        
-    response = requests.get(url)
-    html_content = response.content
-    soup = BeautifulSoup(html_content, 'html.parser')
+    from bs4 import BeautifulSoup    
+    # Load the webpage
+    driver.get(url)
+
+    # Wait for JavaScript to execute and get the final page source
+    html_content = driver.page_source
+
+    # Parse the HTML content
+    soup = BeautifulSoup(html_content, "html.parser")
     # Example: Remove all <script> and <style> tags
     for script in soup(["script", "style"]):
         script.extract()
@@ -91,6 +93,8 @@ def get_relevant_text_block(
 
         # Retrieve relevant text chunks based on similarity threshold
         relevant_chunks = []
+        if max(similarity_scores)<0.5:
+            return ""
         # Sort similarity scores in descending order and get the indices of top n scores
         top_n_indices = similarity_scores.argsort(axis=0)[-max_nb_chunks:][::-1]
 
@@ -126,35 +130,14 @@ def get_relevant_text_block(
 
 
 
-def extract_results(url, max_num, chromedriver_path=None):
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
+def extract_results(url, max_num, driver=None):
     from bs4 import BeautifulSoup    
-    # Configure Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
-
-    # Set path to chromedriver executable (replace with your own path)
-    if chromedriver_path is None: 
-        chromedriver_path = ""#"/snap/bin/chromium.chromedriver"    
-
-    # Create a new Chrome webdriver instance
-    try:
-        driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
-    except:
-        driver = webdriver.Chrome(options=chrome_options)
 
     # Load the webpage
     driver.get(url)
 
     # Wait for JavaScript to execute and get the final page source
     html_content = driver.page_source
-
-    # Close the browser
-    driver.quit()
 
     # Parse the HTML content
     soup = BeautifulSoup(html_content, "html.parser")
@@ -177,7 +160,7 @@ def extract_results(url, max_num, chromedriver_path=None):
 
         # Loop through each <li> tag, limited by max_num
         for index, li_tag in enumerate(li_tags):
-            if index > max_num:
+            if index > max_num*3:
                 break
 
             try:
@@ -259,7 +242,7 @@ class Processor(APScript):
         super().uninstall()
 
      
-    def internet_search(self, query):
+    def internet_search(self, query, chromedriver_path):
         """
         Perform an internet search using the provided query.
 
@@ -269,14 +252,45 @@ class Processor(APScript):
         Returns:
             dict: The search result as a dictionary.
         """
+
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
         formatted_text = ""
-        results = extract_results(f"https://duckduckgo.com/?q={format_url_parameter(query)}&t=h_&ia=web", self.personality_config.num_results, self.personality_config.chromedriver_path)
+        nb_non_empty = 0
+        # Configure Chrome options
+        chrome_options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--remote-debugging-port=9222")
+        chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+
+        # Set path to chromedriver executable (replace with your own path)
+        if chromedriver_path is None: 
+            chromedriver_path = ""#"/snap/bin/chromium.chromedriver"    
+
+        # Create a new Chrome webdriver instance
+        try:
+            driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
+        except:
+            driver = webdriver.Chrome(options=chrome_options)
+
+        results = extract_results(
+                                    f"https://duckduckgo.com/?q={format_url_parameter(query)}&t=h_&ia=web",
+                                    self.personality_config.num_results,
+                                    driver
+                                )
         for i, result in enumerate(results):
             title = result["title"]
             content = result["content"]
             href = result["href"]
-            content = get_relevant_text_block(href, query, callback=self.word_callback)
-            formatted_text += f"link:{result['href']}\n"+"content:"+content+"\n"
+            content = get_relevant_text_block(href, query, driver, callback=self.word_callback)
+            if len(content)>50:
+                nb_non_empty += 1
+                formatted_text += f"title:{result['title']}\nlink:{result['href']}\n"+"content:"+content+"\n"
+            if nb_non_empty>=self.personality_config.num_results:
+                break
+        # Close the browser
+        driver.quit()
 
         print("Searchengine results : ")
         print(formatted_text)
@@ -319,7 +333,7 @@ class Processor(APScript):
         else:
             search_query = prompt
             
-        search_result, results = self.internet_search(search_query)
+        search_result, results = self.internet_search(search_query, self.personality_config.chromedriver_path)
         prompt = f"""### Instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
 Place the citation links in front of each relevant information.
