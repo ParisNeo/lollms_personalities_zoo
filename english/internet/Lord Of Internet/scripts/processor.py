@@ -315,13 +315,13 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = f"""### Instructions:
-    Formulate a search query text out of the user prompt.
-    Keep all important information in the query and do not add unnecessary text.
-    Write a short query.
-    Do not explain the query.
-    ## question:
-    {prompt}
-    ### search query:
+Formulate a search query text out of the user prompt.
+Keep all important information in the query and do not add unnecessary text.
+Write a short query.
+Do not explain the query.
+## question:
+{prompt}
+### search query:
     """
             if callback is not None:
                 callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
