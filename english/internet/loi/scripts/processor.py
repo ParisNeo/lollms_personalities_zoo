@@ -181,7 +181,7 @@ def extract_results(url, max_num, driver=None):
                     "link": link,
                     "href": href_value,
                     "title": title,
-                    "content": content
+                    "brief": content
                 })
             except Exception:
                 pass
@@ -281,12 +281,12 @@ class Processor(APScript):
                                 )
         for i, result in enumerate(results):
             title = result["title"]
-            content = result["content"]
+            brief = result["brief"]
             href = result["href"]
             content = get_relevant_text_block(href, query, driver, callback=self.word_callback)
             if len(content)>50:
                 nb_non_empty += 1
-                formatted_text += f"title:{result['title']}\nlink:{result['href']}\n"+"content:"+content+"\n"
+                formatted_text += f"title:{result['title']}\nlink:{result['href']}\n"+"brief:"+brief+"\ncontent:"+content+"\n"
             if nb_non_empty>=self.personality_config.num_results:
                 break
         # Close the browser
