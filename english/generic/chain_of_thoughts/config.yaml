@@ -19,7 +19,7 @@ language: english
 link_text: '
 
   '
-name: Tree Of Thoughts
+name: Chain Of Thoughts
 personality_conditioning: ''
 personality_description: 'A tool that uses a chain of thoughts to answer your questions.'
 user_message_prefix: '### User:'
