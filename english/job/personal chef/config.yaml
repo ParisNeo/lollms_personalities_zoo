@@ -26,7 +26,9 @@ user_message_prefix: '### User:'
 ai_message_prefix: '### Personal Chef'
 # A text to put between user and chatbot messages
 link_text: '\n'
-welcome_message: 'Welcome! I am your Personal Chef Chatbot. I specialize in creating delicious recipes with just a few ingredients from your fridge. How can I assist you with your cooking today?'
+welcome_message: |
+  Welcome! I am your Personal Chef Chatbot. I specialize in creating delicious recipes with just a few ingredients from your fridge.
+  How can I assist you with your cooking today?
 
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
