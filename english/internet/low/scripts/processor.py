@@ -30,7 +30,9 @@ class Processor(APScript):
         self.word_callback = None
         self.generate_fn = None
         template = ConfigTemplate([
-                {"name":"num_results","type":"int","value":5, "min":2, "max":100},
+                {"name":"craft_search_query","type":"bool","value":False},
+                {"name":"num_sentences","type":"int","value":10, "min":2, "max":100},
+                {"name":"max_nb_images","type":"int","value":3, "min":1, "max":100},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
             ])
@@ -58,7 +60,7 @@ class Processor(APScript):
         super().uninstall()
 
      
-    def wiki_search(self, query):
+    def wiki_search(self, query, nb_sentences=3):
         """
         Perform an internet search using the provided query.
 
@@ -71,9 +73,9 @@ class Processor(APScript):
 
         import wikipedia
         try:
-            summary = wikipedia.summary(query)
+            summary = wikipedia.summary(query, sentences=nb_sentences)
             is_ambiguous = False
-        except DisambiguationError as ex:
+        except wikipedia.DisambiguationError as ex:
             summary = str(ex)
             is_ambiguous = True
             
@@ -99,7 +101,7 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = f"""### Instructions:
-Formulate a search query text out of the user prompt.
+Formulate a wikipedia search query text out of the user prompt.
 Keep all important information in the query and do not add unnecessary text.
 Write a short query.
 Do not explain the query.
@@ -116,26 +118,27 @@ Do not explain the query.
                 callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
         else:
             search_query = prompt
-        search_result, is_ambiguous = self.wiki_search(search_query)
+        search_result, is_ambiguous = self.wiki_search(search_query, nb_sentences=self.personality_config.num_sentences)
         if is_ambiguous:
             if callback:
                 callback(search_result, MSG_TYPE.MSG_TYPE_FULL)
                 return search_result
         else:
-            prompt = f"""### Instructions:
-Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
-Place the citation links in front of each relevant information.
-Citation is mandatory.
-### search results:
+            page = wikipedia.page(search_query)
+            images = page.images
+            # cap images
+            images = images[:self.personality_config.max_nb_images]
+            images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
+            prompt = f"""Format: markdown.
+### wikipedia:
 {search_result}
-### question:
-{prompt}
-## answer:
-"""
+### images:
+{images}
+{previous_discussion_text}"""
             print(prompt)
             output = self.generate(prompt, self.personality_config.max_summery_size)
-            sources_text = "\n# Source :\n"
-            page = wikipedia.page(search_query)
+            sources_text = "\n-----------\n"
+            sources_text += "# Source :\n"
             sources_text += f"[source : {page.title}]({page.url})\n\n"
 
             output = output+sources_text
