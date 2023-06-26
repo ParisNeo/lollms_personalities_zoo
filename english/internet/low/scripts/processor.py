@@ -30,9 +30,9 @@ class Processor(APScript):
         self.word_callback = None
         self.generate_fn = None
         template = ConfigTemplate([
-                {"name":"craft_search_query","type":"bool","value":False},
-                {"name":"num_sentences","type":"int","value":10, "min":2, "max":100},
-                {"name":"max_nb_images","type":"int","value":3, "min":1, "max":100},
+                {"name":"craft_search_query","type":"bool","value":False,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
+                {"name":"num_sentences","type":"int","value":10, "min":2, "max":100,"help":"Number of sentences to recover from wikipedia to be used by LOW to answer you."},
+                {"name":"max_nb_images","type":"int","value":10, "min":1, "max":100,"help":"Sometimes, LOW can show you images extracted from wikipedia."},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
             ])
@@ -125,7 +125,7 @@ Do not explain the query.
                 return search_result
         else:
             page = wikipedia.page(search_query)
-            images = page.images
+            images = [img for img in page.images if img.split('.')[-1].lower() in ["png","jpg","webp","svg"]
             # cap images
             images = images[:self.personality_config.max_nb_images]
             images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
