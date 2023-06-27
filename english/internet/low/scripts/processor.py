@@ -32,7 +32,7 @@ class Processor(APScript):
         template = ConfigTemplate([
                 {"name":"craft_search_query","type":"bool","value":False,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
                 {"name":"synthesize","type":"bool","value":True,"help":"By default, LOW will preprocess the outputs before answering you. If you deactivate this, you will simply get the wikiopedia output."},
-                {"name":"num_sentences","type":"int","value":10, "min":2, "max":100,"help":"Number of sentences to recover from wikipedia to be used by LOW to answer you."},
+                {"name":"num_results","type":"int","value":20, "min":2, "max":100,"help":"Number of sentences to recover from wikipedia to be used by LOW to answer you."},
                 {"name":"max_nb_images","type":"int","value":10, "min":1, "max":100,"help":"Sometimes, LOW can show you images extracted from wikipedia."},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
@@ -141,13 +141,13 @@ answer>
                 # 1 first ask the model to formulate a query
                 search_formulation_prompt = f"""Instructions>
 Formulate a wikipedia search query text out of the user prompt.
+Do not use underscores in names. Use spaces instead.
 Keep all important information in the query and do not add unnecessary text.
 The query is in the form of keywords.
 Do not explain the query.
 question>
 {prompt}
-query>
-keywords query:"""
+query>"""
                 if callback is not None:
                     callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
                 search_query = self.generate(search_formulation_prompt, self.personality_config.max_query_size).strip()
@@ -157,63 +157,77 @@ keywords query:"""
                     callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
             else:
                 search_query = prompt
-            results = wikipedia.search(search_query)
-            entry = self.data_driven_qa(
-                "\n".join([f"{i}: {res}" for i, res in enumerate(results)]),
-                f"{prompt}",
-                "The most relevant entry to aswer the question among the proposed ones is entry number:",
-                max_size = 4,
-                repeat_penalty=0.5)
-            try:
-                print(f"selected entry:{entry}")
-                entry=results[int(entry.strip())]
-            except:
+            results, stat = wikipedia.search(search_query, results = self.personality_config.num_results, suggestion = True)
+            
+            #select entry
+            ok = False
+            while not ok:
+                entry = self.data_driven_qa(
+                    "\n".join([f"{i}: {res}" for i, res in enumerate(results)]),
+                    f"{prompt}",
+                    "The most relevant entry to aswer the question among the proposed ones is entry number:",
+                    max_size = 4,
+                    repeat_penalty=0.5)
                 try:
-                    entry = entry.strip().split("\n")[0]
-                    entry=results[int(entry)]
+                    print(f"selected entry:{entry}")
+                    entry=int(entry.strip())
                 except:
                     try:
-                        entry = entry.strip().split(":")[0]
-                        entry=results[int(entry)]
+                        entry = entry.strip().split("\n")[0]
+                        entry=int(entry)
                     except:
-                        ASCIIColors.warning(f"couldn't figure out which entry is best. Defaulting to first one")
-                        entry=results[0]
+                        try:
+                            entry = entry.strip().split(":")[0]
+                            entry=int(entry)
+                        except:
+                            ASCIIColors.warning(f"couldn't figure out which entry is best. Defaulting to first one")
+                            entry=0                
 
-            if callback is not None:
-                callback(f"Entry: {entry}", MSG_TYPE.MSG_TYPE_STEP_START)
-                callback(f"Entry: {entry}", MSG_TYPE.MSG_TYPE_STEP_END)
-            page = wikipedia.page(entry)
-            search_result = page.summary
-            images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
-            # cap images
-            images = images[:self.personality_config.max_nb_images]
-            images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
-            prompt = f"""{previous_discussion_text}
-Use this data and images to answer the user
-wikipedia>
-{search_result}
-images>
-{images}
-answer>"""
-            if callback is not None:
-                callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_START)
-            output = self.generate(prompt, self.personality_config.max_summery_size)
-            sources_text = "\n-----------\n"
-            sources_text += "# Source :\n"
-            sources_text += f"[{page.title}]({page.url})\n\n"
-            if callback is not None:
-                callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_END)
 
-            output = output+sources_text
-            if callback is not None:
-                callback(output, MSG_TYPE.MSG_TYPE_FULL)
+                if callback is not None:
+                    callback(f"Entry: {results[entry]}", MSG_TYPE.MSG_TYPE_STEP_START)
+                    callback(f"Entry: {results[entry]}", MSG_TYPE.MSG_TYPE_STEP_END)
+                try:
+                    page = wikipedia.page(results[entry])
+                    search_result = page.summary
+                    images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
+                    # cap images
+                    images = images[:self.personality_config.max_nb_images]
+                    images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
+                    ok = True
+                except:
+                    del results[entry]
+                    if len(results[entry])<=0:
+                        raise Exception("Couldn't find relevant data")
+            if self.personality_config.synthesize:
+                prompt = f"""{previous_discussion_text}
+    Use this data and images to answer the user
+    wikipedia>
+    {search_result}
+    images>
+    {images}
+    answer>"""
+                if callback is not None:
+                    callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_START)
+                output = self.generate(prompt, self.personality_config.max_summery_size)
+                sources_text = "\n--\n"
+                sources_text += "# Source :\n"
+                sources_text += f"[{page.title}]({page.url})\n\n"
+                if callback is not None:
+                    callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_END)
 
-            return output
+                output = output+sources_text
+                if callback is not None:
+                    callback(output, MSG_TYPE.MSG_TYPE_FULL)
+            else:
+                if callback is not None:
+                    callback(search_result, MSG_TYPE.MSG_TYPE_FULL)
+                output = search_result
         except Exception as ex:
             output = f"Exception occured while running workflow: {ex}"
             if callback is not None:
                 callback(output, MSG_TYPE.MSG_TYPE_EXCEPTION)
-            return output   
+        return output   
 
 
 
