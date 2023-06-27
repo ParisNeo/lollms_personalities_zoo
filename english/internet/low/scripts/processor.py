@@ -72,20 +72,17 @@ class Processor(APScript):
                             repeat_penalty=None 
                         ):
         if instruction is not None:
-            instruction = '### Instructions:\n'+instruction
+            instruction = 'instructions>'+instruction
             search_formulation_prompt = f"""{instruction}
-> data:
-{data}
-> question:
-{question}
-> answer:
-{answer_motivational_text}"""
+data> {data}
+question> {question}
+answer> {answer_motivational_text}"""
         else:
             search_formulation_prompt = f"""> data:
 {data}
-> question:
+question>
 {question}
-> answer:
+answer>
 {answer_motivational_text}"""
             
         if self.word_callback is not None:
@@ -100,6 +97,7 @@ class Processor(APScript):
         if self.word_callback is not None:
             self.word_callback(f"Asking AI: "+question, MSG_TYPE.MSG_TYPE_STEP_END)
         return answer
+    
     def wiki_search(self, query, nb_sentences=3):
         """
         Perform an internet search using the provided query.
@@ -141,14 +139,14 @@ class Processor(APScript):
             self.word_callback = callback
             if self.personality_config.craft_search_query:
                 # 1 first ask the model to formulate a query
-                search_formulation_prompt = f"""### Instructions>
+                search_formulation_prompt = f"""Instructions>
 Formulate a wikipedia search query text out of the user prompt.
 Keep all important information in the query and do not add unnecessary text.
 The query is in the form of keywords.
 Do not explain the query.
-## question>
+question>
 {prompt}
-### query>
+query>
 keywords query:"""
                 if callback is not None:
                     callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
@@ -167,6 +165,7 @@ keywords query:"""
                 max_size = 4,
                 repeat_penalty=0.5)
             try:
+                print(f"selected entry:{entry}")
                 entry=results[int(entry.strip())]
             except:
                 try:
@@ -191,11 +190,11 @@ keywords query:"""
             images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
             prompt = f"""{previous_discussion_text}
 Use this data and images to answer the user
-> wikipedia:
+wikipedia>
 {search_result}
-> images:
+images>
 {images}
-> answer:"""
+answer>"""
             if callback is not None:
                 callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_START)
             output = self.generate(prompt, self.personality_config.max_summery_size)
