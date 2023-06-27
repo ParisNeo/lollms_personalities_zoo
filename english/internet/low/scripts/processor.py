@@ -126,7 +126,7 @@ Do not explain the query.
                 return search_result
         else:
             page = wikipedia.page(search_query)
-            images = [img for img in page.images if img.split('.')[-1].lower() in ["png","jpg","webp","svg"]]
+            images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
             # cap images
             images = images[:self.personality_config.max_nb_images]
             images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
