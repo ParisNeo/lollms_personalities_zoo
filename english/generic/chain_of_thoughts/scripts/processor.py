@@ -34,17 +34,16 @@ class Processor(APScript):
                  personality: AIPersonality
                 ) -> None:
         
-        personality_config = TypedConfig(
-            ConfigTemplate([
+
+        personality_config_template = ConfigTemplate([
                 {"name":"max_thought_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_judgement_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"nb_thoughts","type":"int","value":3, "min":2, "max":100}
-            ]),
-            BaseConfig(config={
-                'max_thought_size': 50,
-                'max_judgement_size': 50,
-                'nb_thoughts': 3
-            })
+            ])
+        personality_config = BaseConfig.from_template(personality_config_template)
+        personality_config = TypedConfig(
+            personality_config_template,
+            personality_config
         )
         super().__init__(
                             personality,

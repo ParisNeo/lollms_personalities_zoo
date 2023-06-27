@@ -39,20 +39,16 @@ class Processor(APScript):
                  self, 
                  personality: AIPersonality
                 ) -> None:
-        
-        personality_config = TypedConfig(
-            ConfigTemplate([
+        personality_config_template = ConfigTemplate([
                 {"name":"max_thought_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_judgement_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"nb_samples_per_idea","type":"int","value":3, "min":2, "max":100},
                 {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100}
-            ]),
-            BaseConfig(config={
-                'max_thought_size'      : 50,
-                'max_judgement_size'    : 50,
-                'nb_samples_per_idea'   : 3,
-                'nb_ideas'            : 3
-            })
+            ])
+        personality_config = BaseConfig.from_template(personality_config_template)
+        personality_config = TypedConfig(
+            personality_config_template,
+            personality_config
         )
         super().__init__(
                             personality,
@@ -113,7 +109,7 @@ class Processor(APScript):
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j} of the tree =====================")
             local_ideas=[]
-            judgement_prompt = f"### prompt:\n{prompt}\n"
+            judgement_prompt = f"### Prompt:\n{prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
