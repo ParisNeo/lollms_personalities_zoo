@@ -60,7 +60,46 @@ class Processor(APScript):
     def uninstall(self):
         super().uninstall()
 
-     
+    def data_driven_qa(self, 
+                            data, 
+                            question, 
+                            answer_motivational_text="",
+                            max_size=128,
+                            instruction = None, 
+                            temperature = None, 
+                            top_k = None, 
+                            top_p=None, 
+                            repeat_penalty=None 
+                        ):
+        if instruction is not None:
+            instruction = '### Instructions:\n'+instruction
+            search_formulation_prompt = f"""{instruction}
+> data:
+{data}
+> question:
+{question}
+> answer:
+{answer_motivational_text}"""
+        else:
+            search_formulation_prompt = f"""> data:
+{data}
+> question:
+{question}
+> answer:
+{answer_motivational_text}"""
+            
+        if self.word_callback is not None:
+            self.word_callback(f"Asking AI: "+question, MSG_TYPE.MSG_TYPE_STEP_START)
+        answer = format_url_parameter(
+            self.generate(
+                        search_formulation_prompt,
+                        max_size,
+                        temperature = temperature, top_k = top_k, top_p=top_p, repeat_penalty=repeat_penalty 
+                        )
+            ).strip()
+        if self.word_callback is not None:
+            self.word_callback(f"Asking AI: "+question, MSG_TYPE.MSG_TYPE_STEP_END)
+        return answer
     def wiki_search(self, query, nb_sentences=3):
         """
         Perform an internet search using the provided query.
@@ -97,56 +136,85 @@ class Processor(APScript):
         Returns:
             None
         """
-        import wikipedia
-        self.word_callback = callback
-        if self.personality_config.craft_search_query:
-            # 1 first ask the model to formulate a query
-            search_formulation_prompt = f"""### Instructions:
+        try:
+            import wikipedia
+            self.word_callback = callback
+            if self.personality_config.craft_search_query:
+                # 1 first ask the model to formulate a query
+                search_formulation_prompt = f"""### Instructions>
 Formulate a wikipedia search query text out of the user prompt.
 Keep all important information in the query and do not add unnecessary text.
-Write a short query.
+The query is in the form of keywords.
 Do not explain the query.
-## question:
+## question>
 {prompt}
-### search query:
-    """
+### query>
+keywords query:"""
+                if callback is not None:
+                    callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
+                search_query = self.generate(search_formulation_prompt, self.personality_config.max_query_size).strip()
+                if search_query=="":
+                    search_query=prompt
+                if callback is not None:
+                    callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
+            else:
+                search_query = prompt
+            results = wikipedia.search(search_query)
+            entry = self.data_driven_qa(
+                "\n".join([f"{i}: {res}" for i, res in enumerate(results)]),
+                f"{prompt}",
+                "The most relevant entry to aswer the question among the proposed ones is entry number:",
+                max_size = 4,
+                repeat_penalty=0.5)
+            try:
+                entry=results[int(entry.strip())]
+            except:
+                try:
+                    entry = entry.strip().split("\n")[0]
+                    entry=results[int(entry)]
+                except:
+                    try:
+                        entry = entry.strip().split(":")[0]
+                        entry=results[int(entry)]
+                    except:
+                        ASCIIColors.warning(f"couldn't figure out which entry is best. Defaulting to first one")
+                        entry=results[0]
+
             if callback is not None:
-                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
-            search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
-            if search_query=="":
-                search_query=prompt
-            if callback is not None:
-                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
-        else:
-            search_query = prompt
-        search_result, is_ambiguous = self.wiki_search(search_query, nb_sentences=self.personality_config.num_sentences)
-        if is_ambiguous:
-            if callback:
-                callback(search_result, MSG_TYPE.MSG_TYPE_FULL)
-                return search_result
-        else:
-            page = wikipedia.page(search_query)
+                callback(f"Entry: {entry}", MSG_TYPE.MSG_TYPE_STEP_START)
+                callback(f"Entry: {entry}", MSG_TYPE.MSG_TYPE_STEP_END)
+            page = wikipedia.page(entry)
+            search_result = page.summary
             images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
             # cap images
             images = images[:self.personality_config.max_nb_images]
             images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
-            prompt = f"""Format: markdown.
-### wikipedia:
+            prompt = f"""{previous_discussion_text}
+Use this data and images to answer the user
+> wikipedia:
 {search_result}
-### images:
+> images:
 {images}
-{previous_discussion_text}"""
-            print(prompt)
+> answer:"""
+            if callback is not None:
+                callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_START)
             output = self.generate(prompt, self.personality_config.max_summery_size)
             sources_text = "\n-----------\n"
             sources_text += "# Source :\n"
-            sources_text += f"[source : {page.title}]({page.url})\n\n"
+            sources_text += f"[{page.title}]({page.url})\n\n"
+            if callback is not None:
+                callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_END)
 
             output = output+sources_text
             if callback is not None:
                 callback(output, MSG_TYPE.MSG_TYPE_FULL)
 
             return output
+        except Exception as ex:
+            output = f"Exception occured while running workflow: {ex}"
+            if callback is not None:
+                callback(output, MSG_TYPE.MSG_TYPE_EXCEPTION)
+            return output   
 
 
 
