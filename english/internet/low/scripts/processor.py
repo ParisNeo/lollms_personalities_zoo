@@ -31,6 +31,7 @@ class Processor(APScript):
         self.generate_fn = None
         template = ConfigTemplate([
                 {"name":"craft_search_query","type":"bool","value":False,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
+                {"name":"synthesize","type":"bool","value":True,"help":"By default, LOW will preprocess the outputs before answering you. If you deactivate this, you will simply get the wikiopedia output."},
                 {"name":"num_sentences","type":"int","value":10, "min":2, "max":100,"help":"Number of sentences to recover from wikipedia to be used by LOW to answer you."},
                 {"name":"max_nb_images","type":"int","value":10, "min":1, "max":100,"help":"Sometimes, LOW can show you images extracted from wikipedia."},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
@@ -125,7 +126,7 @@ Do not explain the query.
                 return search_result
         else:
             page = wikipedia.page(search_query)
-            images = [img for img in page.images if img.split('.')[-1].lower() in ["png","jpg","webp","svg"]
+            images = [img for img in page.images if img.split('.')[-1].lower() in ["png","jpg","webp","svg"]]
             # cap images
             images = images[:self.personality_config.max_nb_images]
             images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
