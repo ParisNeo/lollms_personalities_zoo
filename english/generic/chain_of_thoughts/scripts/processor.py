@@ -76,8 +76,9 @@ class Processor(APScript):
 
         return string
     
-    def process(self, text):
+    def process(self, text, message_type:MSG_TYPE):
         bot_says = self.bot_says + text
+        ASCIIColors.success(f"generated:{len(bot_says)} words", end='\r')
         antiprompt = self.personality.detect_antiprompt(bot_says)
         if antiprompt:
             self.bot_says = self.remove_text_from_string(bot_says,antiprompt)
@@ -89,16 +90,17 @@ class Processor(APScript):
                 self.callback(text,MSG_TYPE.MSG_TYPE_CHUNK)            
             return True
 
-    def generate(self, prompt, max_size):
+    def generate(self, prompt, max_size, temperature = None, top_k = None, top_p=None, repeat_penalty=None ):
         self.bot_says = ""
+        ASCIIColors.info("Text generation started: Warming up")
         return self.personality.model.generate(
                                 prompt, 
                                 max_size, 
                                 self.process,
-                                temperature=self.personality.model_temperature,
-                                top_k=self.personality.model_top_k,
-                                top_p=self.personality.model_top_p,
-                                repeat_penalty=self.personality.model_repeat_penalty,
+                                temperature=self.personality.model_temperature if temperature is None else temperature,
+                                top_k=self.personality.model_top_k if top_k is None else top_k,
+                                top_p=self.personality.model_top_p if top_p is None else top_p,
+                                repeat_penalty=self.personality.model_repeat_penalty if repeat_penalty is None else repeat_penalty,
                                 ).strip()    
         
 
@@ -129,30 +131,25 @@ class Processor(APScript):
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
                     final_ideas_text = "\n".join([f'Idea {n}: {i}' for n,i in enumerate(final_ideas)])
-                    idea_prompt = f"""## Instruction: 
-Write the next idea. Please give a single idea. 
-## Prompt:
-{prompt}
-## Previous ideas:
-{final_ideas_text}
-## Idea: One idea is"""
+                    idea_prompt = f""">instruction: Write the next idea. Please give a single idea. 
+>prompt: {prompt}
+>previous ideas: {final_ideas_text}
+>idea:"""
                 else:
-                    idea_prompt = f"""### Instruction: 
-Write one idea. Do not give multiple ideas. 
-## Prompt:
-{prompt}
-## Idea:"""
+                    idea_prompt = f""">instruction:Write one idea. Do not give multiple ideas. 
+>prompt: {prompt}
+>idea:"""
                 print(idea_prompt,end="",flush=True)
                 idea = self.generate(idea_prompt, self.config["max_thought_size"]).strip()
                 ideas.append(idea)
 
 
-        summary_prompt += f"""## Instructions:
-Combine these ideas in a comprihensive and detailed essai that explains how to answer the user's question:\n{prompt}
+        summary_prompt += f"""> Instructions:
+Combine these ideas in a comprihensive and detailed essai that explains how to answer the user's question: {prompt}
 """
         for idea in final_ideas:
-            summary_prompt += f"## Idea: {idea}\n"
-        summary_prompt += "## Essai:"
+            summary_prompt += f">idea: {idea}\n"
+        summary_prompt += ">essai:"
         print(summary_prompt)
         answer = self.generate(summary_prompt, self.config["max_summary_size"])
         if callback:
