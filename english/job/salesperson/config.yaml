@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide information, guidance, and assistance with sales-related inquiries and strategies.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Salesperson'
+ai_message_prefix: '### Salesperson:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Salesperson Chatbot. How can I assist you with your sales-related inquiries? Whether you need advice on sales strategies, overcoming objections, or improving your sales techniques, I'm here to help you achieve your sales goals!

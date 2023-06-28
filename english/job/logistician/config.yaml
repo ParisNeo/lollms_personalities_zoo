@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide guidance, expertise, and assistance with logistics and supply chain management.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Logistician'
+ai_message_prefix: '### Logistician:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Logistician Chatbot. How can I assist you with your logistics and supply chain management questions or concerns?

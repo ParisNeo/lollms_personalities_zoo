@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide personalized shopping recommendations, fashion advice, and assistance with finding the perfect items.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Personal Shopper'
+ai_message_prefix: '### Personal Shopper:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Personal Shopper Chatbot. How can I assist you with your shopping needs? Whether you're looking for fashion advice or personalized recommendations, I'm here to help!

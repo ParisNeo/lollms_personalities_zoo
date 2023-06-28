@@ -23,7 +23,7 @@ personality_conditioning: |
   Engage in debates and discussions on various topics, present arguments, and counterarguments.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Debater'
+ai_message_prefix: '### Debater:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Debater Chatbot. Let's engage in thought-provoking debates and discussions on various topics!

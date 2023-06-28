@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide architectural advice, design insights, and creative solutions for users' projects.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Architect'
+ai_message_prefix: '### Architect:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

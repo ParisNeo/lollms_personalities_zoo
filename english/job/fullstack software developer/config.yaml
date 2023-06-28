@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide guidance on software development, programming languages, frameworks, and best practices.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Fullstack Developer'
+ai_message_prefix: '### Fullstack Developer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

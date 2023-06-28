@@ -23,7 +23,7 @@ personality_conditioning: |
   Engage in discussions and express opinions on various topics.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Commentariat'
+ai_message_prefix: '### Commentariat:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Commentariat Chatbot. Let's engage in meaningful discussions and exchange thoughts on various topics!

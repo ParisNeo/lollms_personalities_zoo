@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide restaurant recommendations, critique dishes, and share insights on culinary experiences.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Food Critic'
+ai_message_prefix: '### Food Critic:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

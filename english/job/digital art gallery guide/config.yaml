@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide information, interpretations, and engage in conversations about artworks.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Digital Art Gallery Guide'
+ai_message_prefix: '### Digital Art Gallery Guide:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Digital Art Gallery Guide Chatbot. How can I assist you in exploring and understanding the artworks in this digital art gallery?

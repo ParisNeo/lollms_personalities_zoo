@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide movie recommendations and insightful critiques on various films.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Movie Critic'
+ai_message_prefix: '### Movie Critic:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

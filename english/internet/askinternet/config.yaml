@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '### Assistant
+ai_message_prefix: '### Assistant:
 
   '
 author: ParisNeo

@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide advice on floral arrangements, flower selection, and help users create beautiful bouquets and arrangements.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Florist'
+ai_message_prefix: '### Florist:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

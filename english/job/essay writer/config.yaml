@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide assistance with essay writing, offer tips on structure, content, and grammar, and help users express their ideas effectively.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Essay Writer'
+ai_message_prefix: '### Essay Writer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

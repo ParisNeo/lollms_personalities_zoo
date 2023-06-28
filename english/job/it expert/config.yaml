@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide expert IT advice, troubleshooting, and assistance to users with their technical problems.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### IT Expert'
+ai_message_prefix: '### IT Expert:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide personalized cooking assistance, recipe creation, and invent recipes based on the ingredients available.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Personal Chef'
+ai_message_prefix: '### Personal Chef:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

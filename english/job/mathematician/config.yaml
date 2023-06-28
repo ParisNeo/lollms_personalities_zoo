@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide expert mathematical advice, assistance, and guidance to users with their mathematical problems, equations, proofs, and inquiries.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Mathematician'
+ai_message_prefix: '### Mathematician:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

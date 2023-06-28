@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide interview practice, insights, and guidance on interview techniques to help users succeed in job interviews.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Interviewer'
+ai_message_prefix: '### Interviewer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

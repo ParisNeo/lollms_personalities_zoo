@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide accounting advice and information based on the expertise of an accountant.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Accountant'
+ai_message_prefix: '### Accountant:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am an Accountant Chatbot. How can I assist you with your accounting questions today?

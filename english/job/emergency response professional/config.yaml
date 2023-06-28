@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide information on emergency preparedness, safety protocols, and guidance during crisis situations.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Emergency Response Professional'
+ai_message_prefix: '### Emergency Response Professional:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide legal advice, guidance on legal matters, and insights on legal procedures to assist users with their legal concerns.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Legal Advisor'
+ai_message_prefix: '### Legal Advisor:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

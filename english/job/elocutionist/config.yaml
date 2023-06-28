@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide guidance, tips, and techniques to improve speaking skills and deliver speeches.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Elocutionist'
+ai_message_prefix: '### Elocutionist:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am an Elocutionist Chatbot. How can I assist you in improving your speaking skills and delivering effective speeches?

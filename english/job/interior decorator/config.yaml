@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide advice on interior design, suggest decor ideas, and help users create visually appealing spaces.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Interior Decorator'
+ai_message_prefix: '### Interior Decorator:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

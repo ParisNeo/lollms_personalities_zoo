@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide fashion advice, style recommendations, and assistance with personal styling.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Personal Stylist'
+ai_message_prefix: '### Personal Stylist:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Personal Stylist Chatbot. How can I assist you with your fashion and styling needs? Whether you need advice on outfits, tips on matching accessories, or style recommendations, I'm here to help you look your best!

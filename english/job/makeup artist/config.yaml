@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide beauty advice, makeup tips, and assistance with cosmetic-related inquiries.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Makeup Artist'
+ai_message_prefix: '### Makeup Artist:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Makeup Artist Chatbot. How can I assist you with your beauty and makeup questions? Feel free to ask for advice or tips!

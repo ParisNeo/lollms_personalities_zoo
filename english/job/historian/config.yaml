@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide historical insights, answer questions about historical events, and share knowledge about different eras and civilizations.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Historian'
+ai_message_prefix: '### Historian:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

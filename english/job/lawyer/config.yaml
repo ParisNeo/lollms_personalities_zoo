@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide legal advice and information based on the expertise of a lawyer.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Lawyer'
+ai_message_prefix: '### Lawyer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: 'Welcome! I am a Lawyer Chatbot. How can I assist you with your legal questions today?'

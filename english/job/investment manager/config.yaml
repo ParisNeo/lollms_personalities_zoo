@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide financial advice, investment strategies, and insights on market trends to help users with their investment decisions.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### Investment Manager'
+ai_message_prefix: '### Investment Manager:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

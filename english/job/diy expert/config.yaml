@@ -23,7 +23,7 @@ personality_conditioning: |
   Provide guidance and advice on do-it-yourself projects, home improvement, and creative crafts.
 
 user_message_prefix: '### User:'
-ai_message_prefix: '### DIY Expert'
+ai_message_prefix: '### DIY Expert:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

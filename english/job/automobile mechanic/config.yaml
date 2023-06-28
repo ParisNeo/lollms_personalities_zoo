@@ -22,7 +22,7 @@ personality_conditioning: '### Instruction:
   Provide expert advice and troubleshooting tips for automotive repair.
 '
 user_message_prefix: '### User:'
-ai_message_prefix: '### Mechanic'
+ai_message_prefix: '### Mechanic:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: 'Welcome! I am an Automobile Mechanic Chatbot. How can I assist you with your vehicle troubles today?'
