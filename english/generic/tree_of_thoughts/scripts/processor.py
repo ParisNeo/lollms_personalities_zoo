@@ -42,6 +42,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate([
                 {"name":"max_thought_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_judgement_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
+                {"name":"max_summary_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"nb_samples_per_idea","type":"int","value":3, "min":2, "max":100},
                 {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100}
             ])
@@ -108,6 +109,8 @@ class Processor(APScript):
         summary_prompt = ""
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j} of the tree =====================")
+            if callback:
+                callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_START)
             local_ideas=[]
             judgement_prompt = f"### Prompt:\n{prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
@@ -128,17 +131,15 @@ Write the next idea. Please give a single idea.
 {prompt}
 ### Idea:"""
                 print(idea_prompt)
-                idea = self.generate(idea_prompt)
+                idea = self.generate(idea_prompt,self.personality_config.max_thought_size)
                 local_ideas.append(idea.strip())
                 judgement_prompt += f"\n### Idea {i}:{idea}\n"
-                if callback is not None:
-                    callback(f"\n### Idea {i+1}:\n"+idea, MSG_TYPE.MSG_TYPE_FULL)
             prompt_ids = ",".join([str(i) for i in range(self.config["nb_samples_per_idea"])])
             judgement_prompt += f"### Instructions:\nWhich idea seems the most approcpriate. Answer the question by giving the best idea number without explanations.\nWhat is the best idea number {prompt_ids}?\n"
             print(judgement_prompt)
             self.bot_says = ""
-            best_local_idea = self.generate(judgement_prompt).strip()
-            number, index = find_matching_number([i for i in range(self.config["nb_samples_per_idea"])], best_local_idea)
+            best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size).strip()
+            number, index = find_matching_number([i for i in range(self.personality_config["nb_samples_per_idea"])], best_local_idea)
             if index is not None:
                 print(f"Chosen thoght n:{number}")
                 final_ideas.append(local_ideas[number]) 
@@ -151,13 +152,15 @@ Write the next idea. Please give a single idea.
                 final_ideas.append(local_ideas[number]) 
                 if callback is not None:
                     callback(f"### Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_FULL)
+            if callback:
+                callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
 
         summary_prompt += "### Instructions:\nCombine these ideas in a comprihensive essai.\n"
         for idea in final_ideas:
             summary_prompt += f"### Idea: {idea}\n"
         summary_prompt += "### Ideas summary:\n"
         print(summary_prompt)
-        best_local_idea = self.generate(summary_prompt)
+        best_local_idea = self.generate(summary_prompt, self.personality_config.max_summary_size)
         return best_local_idea
 
 
