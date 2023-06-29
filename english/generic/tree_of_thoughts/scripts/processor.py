@@ -19,6 +19,9 @@ import yaml
 import re
 import random
 
+import networkx as nx
+import matplotlib.pyplot as plt
+
 def find_matching_number(numbers, text):
     for index, number in enumerate(numbers):
         number_str = str(number)
@@ -87,6 +90,45 @@ class Processor(APScript):
                                 repeat_penalty=self.personality.model_repeat_penalty if repeat_penalty is None else repeat_penalty,
                                 ).strip()     
         
+    def add_graph_level(self, G, ideas, selected_index):
+        # Get the nodes at the current level
+        level_nodes = list(G.nodes)[-len(ideas):]
+
+        for i, idea in enumerate(ideas):
+            # Generate a new idea
+            new_idea = f'Idea_{len(G.nodes) + 1}'
+
+            # Add the new idea to the graph
+            G.add_node(new_idea)
+
+            # Connect the selected node at the previous level to the new idea
+            G.add_edge(level_nodes[selected_index], new_idea)
+
+    def visualize_thought_graph(self, G, selected_node):
+        # Set the positions of the graph nodes
+        pos = nx.spring_layout(G)
+
+        # Draw the graph
+        nx.draw(G, pos, with_labels=True, node_color='lightblue')
+
+        # Highlight the selected node
+        nx.draw_networkx_nodes(G, pos, nodelist=[selected_node], node_color='red')
+
+        # Draw edges with different styles for selected and unselected nodes
+        edge_labels = {}
+        for edge in G.edges:
+            if edge[0] == selected_node:
+                nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color='red', arrowstyle='->', width=2)
+            else:
+                nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color='black', arrowstyle='->', width=1)
+            edge_labels[edge] = edge[1]
+
+        # Add edge labels
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+        # Display the graph
+        plt.axis('off')
+        plt.show()
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -105,6 +147,8 @@ class Processor(APScript):
         """
         self.word_callback = callback
         self.bot_says = ""
+        # Create an empty graph
+        thought_graph = nx.DiGraph()
 
         # 1 first ask the model to formulate a query
         final_ideas = []
@@ -113,6 +157,7 @@ class Processor(APScript):
             print(f"============= Starting level {j} of the tree =====================")
             if callback:
                 callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_START)
+
             local_ideas=[]
             judgement_prompt = f">prompt: {prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
@@ -154,9 +199,12 @@ Write the next idea. Please give a single idea.
                 final_ideas.append(local_ideas[number]) 
                 if callback is not None:
                     callback(f"### Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
+
+            self.add_graph_level(thought_graph, local_ideas, number)
             if callback:
                 callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
 
+        self.visualize_thought_graph(thought_graph, number)
         if callback:
             callback(f"Starting final summary", MSG_TYPE.MSG_TYPE_STEP_START)
         summary_prompt += ">Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
