@@ -22,6 +22,7 @@ import random
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
 def find_matching_number(numbers, text):
     for index, number in enumerate(numbers):
         number_str = str(number)
@@ -90,7 +91,7 @@ class Processor(APScript):
                                 repeat_penalty=self.personality.model_repeat_penalty if repeat_penalty is None else repeat_penalty,
                                 ).strip()     
         
-    def add_graph_level(self, G, ideas, selected_index):
+    def add_graph_level(self, G, ideas, prev_selected_id):
         # Get the nodes at the current level
         level_nodes = list(G.nodes)[-len(ideas):]
 
@@ -101,8 +102,9 @@ class Processor(APScript):
             # Add the new idea to the graph
             G.add_node(new_idea)
 
-            # Connect the selected node at the previous level to the new idea
-            G.add_edge(level_nodes[selected_index], new_idea)
+            if prev_selected_id>=0:
+                # Connect the selected node at the previous level to the new idea
+                G.add_edge(level_nodes[prev_selected_id], new_idea)
 
     def visualize_thought_graph(self, G, selected_node):
         # Set the positions of the graph nodes
@@ -153,6 +155,9 @@ class Processor(APScript):
         # 1 first ask the model to formulate a query
         final_ideas = []
         summary_prompt = ""
+        prev_number = -1
+        layers = []
+        selections = []
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j} of the tree =====================")
             if callback:
@@ -183,13 +188,13 @@ Write the next idea. Please give a single idea.
             judgement_prompt += f"""
 >Instructions: Which idea seems the most approcpriate. Answer the question by giving the best idea number without explanations. What is the best idea number {prompt_ids}?
 >judgement: The best idea is idea number"""
-            print(judgement_prompt)
+            # print(judgement_prompt)
             self.bot_says = ""
             best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size, temperature = 0.1, top_k=1).strip()
             number, index = find_matching_number([i for i in range(self.personality_config["nb_samples_per_idea"])], best_local_idea)
             if index is not None:
                 number = abs(number)
-                print(f"Chosen thoght n:{number}")
+                print(f"Chosen thought n:{number}")
                 final_ideas.append(local_ideas[number]) 
                 
                 if callback is not None:
@@ -197,12 +202,15 @@ Write the next idea. Please give a single idea.
             else:
                 print("Warning, the model made a wrong answer, taking random idea as the best")
                 number = random.randint(0,self.personality_config["nb_samples_per_idea"])
-                print(f"Chosen thoght n:{number}")
+                print(f"Chosen thought n:{number}")
                 final_ideas.append(local_ideas[number]) 
                 if callback is not None:
                     callback(f"### Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
 
-            self.add_graph_level(thought_graph, local_ideas, number)
+            layers.append(local_ideas)
+            selections.append(number)
+            self.add_graph_level(thought_graph, local_ideas, prev_number)
+            prev_number = number
             if callback:
                 callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
 
@@ -213,10 +221,24 @@ Write the next idea. Please give a single idea.
         for idea in final_ideas:
             summary_prompt += f">Idea: {idea}\n"
         summary_prompt += ">Ideas summary:"
-        print(summary_prompt)
-        best_local_idea = self.generate(summary_prompt, self.personality_config.max_summary_size)
+
+        final_summary = self.generate(summary_prompt, self.personality_config.max_summary_size)
+
+        ASCIIColors.success("Summary built successfully")
         if callback:
             callback(f"Starting final summary", MSG_TYPE.MSG_TYPE_STEP_END)
-        return best_local_idea
+        
+        if callback:
+            callback(final_summary, MSG_TYPE.MSG_TYPE_FULL)
+        
+        
+        data = {
+            "tree_layers": layers,
+            "selections":selections,
+            "summary":final_summary
+        }
+
+
+        return final_summary
 
 
