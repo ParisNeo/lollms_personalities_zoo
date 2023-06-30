@@ -156,7 +156,7 @@ class Processor(APScript):
             pth = files[i].split('/')
             idx = pth.index("outputs")
             pth = "/".join(pth[idx:])
-            file_path = f"![]({files[i]})\n"
+            file_path = f"![]({pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
 
