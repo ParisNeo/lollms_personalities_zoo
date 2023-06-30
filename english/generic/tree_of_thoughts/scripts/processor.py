@@ -106,7 +106,7 @@ class Processor(APScript):
                 # Connect the selected node at the previous level to the new idea
                 G.add_edge(level_nodes[prev_selected_id], new_idea)
 
-    def visualize_thought_graph(self, G, selected_node):
+    def visualize_thought_graph(self, G):
         # Set the positions of the graph nodes
         pos = nx.spring_layout(G)
 
@@ -114,15 +114,12 @@ class Processor(APScript):
         nx.draw(G, pos, with_labels=True, node_color='lightblue')
 
         # Highlight the selected node
-        nx.draw_networkx_nodes(G, pos, nodelist=[selected_node], node_color='red')
+        nx.draw_networkx_nodes(G, pos, node_color='red')
 
         # Draw edges with different styles for selected and unselected nodes
         edge_labels = {}
         for edge in G.edges:
-            if edge[0] == selected_node:
-                nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color='red', arrowstyle='->', width=2)
-            else:
-                nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color='black', arrowstyle='->', width=1)
+            nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color='red', arrowstyle='->', width=2)
             edge_labels[edge] = edge[1]
 
         # Add edge labels
@@ -192,8 +189,7 @@ Write the next idea. Please give a single idea.
             self.bot_says = ""
             best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size, temperature = 0.1, top_k=1).strip()
             number, index = find_matching_number([i for i in range(self.personality_config["nb_samples_per_idea"])], best_local_idea)
-            if index is not None:
-                number = abs(number)
+            if index is not None and number>=0 and number<len(local_ideas):
                 print(f"Chosen thought n:{number}")
                 final_ideas.append(local_ideas[number]) 
                 
@@ -212,11 +208,11 @@ Write the next idea. Please give a single idea.
             self.add_graph_level(thought_graph, local_ideas, prev_number)
             prev_number = number
             if callback:
-                callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
+                callback(f"level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
 
-        self.visualize_thought_graph(thought_graph, number)
+        self.visualize_thought_graph(thought_graph)
         if callback:
-            callback(f"Starting final summary", MSG_TYPE.MSG_TYPE_STEP_START)
+            callback(f"final summary", MSG_TYPE.MSG_TYPE_STEP_START)
         summary_prompt += ">Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
         for idea in final_ideas:
             summary_prompt += f">Idea: {idea}\n"
@@ -232,11 +228,13 @@ Write the next idea. Please give a single idea.
             callback(final_summary, MSG_TYPE.MSG_TYPE_FULL)
         
         
-        data = {
+        tree_full_output = {
             "tree_layers": layers,
             "selections":selections,
             "summary":final_summary
         }
+        if callback:
+            callback(tree_full_output, MSG_TYPE.MSG_TYPE_JSON_INFOS)
 
 
         return final_summary
