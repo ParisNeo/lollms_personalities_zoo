@@ -151,7 +151,7 @@ class Processor(APScript):
             callback("Imagining", MSG_TYPE.MSG_TYPE_STEP_END)
 
         if callback is not None:
-            callback(sd_prompt.strip()+"\n", MSG_TYPE.MSG_TYPE_CHUNK)
+            callback(sd_prompt.strip(), MSG_TYPE.MSG_TYPE_CHUNK)
 
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         output = sd_prompt.strip()+"\n"
