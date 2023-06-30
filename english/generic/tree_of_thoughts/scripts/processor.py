@@ -185,16 +185,18 @@ Write the next idea. Please give a single idea.
 >judgement: The best idea is idea number"""
             print(judgement_prompt)
             self.bot_says = ""
-            best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size).strip()
+            best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size, temperature = 0.1, top_k=1).strip()
             number, index = find_matching_number([i for i in range(self.personality_config["nb_samples_per_idea"])], best_local_idea)
             if index is not None:
+                number = abs(number)
                 print(f"Chosen thoght n:{number}")
                 final_ideas.append(local_ideas[number]) 
+                
                 if callback is not None:
                     callback(f"Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
             else:
                 print("Warning, the model made a wrong answer, taking random idea as the best")
-                number = random.randint(0,self.personality_config["nb_samples_per_idea"])-1
+                number = random.randint(0,self.personality_config["nb_samples_per_idea"])
                 print(f"Chosen thoght n:{number}")
                 final_ideas.append(local_ideas[number]) 
                 if callback is not None:
