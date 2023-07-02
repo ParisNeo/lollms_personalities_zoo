@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 personal
-!personal/.keep
+!english/personal/.keep
+!french/personal/.keep
 
 .vscode
