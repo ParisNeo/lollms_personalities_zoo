@@ -142,9 +142,9 @@ class Processor(APScript):
         """
         self.word_callback = callback
         if callback is not None:
-            callback("Imagining", MSG_TYPE.MSG_TYPE_STEP_START)
+            callback("# Imagining\n![](/personalities/english/art/artbot/assets/painting_animation.gif)", MSG_TYPE.MSG_TYPE_STEP_START)
         # 1 first ask the model to formulate a query
-        prompt = f"{self.remove_image_links(previous_discussion_text+self.personality.link_text+self.personality.ai_message_prefix)}"
+        prompt = f"{self.remove_image_links(previous_discussion_text)}"
         print(prompt)
         sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
         if callback is not None:
