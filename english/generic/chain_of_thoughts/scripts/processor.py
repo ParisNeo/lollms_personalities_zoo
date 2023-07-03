@@ -37,9 +37,8 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate([
                 {"name":"max_thought_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
-                {"name":"max_judgement_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100},
-                
+                {"name":"max_summary_size","type":"int","value":1024, "min":10, "max":personality.model.config["ctx_size"]},
             ])
         personality_config = BaseConfig.from_template(personality_config_template)
         personality_config = TypedConfig(
@@ -127,7 +126,7 @@ class Processor(APScript):
         summary_prompt = ""
         for j in range(self.personality_config.nb_ideas):
             if callback:
-                callback("Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_START)
+                callback(f"Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_START)
             
             ASCIIColors.info(f"============= Starting level {j} of the chain =====================")
             ideas=[]
@@ -147,7 +146,7 @@ class Processor(APScript):
             ideas.append(idea)
 
             if callback:
-                callback("Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_END)
+                callback(f"Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_END)
 
         summary_prompt += f""">Instructions:
 Combine these ideas in a comprihensive and detailed essai that explains how to answer the user's question: {prompt}
