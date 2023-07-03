@@ -36,9 +36,10 @@ class Processor(APScript):
         
 
         personality_config_template = ConfigTemplate([
-                {"name":"max_thought_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
-                {"name":"max_judgement_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
-                {"name":"nb_thoughts","type":"int","value":3, "min":2, "max":100}
+                {"name":"max_thought_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
+                {"name":"max_judgement_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
+                {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100},
+                
             ])
         personality_config = BaseConfig.from_template(personality_config_template)
         personality_config = TypedConfig(
@@ -125,33 +126,37 @@ class Processor(APScript):
         final_ideas = []
         summary_prompt = ""
         for j in range(self.personality_config.nb_ideas):
+            if callback:
+                callback("Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_START)
+            
             ASCIIColors.info(f"============= Starting level {j} of the chain =====================")
             ideas=[]
-            for i in range(self.config["nb_samples_per_idea"]):
-                print(f"\nIdea {i+1}")
-                if len(final_ideas)>0:
-                    final_ideas_text = "\n".join([f'Idea {n}: {i}' for n,i in enumerate(final_ideas)])
-                    idea_prompt = f""">instruction: Write the next idea. Please give a single idea. 
+            print(f"\nIdea {j+1}")
+            if len(final_ideas)>0:
+                final_ideas_text = "\n".join([f'Idea {n}: {i}' for n,i in enumerate(final_ideas)])
+                idea_prompt = f""">instruction: Write the next idea. Please give a single idea. 
 >prompt: {prompt}
 >previous ideas: {final_ideas_text}
 >idea:"""
-                else:
-                    idea_prompt = f""">instruction:Write one idea. Do not give multiple ideas. 
+            else:
+                idea_prompt = f""">instruction:Write one idea. Do not give multiple ideas. 
 >prompt: {prompt}
 >idea:"""
-                print(idea_prompt,end="",flush=True)
-                idea = self.generate(idea_prompt, self.config["max_thought_size"]).strip()
-                ideas.append(idea)
+            print(idea_prompt,end="",flush=True)
+            idea = self.generate(idea_prompt, self.personality_config["max_thought_size"]).strip()
+            ideas.append(idea)
 
+            if callback:
+                callback("Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_END)
 
-        summary_prompt += f"""> Instructions:
+        summary_prompt += f""">Instructions:
 Combine these ideas in a comprihensive and detailed essai that explains how to answer the user's question: {prompt}
 """
-        for idea in final_ideas:
+        for idea in ideas:
             summary_prompt += f">idea: {idea}\n"
         summary_prompt += ">essai:"
         print(summary_prompt)
-        answer = self.generate(summary_prompt, self.config["max_summary_size"])
+        answer = self.generate(summary_prompt, self.personality_config["max_summary_size"])
         if callback:
             callback(answer, MSG_TYPE.MSG_TYPE_FULL)
         return answer
