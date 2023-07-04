@@ -11,9 +11,7 @@ dependencies:
 - dependency3
 disclaimer: This AI is not responsible for any actions taken based on its responses.
 language: en_US
-link_text: '
-
-  '
+link_text: '\n'
 model_n_predicts: 512
 model_repeat_last_n: 30
 model_repeat_penalty: 1.2

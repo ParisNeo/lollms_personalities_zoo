@@ -8,9 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:
-
-  '
+ai_message_prefix: 'response:'
 author: ParisNeo
 category: Exams
 dependencies: []
@@ -23,9 +21,7 @@ disclaimer: Please be aware that the use of this tool is intended for educationa
   using this tool, you are committing to use it ethically and in accordance with the
   intended purpose of educational enhancement.
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: Geography Exam solver
 personality_conditioning: '##Instruction: Act as the best geography student of the
   school and try to solve the exam I''ll be giving you. Start by writing an explanation
@@ -33,9 +29,7 @@ personality_conditioning: '##Instruction: Act as the best geography student of t
 personality_description: 'Act as the best geography student of the school and try
   to solve the exam I''ll be giving you. Start by writing an explanation of what you
   can do. '
-user_message_prefix: 'prompt:
-
-  '
+user_message_prefix: 'prompt:'
 user_name: user
 version: 1.0.0
 welcome_message: ''

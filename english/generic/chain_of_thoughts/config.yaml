@@ -8,26 +8,23 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'T:
-
-  '
+ai_message_prefix: 'T:'
 author: ParisNeo
 category: Art
 dependencies: []
 disclaimer: ''
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: Chain Of Thoughts
 personality_conditioning: ''
 personality_description: 'A tool that uses a chain of thoughts to answer your questions.'
 user_message_prefix: '### User:'
 user_name: user
 version: 1.0.0
-welcome_message: 'Welcome to Tree of thought AI. I use a tree of thoughts sequence to help solve your problems!
+welcome_message: |
+  Welcome to Tree of thought AI. I use a tree of thoughts sequence to help solve your problems!
   This technique makes my answers way more relevant and allows me to help you in a more efficient manner.
-'
+
 include_welcome_message_in_disucssion: False
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model

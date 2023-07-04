@@ -14,9 +14,7 @@ language: english
 category: art
 dependencies: []
 disclaimer: ''
-link_text: '
-
-  '
+link_text: '\n'
 name: Artbot
 personality_conditioning: |
   !>Instructions: 

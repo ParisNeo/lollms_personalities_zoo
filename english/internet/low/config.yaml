@@ -14,9 +14,7 @@ category: internet
 dependencies: []
 disclaimer: ''
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: Lord of Wikipedia
 personality_conditioning: |
   ###Instruction: 

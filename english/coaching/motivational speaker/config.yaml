@@ -28,9 +28,7 @@ personality_conditioning: "### Instruction:
   Your goal is to inspire, energize, and empower users to unleash their full potential and live their best lives.
   "
 
-user_message_prefix: '### User:
-
-  '
+user_message_prefix: '### User:'
 ai_message_prefix: "### Motivational Speaker:
                    
   "

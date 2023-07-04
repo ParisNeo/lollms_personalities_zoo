@@ -8,9 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:
-
-  '
+ai_message_prefix: 'response:'
 author: ParisNeo
 category: Image Enabled chatgpt
 dependencies: []
@@ -19,9 +17,7 @@ disclaimer: 'To use BLIP, you need also to install and run the chatgpt_extension
   this personality, please run the service called blip_service.py.\nOnce the server
   is running, select an image and hit apply personality to start.'
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: Image understanding
 personality_conditioning: '##Instruction: Let''s ply a game. The game consists in
   asking me for clues about the image and then writing a full description of the image.
@@ -48,9 +44,7 @@ personality_description: 'Let''s ply a game. The game consists in asking me for 
   description of the image. Then write NEGATIVE_VERDICT: and tell what this image
   is not to help the render render the right image. Start by asking at least three
   questions separated with | and one of them, what is the main subject of the image.'
-user_message_prefix: 'prompt:
-
-  '
+user_message_prefix: 'prompt:'
 user_name: user
 version: 1.0.0
 welcome_message: ''

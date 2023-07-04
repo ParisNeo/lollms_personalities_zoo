@@ -14,9 +14,7 @@ category: Art
 dependencies: []
 disclaimer: ''
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: Painter
 personality_conditioning: |
   ## Instructions: 

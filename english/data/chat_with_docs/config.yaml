@@ -8,17 +8,13 @@
 ## talking to.
 #
 #
-ai_message_prefix: '# chat_with_docs:
-
-  '
+ai_message_prefix: '# chat_with_docs:'
 author: ParisNeo
 category: data
 dependencies: []
 disclaimer: ''
 language: english
-link_text: '
-
-  '
+link_text: '\n'
 name: chat_with_docs
 personality_conditioning: |
   ###Instruction: 
