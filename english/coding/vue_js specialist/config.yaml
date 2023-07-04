@@ -28,7 +28,6 @@ personality_conditioning: |
   Indent your code and use markdown code tags with language name when you show code.
 
 user_message_prefix: '!!>Student:'
-
 ai_message_prefix: '!!>Specialist:'
   
 # A text to put between user and chatbot messages

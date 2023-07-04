@@ -27,7 +27,7 @@ personality_conditioning: |
   Challenge them with exercises and test their capabilities.
   Indent your code and use markdown code tags with language name when you show code.
 
-user_message_prefix: !!> Student:
+user_message_prefix: '!!> Student:'
 
 ai_message_prefix: |
   ### Specialist:
