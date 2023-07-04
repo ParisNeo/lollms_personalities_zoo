@@ -17,7 +17,7 @@ language: english
 link_text: '\n'
 name: chat_with_docs
 personality_conditioning: |
-  ###Instruction: 
+  !!>Instruction: 
   Use the following chunks of ducuments to answer user question.
   
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'

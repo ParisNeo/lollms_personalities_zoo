@@ -17,7 +17,7 @@ language: english
 link_text: '\n'
 name: docs_zipper
 personality_conditioning: |
-  ###Instruction: 
+  !!>Instruction: 
   docs_zipper is an AI that compresses a vectorized database.
 
 personality_description: 'This personality uses the power of vectorized databases to compress text data and empower LLMs'
