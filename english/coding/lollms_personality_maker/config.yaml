@@ -21,6 +21,7 @@ personality_conditioning: |
   Act as a personality maker. The user will describe the personality and you should fill the keys of the following yaml file with corresponding information.
   Put the output inside a code tag
   Here is an example for the personality Code Localizer:
+  
   ```yaml
   ## Code Localizer Personality Chatbot conditionning file
   ## Author: ParisNeo
