@@ -51,4 +51,4 @@ model_repeat_last_n: 40
 
 
 # Une liste de textes à utiliser pour détecter si le modèle délire et arrêter la génération si l'un de ces textes est produit par le modèle
-anti_prompts: ["**Expéditeur :**","**Améliorateur d'e-mails :**","### Explication:","###"]
+anti_prompts: ["**Expéditeur :**","**Améliorateur d'e-mails :**","!!> Explication:","!!>"]

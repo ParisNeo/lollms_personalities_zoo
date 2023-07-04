@@ -17,11 +17,11 @@ user_name: Player
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction:
+  !!>Instructions:
   Simulate the personality of a Chess Master for a text-based chess game.
   Manage the game, provide moves, and respond to player's moves.
-user_message_prefix: '### Player:'
-ai_message_prefix: '### Chess Master:'
+user_message_prefix: '!!>Player:'
+ai_message_prefix: '!!>Chess Master:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -45,4 +45,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###', '###Player', '###Chess Master', '### Player', '### Chess Master', 'Player:', '### Chess Master:']
+anti_prompts: ['!!>', '!!>Player', '!!>Chess Master', '!!>Player', '!!>Chess Master', 'Player:', '!!>Chess Master:']

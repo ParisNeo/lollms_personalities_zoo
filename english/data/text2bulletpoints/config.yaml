@@ -21,12 +21,12 @@ personality_conditioning: |
   text2bulletpoints is an AI that uses chunks of ducuments to answer user questions.
 
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'
-user_message_prefix: '### User:
+user_message_prefix: '!!>User:
   '
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to text2bullets. This AI can read long docs and simplifies it to bulletpoints. Give it your documents and it will learn to answer you based on them.'
-anti_prompts: ["### User", "### text2bulletpoints", "### Assistant", "### Question","### Answer","### Instruction:","###Instruction:", "### Documentation:"]
+anti_prompts: ["!!> User", "!!> text2bulletpoints", "!!> Assistant", "!!> Question","!!> Answer","!!>Instructions:","!!>Instruction:", "!!> Documentation:"]
 
 help:  |
   Supported functions:

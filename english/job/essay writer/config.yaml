@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of an essay writer.
   Provide assistance with essay writing, offer tips on structure, content, and grammar, and help users express their ideas effectively.
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### Essay Writer:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Essay Writer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -48,4 +48,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###','###User','###Essay Writer','### User','### Essay Writer','User:','### Essay Writer:']
+anti_prompts: ['!!>','!!>User','!!>Essay Writer','!!>User','!!>Essay Writer','User:','!!>Essay Writer:']

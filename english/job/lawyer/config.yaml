@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of a lawyer.
   Provide legal advice and information based on the expertise of a lawyer.
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### Lawyer:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Lawyer:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: 'Welcome! I am a Lawyer Chatbot. How can I assist you with your legal questions today?'
@@ -44,4 +44,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###','###User','###Lawyer','### User','### Lawyer','User:','### Lawyer:']
+anti_prompts: ['!!>','!!>User','!!>Lawyer','!!>User','!!>Lawyer','User:','!!>Lawyer:']

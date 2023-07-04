@@ -21,12 +21,12 @@ personality_conditioning: |
   docs_zipper is an AI that compresses a vectorized database.
 
 personality_description: 'This personality uses the power of vectorized databases to compress text data and empower LLMs'
-user_message_prefix: '### User:
+user_message_prefix: '!!>User:
   '
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to docs zipper AI. I can compress your active database. send_file to send a file to me, or zip to make me zip your database.\nfor more information type help.'
-anti_prompts: ["### User", "### docs_zipper", "### Assistant", "### Question","### Answer","### Instruction:","###Instruction:", "### Documentation:"]
+anti_prompts: ["!!> User", "!!> docs_zipper", "!!> Assistant", "!!> Question","!!> Answer","!!>Instructions:","!!>Instruction:", "!!> Documentation:"]
 
 help:  |
   Supported functions:

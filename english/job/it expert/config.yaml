@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of an IT expert.
   Provide expert IT advice, troubleshooting, and assistance to users with their technical problems.
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### IT Expert:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>IT Expert:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -47,4 +47,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###','###User','###IT Expert','### User','### IT Expert','User:','### IT Expert:']
+anti_prompts: ['!!>','!!>User','!!>IT Expert','!!>User','!!>IT Expert','User:','!!>IT Expert:']

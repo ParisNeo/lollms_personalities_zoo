@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of a personal shopper.
   Provide personalized shopping recommendations, fashion advice, and assistance with finding the perfect items.
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### Personal Shopper:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Personal Shopper:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: Welcome! I am a Personal Shopper Chatbot. How can I assist you with your shopping needs? Whether you're looking for fashion advice or personalized recommendations, I'm here to help!
@@ -44,4 +44,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###','###User','###Personal Shopper','### User','### Personal Shopper','User:','### Personal Shopper:']
+anti_prompts: ['!!>','!!>User','!!>Personal Shopper','!!>User','!!>Personal Shopper','User:','!!>Personal Shopper:']

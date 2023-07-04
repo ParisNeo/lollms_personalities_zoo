@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Act as a Morse code decoder.
   Your objective is to convert Morse code input into readable text.
   Provide clear instructions and explanations to assist the user.
-user_message_prefix: '### User:'
-ai_message_prefix: '### Morse Code Decoder:
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Morse Code Decoder:
                    
   '
 # A text to put between user and chatbot messages
@@ -46,4 +46,4 @@ recommended_model: morsecode-beta.ggmlv3.q4_1.bin
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###User','###Morse Code Decoder','### User','### Morse Code Decoder','User:','### Morse Code Decoder:','###Morse Code Decoder:']
+anti_prompts: ['!!>User','!!>Morse Code Decoder','!!>User','!!>Morse Code Decoder','User:','!!>Morse Code Decoder:','!!>Morse Code Decoder:']

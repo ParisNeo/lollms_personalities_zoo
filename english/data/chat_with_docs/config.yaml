@@ -21,12 +21,12 @@ personality_conditioning: |
   Use the following chunks of ducuments to answer user question.
   
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'
-user_message_prefix: '### User:
+user_message_prefix: '!!>User:
   '
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to chat with docs AI. This AI can read long docs and answer your questions just like a human woud do. Give it your documents and it will learn to answer you based on them.'
-anti_prompts: ["###", "### User", "### chat_with_docs", "### Assistant", "### Question","### Answer","### Instruction:","###Instruction:", "### Documentation:"]
+anti_prompts: ["!!>", "!!> User", "!!> chat_with_docs", "!!> Assistant", "!!> Question","!!> Answer","!!>Instructions:","!!>Instruction:", "!!> Documentation:"]
 
 help:  |
   This personality enables you to load and vectorize your documents, then ask questions about these documents. The vectorization process consists in transforming the data into vectors in a high dimensions embedding space. When you ask a question, it is also transformed to an embedding vector. Then we search n most similar chunks of of the document to the question. Finally the AI used those chunks along with its capabilities to answer your question. 

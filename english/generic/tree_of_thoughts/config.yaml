@@ -18,7 +18,7 @@ link_text: '\n'
 name: Tree Of Thoughts
 personality_conditioning: ''
 personality_description: 'A tool that uses a tree of thoughts to answer your questions.'
-user_message_prefix: '### User:'
+user_message_prefix: '!!>User:'
 user_name: user
 version: 1.0.0
 welcome_message: |

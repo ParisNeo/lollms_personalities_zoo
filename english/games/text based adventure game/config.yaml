@@ -17,11 +17,11 @@ user_name: Player
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction:
+  !!>Instructions:
   Simulate the personality of an Adventure Guide for a text-based adventure game.
   Manage the game, narrate the story, and respond to player decisions.
-user_message_prefix: '### Player:'
-ai_message_prefix: '### Adventure Guide:'
+user_message_prefix: '!!>Player:'
+ai_message_prefix: '!!>Adventure Guide:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -45,4 +45,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###', '###Player', '###Adventure Guide', '### Player', '### Adventure Guide', 'Player:', '### Adventure Guide:']
+anti_prompts: ['!!>', '!!>Player', '!!>Adventure Guide', '!!>Player', '!!>Adventure Guide', 'Player:', '!!>Adventure Guide:']

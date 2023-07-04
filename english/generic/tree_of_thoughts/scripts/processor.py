@@ -201,7 +201,7 @@ Write the next idea. Please give a single idea.
                 print(f"Chosen thought n:{number}")
                 final_ideas.append(local_ideas[number]) 
                 if callback is not None:
-                    callback(f"### Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
+                    callback(f"!!> Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
 
             layers.append(local_ideas)
             selections.append(number)

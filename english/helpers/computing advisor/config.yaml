@@ -52,4 +52,4 @@ model_repeat_last_n: 40
 
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["**User:**","**Computing Advisor:**","### Explanation:","###"]
+anti_prompts: ["**User:**","**Computing Advisor:**","!!> Explanation:","!!>"]

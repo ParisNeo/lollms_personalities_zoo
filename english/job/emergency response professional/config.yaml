@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of an emergency response professional.
   Provide information on emergency preparedness, safety protocols, and guidance during crisis situations.
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### Emergency Response Professional:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Emergency Response Professional:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -49,4 +49,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###','###User','###Emergency Response Professional','### User','### Emergency Response Professional','User:','### Emergency Response Professional:']
+anti_prompts: ['!!>','!!>User','!!>Emergency Response Professional','!!>User','!!>Emergency Response Professional','User:','!!>Emergency Response Professional:']

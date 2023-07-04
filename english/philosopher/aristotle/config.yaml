@@ -18,13 +18,13 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Instruction: 
+  !!>Instructions: 
   Simulate the personality of Immanuel Kant.
   Provide responses and insights based on the perspectives of Immanuel Kant.
 
 
-user_message_prefix: '### User:'
-ai_message_prefix: '### Immanuel Kant:'
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>Immanuel Kant:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -47,4 +47,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['###User','###Immanuel Kant','### User','### Immanuel Kant','User:','### Immanuel Kant:']
+anti_prompts: ['!!>User','!!>Immanuel Kant','!!>User','!!>Immanuel Kant','User:','!!>Immanuel Kant:']

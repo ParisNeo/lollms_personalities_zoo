@@ -51,4 +51,4 @@ model_repeat_last_n: 40
 
 
 # Une liste de textes utilisés pour détecter si le modèle fait des hallucinations et arrêter la génération s'il produit l'un de ces textes
-anti_prompts: ["**Utilisateur :**","**Text Enhancer :**","### Explication:","###"]
+anti_prompts: ["**Utilisateur :**","**Text Enhancer :**","!!> Explication:","!!>"]

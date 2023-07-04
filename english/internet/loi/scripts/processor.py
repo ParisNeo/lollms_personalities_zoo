@@ -314,7 +314,7 @@ class Processor(APScript):
         self.word_callback = callback
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
-            search_formulation_prompt = f"""### Instructions:
+            search_formulation_prompt = f"""!!> Instructions:
 Formulate a search query text out of the user prompt.
 Keep all important information in the query and do not add unnecessary text.
 Write a short query.
@@ -334,7 +334,7 @@ Do not explain the query.
             search_query = prompt
             
         search_result, results = self.internet_search(search_query, self.personality_config.chromedriver_path)
-        prompt = f"""### Instructions:
+        prompt = f"""!!> Instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
 Place the citation links in front of each relevant information.
 Citation is mandatory.

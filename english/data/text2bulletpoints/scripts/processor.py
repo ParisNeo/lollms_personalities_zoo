@@ -256,7 +256,7 @@ class Processor(APScript):
                     print(chunk)
                     continue
                 docs = |
-  ### Instruction:\nSummarize the following paragraph in the form of bullet points.\nBe concise and only keep most important ideas.\nUse short sentences\nParagraph:'+chunk+"\nBullet points:\n-"
+  !!>Instructions:\nSummarize the following paragraph in the form of bullet points.\nBe concise and only keep most important ideas.\nUse short sentences\nParagraph:'+chunk+"\nBullet points:\n-"
                 ASCIIColors.error("\n-------------- Documentation -----------------------")
                 ASCIIColors.error(docs)
                 ASCIIColors.error("----------------------------------------------------")

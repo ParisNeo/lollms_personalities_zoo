@@ -43,14 +43,14 @@ welcome_message: |
                     How can I help you today?
 
 # This prefix is added at the beginning of any message input by the user
-user_message_prefix:  "### Human:
+user_message_prefix:  "!!> Human:
                       
                       "
 # A text to put between user and chatbot messages
 link_text: "\n"
 
 # This prefix is added at the beginning of any message output by the ai
-ai_message_prefix: "### Assistant:
+ai_message_prefix: "!!> Assistant:
                    
                    "
 
@@ -58,7 +58,7 @@ ai_message_prefix: "### Assistant:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["###Human","###Assistant","### Human","### Assistant","Human:","### lollms:","###lollms:"]
+anti_prompts: ["!!>Human","!!>Assistant","!!> Human","!!> Assistant","Human:","!!> lollms:","!!>lollms:"]
 
 # Some personalities need a disclaimer to warn the user of potential harm that can be caused by the AI
 # for example, for medical assistants, it is important to tell the user to be careful and not use medication
