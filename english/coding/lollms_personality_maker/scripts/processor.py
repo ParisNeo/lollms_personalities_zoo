@@ -241,7 +241,7 @@ welcome_message:""",128,0.1,10,0.98).strip()
     !!>Instructions: 
     {conditioning}  
   user_message_prefix: '!!>User:'
-  ai_message_prefix: '!!>{name.lower().strip.replace(' ','_')}:'
+  ai_message_prefix: '!!>{name.lower().replace(' ','_')}:'
   # A text to put between user and chatbot messages
   link_text: '\n'
   welcome_message: |
@@ -264,7 +264,7 @@ welcome_message:""",128,0.1,10,0.98).strip()
   # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
   anti_prompts: ['!!>'"<|end|>","<|user|>","<|system|>"]
         """
-        personality_path:Path = output_path/(name.lower().strip().replace(" ","_"))
+        personality_path:Path = output_path/(name.lower().replace(" ","_"))
         personality_path.mkdir(parents=True, exist_ok=True)
         with open(personality_path/"config.yaml","w", encoding="utf8") as f:
             f.write(yaml_data)
