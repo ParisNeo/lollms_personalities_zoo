@@ -171,6 +171,7 @@ version:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the category ...", callback)
         category = self.generate(f"""!!>request:{prompt}
+!!>personality name:{name}
 !!>task: Infer the category of the personality infered from the request
 category:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the category ...", callback)
@@ -187,6 +188,7 @@ language:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description ...", callback)
         description = self.generate(f"""!!>request:{prompt}
+!!>personality name:{name}
 !!>task: Write a description of the personality infered from the request
 description:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description ...", callback)
@@ -195,6 +197,7 @@ description:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the disclaimer ...", callback)
         disclaimer = self.generate(f"""!!>request:{prompt}
+!!>personality name:{name}
 !!>task: Write a disclaimer about the ai personality infered from the request
 disclaimer:""",128,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer ...", callback)
@@ -203,6 +206,7 @@ disclaimer:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning ...", callback)
         conditioning = self.generate(f"""!!>request:{prompt}
+!!>personality name:{name}
 !!>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
 Emphesize on the personality traits and characteristics.
 conditioning:""",128,0.1,10,0.98).strip()
@@ -212,6 +216,7 @@ conditioning:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the welcome message ...", callback)
         welcome_message = self.generate(f"""!!>request:{prompt}
+!!>personality name:{name}
 !!>task: Write a welcome message text that the ai personality should say to start the discussion infered from the request?
 welcome_message:""",128,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message ...", callback)
@@ -288,9 +293,8 @@ anti_prompts: ['!!>'"<|end|>","<|user|>","<|system|>"]
         self.step_start("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
         # 1 first ask the model to formulate a query
         sd_prompt = self.generate(f"""!!>task: Write a prompt to build an icon to the personality being built. 
-The prompt should be descriptive and include stylistic information. 
-Add (icon:1.3) to the prompt. This emphesizes that this is an icon.
-Add few key words like glossy, detailed, cyberpunk or steampunk or any other styling that fits the personality being described.
+The prompt should be descriptive and include stylistic information.
+Try to write detailed description of the icon as well as stylistic elements like rounded corners or glossy and also you can mension a particular style.
 !!>request: {prompt}
 !!>personality name: {name}
 prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
