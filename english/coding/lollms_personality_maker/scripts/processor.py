@@ -8,7 +8,7 @@ import re
 import importlib
 import requests
 from tqdm import tqdm
-
+import shutil
 
 class Processor(APScript):
     """
@@ -50,7 +50,7 @@ class Processor(APScript):
                             personality,
                             personality_config
                         )
-        self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+        self.sd = None
         
     def install(self):
         super().install()
@@ -163,8 +163,8 @@ author name:""",128,0.1,10,0.98).strip()
         self.step_start("Coming up with the version ...", callback)
         version = self.generate(f"""!!>request:{prompt}
 !!>task: Write the version of the personality infered from the request?
-If no version mensioned then respond with 1.0
-author name:""",128,0.1,10,0.98).strip()
+If no version mensioned then version is 1.0
+version:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the version ...", callback)
         # ----------------------------------------------------------------
         
@@ -179,7 +179,7 @@ category:""",128,0.1,10,0.98).strip()
         # ----------------------------------------------------------------
         self.step_start("Coming up with the language ...", callback)
         language = self.generate(f"""!!>request:{prompt}
-!!>task: Write the language of the personality infered from the request?
+!!>task: Write the language of the request?
 language:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the language ...", callback)
         # ----------------------------------------------------------------
@@ -218,51 +218,56 @@ welcome_message:""",128,0.1,10,0.98).strip()
                          
         # ----------------------------------------------------------------
         self.step_start("Building the yaml file ...", callback)
+        cmt_desc = "\n## ".join(description.split("\n"))
+        desc = "    ".join(description.split("\n"))
+        disclaimer = "    ".join(disclaimer.split("\n"))
+        conditioning =  "    ".join(conditioning.split("\n"))
+        welcome_message =  "    ".join(welcome_message.split("\n"))
         yaml_data=f"""## {name} Chatbot conditionning file
-  ## Author: {author}
-  ## Version: {version}
-  ## Description:
-  ## {description}
-  ## talking to.
+## Author: {author}
+## Version: {version}
+## Description:
+## {cmt_desc}
+## talking to.
 
-  # Credits
-  author: {author}
-  version:{version}
-  category: {category}
-  language:{language}
-  name: {name}
-  personality_description: |
-    {description}
-  disclaimer: |
+# Credits
+author: {author}
+version:{version}
+category: {category}
+language:{language}
+name: {name}
+personality_description: |
+    {desc}
+disclaimer: |
     {disclaimer}
 
-  # Actual useful stuff
-  personality_conditioning: |
+# Actual useful stuff
+personality_conditioning: |
     !!>Instructions: 
     {conditioning}  
-  user_message_prefix: '!!>User:'
-  ai_message_prefix: '!!>{name.lower().replace(' ','_')}:'
-  # A text to put between user and chatbot messages
-  link_text: '\n'
-  welcome_message: |
+user_message_prefix: '!!>User:'
+ai_message_prefix: '!!>{name.lower().replace(' ','_')}:'
+# A text to put between user and chatbot messages
+link_text: '\n'
+welcome_message: |
     {welcome_message}
-  # Here are default model parameters
-  model_temperature: 0.6 # higher: more creative, lower: more deterministic
-  model_n_predicts: 2048 # higher: generates more words, lower: generates fewer words
-  model_top_k: 50
-  model_top_p: 0.90
-  model_repeat_penalty: 1.0
-  model_repeat_last_n: 40
+# Here are default model parameters
+model_temperature: 0.6 # higher: more creative, lower: more deterministic
+model_n_predicts: 2048 # higher: generates more words, lower: generates fewer words
+model_top_k: 50
+model_top_p: 0.90
+model_repeat_penalty: 1.0
+model_repeat_last_n: 40
 
-  # Recommendations
-  recommended_binding: ''
-  recommended_model: ''
+# Recommendations
+recommended_binding: ''
+recommended_model: ''
 
-  # Here is the list of extensions this personality requires
-  dependencies: []
+# Here is the list of extensions this personality requires
+dependencies: []
 
-  # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-  anti_prompts: ['!!>'"<|end|>","<|user|>","<|system|>"]
+# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
+anti_prompts: ['!!>'"<|end|>","<|user|>","<|system|>"]
         """
         personality_path:Path = output_path/(name.lower().replace(" ","_"))
         personality_path.mkdir(parents=True, exist_ok=True)
@@ -279,20 +284,28 @@ welcome_message:""",128,0.1,10,0.98).strip()
         self.word_callback = callback
         
         # ----------------------------------------------------------------
-        self.step_start("# Imagining  ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
+        self.step_start("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
         # 1 first ask the model to formulate a query
         sd_prompt = self.generate(f"""!!>request:{prompt}
-!!>task: Write a prompt to build an icon to the personality being built. The prompt should be descriptive and include stylistic information
+!!>task: Write a prompt to build an icon to the personality being built. The prompt should be descriptive and include stylistic information. add (icon:1.3) to emphesize that this is an icon as well as few key words like glossy, detailed, 
 prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
-        self.step_end("# Imagining  ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
+        self.step_end("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("# Painting  ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        self.step_start("# Loading stable diffusion", callback)
+        if self.sd is None:
+            self.sd  = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+        self.step_end("# Loading stable diffusion", callback)
+        # ----------------------------------------------------------------
+
+        # ----------------------------------------------------------------
+        self.step_start("# Painting Icon ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
-        output = f"```yaml\n{yaml_data}\n```# Icon:\n" + sd_prompt.strip()+"\n"
+        output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:{sd_prompt}\n" + sd_prompt.strip()+"\n"
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
+            shutil.copy(files[i],str(personality_assets_path))
             pth = files[i].split('/')
             idx = pth.index("outputs")
             pth = "/".join(pth[idx:])
@@ -301,7 +314,7 @@ prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip
             print(f"Generated file in here : {files[i]}")
 
         # ----------------------------------------------------------------
-        self.step_end("# Painting  ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        self.step_end("# Painting Icon ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
         
         self.full(output, callback)
         
