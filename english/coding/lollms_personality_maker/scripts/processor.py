@@ -187,6 +187,7 @@ category:""",128,0.1,10,0.98).strip()
 !!>task: Infer the language of the request (english, french, chinese etc)
 language:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the language ...", callback)
+        ASCIIColors.yellow(f"Language:{language}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -197,6 +198,7 @@ language:""",128,0.1,10,0.98).strip()
 Use detailed description of the most important traits of the personality
 description:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description ...", callback)
+        ASCIIColors.yellow(f"Description:{description}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -206,6 +208,7 @@ description:""",128,0.1,10,0.98).strip()
 !!>task: Write a disclaimer about the ai personality infered from the request
 disclaimer:""",128,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer ...", callback)
+        ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
@@ -215,7 +218,9 @@ disclaimer:""",128,0.1,10,0.98).strip()
 !!>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
 The conditionning is a detailed description of the personality and its important traits of the personality.
 conditioning:Act as""",128,0.1,10,0.98).strip()
+        conditioning = "Act as"+conditioning
         self.step_end("Coming up with the conditionning ...", callback)
+        ASCIIColors.yellow(f"Conditioning:{conditioning}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -225,6 +230,7 @@ conditioning:Act as""",128,0.1,10,0.98).strip()
 !!>task: Write a welcome message text that {name} sends to the user at startup
 welcome_message:""",128,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message ...", callback)
+        ASCIIColors.yellow(f"Welcome message:{welcome_message}")
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------
@@ -304,6 +310,7 @@ Try to write detailed description of the icon as well as stylistic elements like
 !!>personality name: {name}
 prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
         self.step_end("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
+        ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
