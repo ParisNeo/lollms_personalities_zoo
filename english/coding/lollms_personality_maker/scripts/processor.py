@@ -292,10 +292,10 @@ anti_prompts: ['!!>'"<|end|>","<|user|>","<|system|>"]
         # ----------------------------------------------------------------
         self.step_start("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
         # 1 first ask the model to formulate a query
-        sd_prompt = self.generate(f"""!!>task: Write a prompt to build an icon to the personality being built. 
+        sd_prompt = self.generate(f"""!!>request: {prompt}
+!!>task: Write a prompt to describe an icon to the personality being built. 
 The prompt should be descriptive and include stylistic information.
 Try to write detailed description of the icon as well as stylistic elements like rounded corners or glossy and also you can mension a particular style.
-!!>request: {prompt}
 !!>personality name: {name}
 prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
         self.step_end("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
