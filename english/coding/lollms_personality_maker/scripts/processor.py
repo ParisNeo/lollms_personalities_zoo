@@ -148,6 +148,7 @@ class Processor(APScript):
 !!>task: Give a name to the personality requested by the user.
 name:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the personality name...", callback)
+        ASCIIColors.yellow(f"Name:{name}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -157,6 +158,7 @@ name:""",128,0.1,10,0.98).strip()
 If no author mensioned then respond with ParisNeo
 author name:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the author name...", callback)
+        ASCIIColors.yellow(f"Author:{author}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -166,21 +168,23 @@ author name:""",128,0.1,10,0.98).strip()
 If no version mensioned then version is 1.0
 version:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the version ...", callback)
+        ASCIIColors.yellow(f"Version:{version}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the category ...", callback)
         category = self.generate(f"""!!>request:{prompt}
 !!>personality name:{name}
-!!>task: Infer the category of the personality infered from the request
+!!>task: Infer the category of the personality
 category:""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the category ...", callback)
+        ASCIIColors.yellow(f"Category:{category}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the language ...", callback)
         language = self.generate(f"""!!>request:{prompt}
-!!>task: Infer the language of the request
+!!>task: Infer the language of the request (english, french, chinese etc)
 language:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the language ...", callback)
         # ----------------------------------------------------------------
@@ -189,7 +193,8 @@ language:""",128,0.1,10,0.98).strip()
         self.step_start("Coming up with the description ...", callback)
         description = self.generate(f"""!!>request:{prompt}
 !!>personality name:{name}
-!!>task: Write a description of the personality infered from the request
+!!>task: Write a description of the personality
+Use detailed description of the most important traits of the personality
 description:""",128,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description ...", callback)
         # ----------------------------------------------------------------
@@ -208,8 +213,8 @@ disclaimer:""",128,0.1,10,0.98).strip()
         conditioning = self.generate(f"""!!>request:{prompt}
 !!>personality name:{name}
 !!>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
-Emphesize on the personality traits and characteristics.
-conditioning:""",128,0.1,10,0.98).strip()
+The conditionning is a detailed description of the personality and its important traits of the personality.
+conditioning:Act as""",128,0.1,10,0.98).strip()
         self.step_end("Coming up with the conditionning ...", callback)
         # ----------------------------------------------------------------
         
@@ -217,7 +222,7 @@ conditioning:""",128,0.1,10,0.98).strip()
         self.step_start("Coming up with the welcome message ...", callback)
         welcome_message = self.generate(f"""!!>request:{prompt}
 !!>personality name:{name}
-!!>task: Write a welcome message text that the ai personality should say to start the discussion infered from the request?
+!!>task: Write a welcome message text that {name} sends to the user at startup
 welcome_message:""",128,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message ...", callback)
         # ----------------------------------------------------------------
