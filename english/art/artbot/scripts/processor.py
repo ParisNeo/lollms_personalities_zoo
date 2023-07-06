@@ -141,20 +141,27 @@ class Processor(APScript):
             None
         """
         self.word_callback = callback
-        if callback is not None:
-            callback("# Imagining\n![](/personalities/english/art/artbot/assets/imagine_animation.gif)", MSG_TYPE.MSG_TYPE_STEP_START)
+        
+        # ----------------------------------------------------------------
+        self.step_start(f"Imagining ...", callback)
+        self.full(f"![](/personalities/english/art/artbot/assets/imagine_animation.gif)", callback)
         # 1 first ask the model to formulate a query
         prompt = f"{self.remove_image_links(previous_discussion_text)}"
         print(prompt)
         sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
-        if callback is not None:
-            callback("Painting\n![](/personalities/english/art/artbot/assets/painting_animation.gif)", MSG_TYPE.MSG_TYPE_STEP_END)
+        self.step_end(f"Imagining ...", callback)
+        # ----------------------------------------------------------------
 
-        if callback is not None:
-            callback(sd_prompt.strip(), MSG_TYPE.MSG_TYPE_CHUNK)
-
+        # ----------------------------------------------------------------
+        self.step_start(f"Painting ...", callback)
+        self.full(f"![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         output = sd_prompt.strip()+"\n"
+        self.step_end(f"Painting ...", callback)
+        # ----------------------------------------------------------------
+
+        # ----------------------------------------------------------------
+        self.step_start(f"Finishing ...", callback)
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
             pth = files[i].split('/')
@@ -163,9 +170,11 @@ class Processor(APScript):
             file_path = f"![](/{pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
+        self.step_end(f"Finishing ...", callback)
+        # ----------------------------------------------------------------
 
-        if callback:
-            callback(output,MSG_TYPE.MSG_TYPE_FULL)
+        self.full(output, callback)
+
         return output
 
 
