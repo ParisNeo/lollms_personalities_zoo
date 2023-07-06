@@ -143,99 +143,99 @@ class Processor(APScript):
         output_path = self.personality.lollms_paths.personal_outputs_path
         # First we create the yaml file
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the personality name...", callback)
+        self.step_start("Coming up with the personality name", callback)
         name = self.generate(f"""!@>request:{prompt}
 !@>task: Using the request, come up with the name of the personality as asked by the user.
 If the request contains already the name, then use that.
 !@>name:""",128,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the personality name...", callback)
+        self.step_end("Coming up with the personality name", callback)
         ASCIIColors.yellow(f"Name:{name}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the author name...", callback)
+        self.step_start("Coming up with the author name", callback)
         author = self.generate(f"""!@>request:{prompt}
 !@>task: Write the name of the author infered from the request?
 If no author mensioned then respond with ParisNeo
 author name:""",128,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the author name...", callback)
+        self.step_end("Coming up with the author name", callback)
         ASCIIColors.yellow(f"Author:{author}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the version ...", callback)
+        self.step_start("Coming up with the version", callback)
         version = self.generate(f"""!@>request:{prompt}
 !@>task: Write the version of the personality infered from the request?
 If no version mensioned then version is 1.0
 version:""",128,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the version ...", callback)
+        self.step_end("Coming up with the version", callback)
         ASCIIColors.yellow(f"Version:{version}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the category ...", callback)
+        self.step_start("Coming up with the category", callback)
         category = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Infer the category of the personality
 category:""",128,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the category ...", callback)
+        self.step_end("Coming up with the category", callback)
         ASCIIColors.yellow(f"Category:{category}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the language ...", callback)
+        self.step_start("Coming up with the language", callback)
         language = self.generate(f"""!@>request:{prompt}
 !@>task: Infer the language of the request (english, french, chinese etc)
 language:""",128,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the language ...", callback)
+        self.step_end("Coming up with the language", callback)
         ASCIIColors.yellow(f"Language:{language}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the description ...", callback)
+        self.step_start("Coming up with the description", callback)
         description = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a description of the personality
 Use detailed description of the most important traits of the personality
 description:""",128,0.1,10,0.98).strip() 
-        self.step_end("Coming up with the description ...", callback)
+        self.step_end("Coming up with the description", callback)
         ASCIIColors.yellow(f"Description:{description}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the disclaimer ...", callback)
+        self.step_start("Coming up with the disclaimer", callback)
         disclaimer = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a disclaimer about the ai personality infered from the request
 disclaimer:""",128,0.1,10,0.98).strip()  
-        self.step_end("Coming up with the disclaimer ...", callback)
+        self.step_end("Coming up with the disclaimer", callback)
         ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the conditionning ...", callback)
+        self.step_start("Coming up with the conditionning", callback)
         conditioning = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
 The conditionning is a detailed description of the personality and its important traits of the personality.
 conditioning: Act as""",128,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
-        self.step_end("Coming up with the conditionning ...", callback)
+        self.step_end("Coming up with the conditionning", callback)
         ASCIIColors.yellow(f"Conditioning:{conditioning}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the welcome message ...", callback)
+        self.step_start("Coming up with the welcome message", callback)
         welcome_message = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a welcome message text that {name} sends to the user at startup
 welcome_message:""",128,0.1,10,0.98).strip()          
-        self.step_end("Coming up with the welcome message ...", callback)
+        self.step_end("Coming up with the welcome message", callback)
         ASCIIColors.yellow(f"Welcome message:{welcome_message}")
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------
-        self.step_start("Building the yaml file ...", callback)
+        self.step_start("Building the yaml file", callback)
         cmt_desc = "\n## ".join(description.split("\n"))
         desc = "\n    ".join(description.split("\n"))
         disclaimer = "\n    ".join(disclaimer.split("\n"))
@@ -292,7 +292,7 @@ anti_prompts: ['!@>'"<|end|>","<|user|>","<|system|>"]
         with open(personality_path/"config.yaml","w", encoding="utf8") as f:
             f.write(yaml_data)
 
-        self.step_end("Building the yaml file ...", callback)
+        self.step_end("Building the yaml file", callback)
         # ----------------------------------------------------------------
         
         # Now we generate icon        
@@ -302,7 +302,7 @@ anti_prompts: ['!@>'"<|end|>","<|user|>","<|system|>"]
         self.word_callback = callback
         
         # ----------------------------------------------------------------
-        self.step_start("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
+        self.step_start("# Imagining Icon", callback)
         # 1 first ask the model to formulate a query
         sd_prompt = self.generate(f"""!@>request: {prompt}
 !@>task: Write a prompt to describe an icon to the personality being built to be generated by a text2image ai. 
@@ -312,7 +312,7 @@ Try to write detailed description of the icon as well as stylistic elements like
 Avoid text as the generative ai is not good at generating text.
 !@>personality name: {name}
 !@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
-        self.step_end("# Imagining Icon ![](/personalities/english/art/artbot/assets/imagine_animation.gif) ...", callback)
+        self.step_end("# Imagining Icon", callback)
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         # ----------------------------------------------------------------
         
@@ -324,7 +324,7 @@ Avoid text as the generative ai is not good at generating text.
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
-        self.step_start("# Painting Icon ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        self.step_start("# Painting Icon", callback)
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
         for i in range(len(files)):
