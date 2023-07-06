@@ -109,7 +109,7 @@ You must give details and be clear to make sure the reader understands the secti
         
         output = f"```markdown\n# {title}\n\n"   
         output += "\n".join([f"{s['name']}\n{s['content']}\n" for s in sections])
-        output += "```"
+        output += "```\n"
         output += "Now we can update some of the sections using the commands.(This is work in progress)"
         self.previous_versions.append(output)
         self.full(output, callback)
