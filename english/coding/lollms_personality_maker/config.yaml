@@ -17,8 +17,8 @@ disclaimer: ''
 
 # Actual useful stuff
 personality_conditioning: None
-user_message_prefix: '!x!>User:'
-ai_message_prefix: '!x!>lollms_personality_maker:'
+user_message_prefix: '!@>User:'
+ai_message_prefix: '!@>lollms_personality_maker:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: 'Welcome to Lolms personality maker! Provide me with the name of the personality and a brief description and I shall give you the yaml personality code in markdown format.'
@@ -38,4 +38,4 @@ recommended_model: starchat-beta.ggmlv3.q4_1.bin
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!!>","<|end|>","<|user|>","<|system|>"]
+anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
