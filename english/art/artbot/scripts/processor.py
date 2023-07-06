@@ -26,6 +26,7 @@ class Processor(APScript):
         self.word_callback = None
         personality_config_template = ConfigTemplate(
             [
+                {"name":"imagining","type":"bool","value":True, "help":"Activate AI imagination"},
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sampler_name","type":"str","value":"ddim", "options":["ddim","dpms","plms"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
@@ -142,15 +143,17 @@ class Processor(APScript):
         """
         self.word_callback = callback
         
-        # ----------------------------------------------------------------
-        self.step_start(f"Imagining", callback)
-        # 1 first ask the model to formulate a query
-        prompt = f"{self.remove_image_links(previous_discussion_text)}"
-        print(prompt)
-        sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
-        self.step_end(f"Imagining", callback)
-        # ----------------------------------------------------------------
-        
+        if self.personality_config.imagining:
+            # ----------------------------------------------------------------
+            self.step_start(f"Imagining", callback)
+            # 1 first ask the model to formulate a query
+            prompt = f"{self.remove_image_links(previous_discussion_text)}"
+            print(prompt)
+            sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
+            self.step_end(f"Imagining", callback)
+            # ----------------------------------------------------------------
+        else:
+            sd_prompt = prompt
         # ----------------------------------------------------------------
         if not self.sd:
             self.step_start(f"Loading Stable diffusion", callback)
