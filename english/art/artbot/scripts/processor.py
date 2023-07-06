@@ -50,7 +50,7 @@ class Processor(APScript):
                             personality,
                             personality_config
                         )
-        self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+        self.sd = None
         
     def install(self):
         super().install()
@@ -143,25 +143,30 @@ class Processor(APScript):
         self.word_callback = callback
         
         # ----------------------------------------------------------------
-        self.step_start(f"Imagining ...", callback)
-        self.full(f"![](/personalities/english/art/artbot/assets/imagine_animation.gif)", callback)
+        self.step_start(f"Imagining", callback)
         # 1 first ask the model to formulate a query
         prompt = f"{self.remove_image_links(previous_discussion_text)}"
         print(prompt)
         sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
-        self.step_end(f"Imagining ...", callback)
+        self.step_end(f"Imagining", callback)
         # ----------------------------------------------------------------
-
+        
         # ----------------------------------------------------------------
-        self.step_start(f"Painting ...", callback)
-        self.full(f"![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        if not self.sd:
+            self.step_start(f"Loading Stable diffusion", callback)
+            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            self.step_end(f"Loading Stable diffusion", callback)
+        # ----------------------------------------------------------------
+        
+        # ----------------------------------------------------------------
+        self.step_start(f"Painting", callback)
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         output = sd_prompt.strip()+"\n"
-        self.step_end(f"Painting ...", callback)
+        self.step_end(f"Painting", callback)
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
-        self.step_start(f"Finishing ...", callback)
+        self.step_start(f"Finishing", callback)
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
             pth = files[i].split('/')
@@ -170,7 +175,7 @@ class Processor(APScript):
             file_path = f"![](/{pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
-        self.step_end(f"Finishing ...", callback)
+        self.step_end(f"Finishing", callback)
         # ----------------------------------------------------------------
 
         self.full(output, callback)
