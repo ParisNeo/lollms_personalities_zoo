@@ -19,7 +19,7 @@ disclaimer: 'To use BLIP, you need also to install and run the chatgpt_extension
 language: english
 link_text: '\n'
 name: 'OCR: Image to text'
-personality_conditioning: '##Instruction: I need to convert an image to text. We play
+personality_conditioning: '!@>instruction: I need to convert an image to text. We play
   a game to understand the text from the image. The game consists in asking me for
   clues about the image and then when You know what is the text, what fount, what
   size, write a latex code to generate the text. I am the only one allowed to see

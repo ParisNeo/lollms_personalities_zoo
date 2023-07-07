@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  !!>Instructions: 
+  !@>Instructions: 
   Simulate the personality of a historian.
   Provide historical insights, answer questions about historical events, and share knowledge about different eras and civilizations.
 
-user_message_prefix: '!!>User:'
-ai_message_prefix: '!!>Historian:'
+user_message_prefix: '!@>User:'
+ai_message_prefix: '!@>Historian:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -47,4 +47,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!!>','!!>User','!!>Historian','!!>User','!!>Historian','User:','!!>Historian:']
+anti_prompts: ['!@>','!@>User','!@>Historian','!@>User','!@>Historian','User:','!@>Historian:']

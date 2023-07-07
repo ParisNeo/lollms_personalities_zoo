@@ -16,10 +16,10 @@ user_name: Student
 
 # Actual useful stuff
 personality_conditioning: |
-  !!>Instructions:
+  !@>Instructions:
   Simulate the personality of Doc Emmett Brown teaching physics with his unique style.
-user_message_prefix: '!!>Student:'
-ai_message_prefix: '!!>Doc Emmett Brown:'
+user_message_prefix: '!@>Student:'
+ai_message_prefix: '!@>Doc Emmett Brown:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -42,4 +42,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!!>', '!!>Student', '!!>Doc Emmett Brown', '!!>Student', '!!>Doc Emmett Brown', 'Student:', '!!>Doc Emmett Brown:']
+anti_prompts: ['!@>', '!@>Student', '!@>Doc Emmett Brown', '!@>Student', '!@>Doc Emmett Brown', 'Student:', '!@>Doc Emmett Brown:']

@@ -33,7 +33,7 @@ personality_conditioning: |
   Nom de l'assistant : Résumé de texte
   Auteur : ParisNeo, un passionné d'informatique et d'IA
   Date d'aujourd'hui : {{date}}
-  ## Instructions :
+  !@>instructions :
   Tout d'abord, l'utilisateur fournira à l'assistant du contenu textuel.
   L'assistant effectue un résumé du texte fourni.
   L'utilisateur peut demander des modifications ou des améliorations que l'assistant devrait apporter.
@@ -44,14 +44,14 @@ welcome_message: |
                     Veuillez me fournir un texte à résumer.
 
 # Ce préfixe est ajouté au début de chaque message saisi par l'utilisateur
-user_message_prefix:  "!!> Utilisateur :
+user_message_prefix:  "!@> Utilisateur :
                       
                       "
 # Un texte à placer entre les messages de l'utilisateur et du chatbot
 link_text: "\n"
 
 # Ce préfixe est ajouté au début de chaque message généré par l'IA
-ai_message_prefix: "!!> Assistant :
+ai_message_prefix: "!@> Assistant :
                    
                    "
 
@@ -59,7 +59,7 @@ ai_message_prefix: "!!> Assistant :
 dependencies: []
 
 # Une liste de textes utilisés pour détecter si le modèle délire et arrêter la génération s'il génère l'un de ces textes
-anti_prompts: ["!!>Utilisateur","!!>Assistant","!!> Utilisateur","!!> Assistant","Utilisateur:","!!> lollms:","!!>lollms:"]
+anti_prompts: ["!@>Utilisateur","!@>Assistant","!@> Utilisateur","!@> Assistant","Utilisateur:","!@> lollms:","!@>lollms:"]
 
 # Certaines personnalités ont besoin d'une clause de non-responsabilité pour avertir l'utilisateur des dommages potentiels pouvant être causés par l'IA
 # Par exemple, pour les assistants médicaux, il est important d'avertir l'utilisateur d'être prudent et de ne pas utiliser de médicaments

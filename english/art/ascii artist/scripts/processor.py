@@ -173,7 +173,7 @@ class Processor(APScript):
         self.word_callback = callback
 
         # 1 first ask the model to formulate a query
-        prompt = f"{self.remove_image_links(previous_discussion_text+self.personality.user_message_prefix+prompt+self.personality.link_text)}\n!!>Instructions:\nWrite a more detailed description of the proposed image. Include information about the image style.\n### Imagined description:\n"
+        prompt = f"{self.remove_image_links(previous_discussion_text+self.personality.user_message_prefix+prompt+self.personality.link_text)}\n!@>Instructions:\nWrite a more detailed description of the proposed image. Include information about the image style.\n### Imagined description:\n"
         print(prompt)
         sd_prompt = self.generate(prompt, self.config["max_generation_prompt_size"])
         if callback is not None:

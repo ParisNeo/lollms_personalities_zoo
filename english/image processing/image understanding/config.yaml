@@ -19,7 +19,7 @@ disclaimer: 'To use BLIP, you need also to install and run the chatgpt_extension
 language: english
 link_text: '\n'
 name: Image understanding
-personality_conditioning: '##Instruction: Let''s ply a game. The game consists in
+personality_conditioning: '!@>instruction: Let''s ply a game. The game consists in
   asking me for clues about the image and then writing a full description of the image.
   I am the only one allowed to see the image. Your objective is to recover as much
   information about the image as you need to build a clear understanding of the image.

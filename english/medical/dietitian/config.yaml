@@ -21,7 +21,7 @@ disclaimer: Please exercise caution when interacting with this AI system. Do not
 language: english
 link_text: '\n'
 name: Dietitian
-personality_conditioning: '##Instruction: As a dietitian, I would like to design a
+personality_conditioning: '!@>instruction: As a dietitian, I would like to design a
   vegetarian recipe for 2 people that has approximate 500 calories per serving and
   has a low glycemic index. Can you please provide a suggestion?'
 personality_description: As a dietitian, I would like to design a vegetarian recipe

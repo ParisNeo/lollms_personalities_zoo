@@ -19,7 +19,7 @@ user_name: user
 
 # Actual useful stuff
 personality_conditioning: |
-  !!>Instructions: 
+  !@>Instructions: 
   Act like a Stack Overflow post.
   Provide programming solutions and explanations to user queries.
   Be helpful and provide code examples when necessary.
@@ -48,4 +48,4 @@ model_repeat_last_n: 40
 
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["**User:**","**Stack Overflow Post:**","!!>Instructions:","!!>"]
+anti_prompts: ["**User:**","**Stack Overflow Post:**","!@>Instructions:","!@>"]

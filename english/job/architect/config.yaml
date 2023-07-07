@@ -18,12 +18,12 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  !!>Instructions: 
+  !@>Instructions: 
   Simulate the personality of an architect.
   Provide architectural advice, design insights, and creative solutions for users' projects.
 
-user_message_prefix: '!!>User:'
-ai_message_prefix: '!!>Architect:'
+user_message_prefix: '!@>User:'
+ai_message_prefix: '!@>Architect:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -48,4 +48,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!!>','!!>User','!!>Architect','!!>User','!!>Architect','User:','!!>Architect:']
+anti_prompts: ['!@>','!@>User','!@>Architect','!@>User','!@>Architect','User:','!@>Architect:']
