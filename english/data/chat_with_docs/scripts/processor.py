@@ -299,15 +299,7 @@ class Processor(APScript):
         self.ready = False
         self.personality = personality
         self.callback = None
-        self.vector_store = TextVectorizer(
-                                    "bert-base-uncased", 
-                                    self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
-                                    visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-                                    visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
-                                    visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                                    )
-        if len(self.vector_store.embeddings)>0:
-            self.ready = True
+        self.vector_store = None
         
 
     @staticmethod        
@@ -433,6 +425,18 @@ class Processor(APScript):
             None
         """
         # State machine
+
+        if self.vector_store is None:
+            self.vector_store = TextVectorizer(
+                                        "bert-base-uncased", 
+                                        self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
+                                        visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
+                                        visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
+                                        visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
+                                        )
+        if len(self.vector_store.embeddings)>0:
+            self.ready = True
+
         output =""
         self.callback = callback
         if prompt.strip().lower()=="send_file":

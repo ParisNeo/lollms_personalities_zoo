@@ -53,6 +53,21 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
         ASCIIColors.success("Installed successfully")
 
+    def convert_string_to_sections(self, string):
+        lines = string.split('\n')  # Split the string into lines
+        sections = []
+        current_section = None
+        for line in lines:
+            if line.startswith('## '):  # Detect section
+                section_title = line.replace('## ', '')
+                current_section = {'title': section_title, 'subsections': []}
+                sections.append(current_section)
+            elif line.startswith('### '):  # Detect subsection
+                if current_section is not None:
+                    subsection_title = line.replace('### ', '')
+                    current_section['subsections'].append(subsection_title)
+        return sections
+
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -81,16 +96,18 @@ class Processor(APScript):
 
         # ----------------------------------------------------------------
         self.step_start("Building the layout...", callback)
-        layout = "1. Introduction\n"+self.generate(f"""!@>project_information:\n{prompt}
+        layout = "# Introduction\n"+self.generate(f"""!@>project_information:\n{prompt}
 !@>task: Using the project information, Let's build a layout structure for our documentation of this project.
 Only write the layout, don't put any details.
 Use all information from the peoject information set to elaborate a comprehensive and well organized structure.
-Use markdown format with # for section, ## for subsection.
+Use markdown format with ## for section, ### for subsection.
 Do not add any extra text or explanation
 !@>structure:
-# Introduction""",512,**GenerationPresets.deterministic_preset())
+# {title}                                                  
+## Introduction""",512,**GenerationPresets.deterministic_preset())
         self.step_end("Building the layout...", callback)
         ASCIIColors.yellow(f"structure:\n{layout}")
+        layout = self.convert_string_to_sections(layout)        
         # ----------------------------------------------------------------
         sections = [{"name": section} for section in layout.split("\n")]
         for i,section in enumerate(sections):
