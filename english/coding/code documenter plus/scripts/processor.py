@@ -53,6 +53,24 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
         ASCIIColors.success("Installed successfully")
 
+    def convert_string_to_sections(self, string):
+        table_of_content = ""
+        lines = string.split('\n')  # Split the string into lines
+        sections = []
+        current_section = None
+        for line in lines:
+            line = line.strip()
+            if line!="":
+                table_of_content+=line+"\n"
+                if line.startswith('## '):  # Detect section
+                    section_title = line.replace('## ', '')
+                    current_section = {'title': section_title, 'subsections': [], "content":""}
+                    sections.append(current_section)
+                elif line.startswith('### '):  # Detect subsection
+                    if current_section is not None:
+                        subsection_title = line.replace('### ', '')
+                        current_section['subsections'].append(subsection_title)
+        return sections, table_of_content
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -72,35 +90,37 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Building the title...", callback)
-        title = self.generate(f"""!@>project_information:\n{prompt}
-!@>task: Using the project information, Create a title for the document.
-!@>title:""",512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
+        title = self.generate(f"""project_information:\n{prompt}
+User: Create a title that reflects the idea of this project. The title should contain at least 2 words.
+Documentation builder ai:
+suggested title:""",512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
         self.step_end("Building the title...", callback)
         ASCIIColors.yellow(f"title:{title}")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
         self.step_start("Building the layout...", callback)
-        layout = "1. Introduction\n"+self.generate(f"""!@>project_information:\n{prompt}
-!@>task: Using the project information, Let's build a layout structure for our documentation of this project.
-Only write the layout, don't put any details.
-Use all information from the peoject information set to elaborate a comprehensive and well organized structure.
-!@>structure:
-1. Introduction""",512,**GenerationPresets.deterministic_preset())
+        layout = "## Introduction\n##"+self.generate(f"""Documentation builder aiis a tool that can understand project information and convert it to a documentation table of content.
+project_information:{prompt}
+User: Write a table of content for this project
+Documentation builder ai: Here is the table of contents for the project documentation in markdown format:
+```markdown 
+# {title}
+## Introduction
+##""",512,**GenerationPresets.deterministic_preset())
         self.step_end("Building the layout...", callback)
         ASCIIColors.yellow(f"structure:\n{layout}")
         # ----------------------------------------------------------------
-        sections = [{"name": section} for section in layout.split("\n")]
+        sections, table_of_content = self.convert_string_to_sections(layout) #[{"name": section} for section in layout.split("\n")]
         for section in sections:
             # ----------------------------------------------------------------
             self.step_start(f"Building section {section['name']}...", callback)
-            section["content"] = self.generate(f"""!@>project information:
+            section["content"] = self.generate(f"""project information:
 {prompt}
-!@>task: Using the project information, populate the content of the section {section['name']}.
-!@>instructions:
-Act as a professional documentation builder and make this section content from the project information.
-Use multiple lines and make a text that fits both the project information and the section title.
-You must give details and be clear to make sure the reader understands the section.
+Table of content:
+
+User: Using the project information, populate the content of the section {section['name']}.
+
 !@>section title: {section['name']}
 !@>section content:""",1024,**GenerationPresets.deterministic_preset())
             self.step_end(f"Building section {section['name']}...", callback)
