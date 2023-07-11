@@ -43,7 +43,7 @@ welcome_message: |
   
 # Voici les paramètres par défaut du modèle
 model_temperature: 0.6 # plus élevé : plus créatif, plus bas : plus déterministe
-model_n_predicts: 2048 # plus élevé : génère plus de mots, plus bas : génère moins de mots
+model_n_predicts: 8192 # plus élevé : génère plus de mots, plus bas : génère moins de mots
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0

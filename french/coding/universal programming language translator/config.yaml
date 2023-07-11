@@ -33,7 +33,7 @@ link_text: "\n"
 welcome_message: 'Welcome to the Universal Programming Language Translator. I will help you translate code between different programming languages. Please provide the code you would like to convert, along with the source and target programming languages.'
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 2048 # higher: generates more words, lower: generates fewer words
+model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0

@@ -33,7 +33,7 @@ link_text: "\n"
 welcome_message: 'Welcome to this Python programming course. I will teach you coding concepts in Python and provide you with exercises to test your skills. What concept would you like to learn?'
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 2048 # higher: generates more words, lower: generates fewer words
+model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
