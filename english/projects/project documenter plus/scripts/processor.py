@@ -27,6 +27,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"layout_max_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},                
+                {"name":"is_debug","type":"bool","value":False, "help":"Activates debug mode where all prompts are shown in the console"},                                
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -37,7 +38,8 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            
                         )
         self.previous_versions = []
         
@@ -60,12 +62,12 @@ class Processor(APScript):
         for line in lines:
             if line.startswith('## '):  # Detect section
                 section_title = line.replace('## ', '')
-                current_section = {'title': section_title, 'subsections': []}
+                current_section = {'title': section_title, 'subsections': [], 'content':''}
                 sections.append(current_section)
             elif line.startswith('### '):  # Detect subsection
                 if current_section is not None:
                     subsection_title = line.replace('### ', '')
-                    current_section['subsections'].append(subsection_title)
+                    current_section['subsections'].append({'title':subsection_title, 'content':''})
         return sections
 
 
@@ -87,69 +89,104 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Building the title...", callback)
-        title = self.generate(f"""!@>project_information:\n{prompt}
-!@>task: Using the project information, Create a title for the document.
-!@>title:""",512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
+        gen_prompt = f"""Act as document title builder assistant. Infer a document title out of the project information.
+project_information:
+{prompt}
+!@>User: Using the project information, Create a title for the document.
+!@>Assistant:
+Here is a suitable title for this project:"""
+        if self.personality_config.is_debug:
+            ASCIIColors.info(gen_prompt)
+
+        title = self.generate(gen_prompt,512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
+        if title.startswith('"'):
+            title = title[1:]
         self.step_end("Building the title...", callback)
         ASCIIColors.yellow(f"title:{title}")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
-        self.step_start("Building the layout...", callback)
-        layout = "# Introduction\n"+self.generate(f"""!@>project_information:\n{prompt}
-!@>task: Using the project information, Let's build a layout structure for our documentation of this project.
-Only write the layout, don't put any details.
-Use all information from the peoject information set to elaborate a comprehensive and well organized structure.
-Use markdown format with ## for section, ### for subsection.
-Do not add any extra text or explanation
-!@>structure:
+        self.step_start("Building the table of contents...", callback)
+        gen_prompt = f"""Act as document table of contents builder assistant. Infer a document structure out of the project information and do not populate its content.
+Do not write the sections contents. All you are asked to do is to make the table of contents which is the title, the sections and the subsections.
+The table of content should be formatted in markdown format with # for main title, ## for sections and ### for subsections.
+project information:
+{prompt}
+@!>User: Using the project information, Let's build a table of contents for our documentation of this project.
+@!>Assistant:
+Here is the table of contents in markdown format:
 # {title}                                                  
-## Introduction""",512,**GenerationPresets.deterministic_preset())
-        self.step_end("Building the layout...", callback)
+## Introduction"""
+        if self.personality_config.is_debug:
+            ASCIIColors.info(gen_prompt)
+        layout = "## Introduction\n"+self.generate(gen_prompt,512,**GenerationPresets.deterministic_preset())
+        self.step_end("Building the table of contents...", callback)
         ASCIIColors.yellow(f"structure:\n{layout}")
-        layout = self.convert_string_to_sections(layout)        
+        sections = self.convert_string_to_sections(layout)
         # ----------------------------------------------------------------
-        sections = [{"name": section} for section in layout.split("\n")]
+        
+        
+        
+        document_text=f"# {title}\n"        
+        
+        
+        
         for i,section in enumerate(sections):
             # ----------------------------------------------------------------
-            self.step_start(f"Building section {section['name']}...", callback)
-            if i==0:
-                section["content"] = self.generate(f"""!@>project information:
+            self.step_start(f"Building section {section['title']}...", callback)
+            if len(section['subsections'])>0:
+                document_text += f"## {section['title']}\n"
+                for subsection in section['subsections']:
+                    gen_prompt = f"""Act as document section filler assistant. Infer the data for the next section of the document from the project information.
+project information:
 {prompt}
-!@>task: Using the project information, populate the content of the section {section['name']}.
-!@>instructions:
-Act as a professional documentation builder and make this section content from the project information.
-Use multiple lines and make a text that fits both the project information and the section title.
-You must give details and be clear to make sure the reader understands the section.
-Only use information relevant to the section being described. Don't include information that is not relevant to the section.
-Don't repeat information already stated in previous section
-!@>section title: {section['name']}
-!@>section content:""",1024,**GenerationPresets.deterministic_preset())
+!@>User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
+!@>previous chunk of text preview:
+{document_text[-500:]}
+!@>Assistant:
+Here is the subsection content:
+### {subsection['title']}"""
+                    if self.personality_config.is_debug:
+                        ASCIIColors.info(gen_prompt)
+                    
+                    subsection["content"] = self.generate(gen_prompt,1024,**GenerationPresets.deterministic_preset()).strip()
+                    document_text += f"### {subsection['title']}\n"
+                    document_text += f"{subsection['content']}\n"
             else:
-                section["content"] = self.generate(f"""!@>project information:
+                gen_prompt = f"""Act as document section filler assistant. Infer the data for the next section of the document from the project information.
+project information:
 {prompt}
-!@>task: Using the project information, populate the content of the section {section['name']}.
-!@>instructions:
-Act as a professional documentation builder and make this section content from the project information.
-Use multiple lines and make a text that fits both the project information and the section title.
-You must give details and be clear to make sure the reader understands the section.
-Only use information relevant to the section being described. Don't include information that is not relevant to the section.
-Don't repeat information already stated in previous section
-!@>section title: {sections[i-1]['name']}
-!@>section content: {sections[i-1]['content']}
-!@>section title: {section['name']}
-!@>section content:""",1024,**GenerationPresets.deterministic_preset())
+!@>User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
+!@>previous chunk of text preview:
+{document_text[-500:]}
+!@>Assistant:
+Here is the section content:
+## {section['title']}"""
+                if self.personality_config.is_debug:
+                    ASCIIColors.info(gen_prompt)
+                
+                section["content"] = self.generate(gen_prompt,1024,**GenerationPresets.deterministic_preset()).strip()
+                document_text += f"## {section['title']}\n"
+                document_text += f"{section['content']}\n"
 
-            self.step_end(f"Building section {section['name']}...", callback)
+            self.step_end(f"Building section {section['title']}...", callback)
             ASCIIColors.yellow(f"{section}\n")
             # ----------------------------------------------------------------
         
-        output = f"```markdown\n# {title}\n\n"   
-        output += "\n".join([f"{s['name']}\n{s['content']}\n" for s in sections])
-        output += "```\n"
-        output += "Now we can update some of the sections using the commands.(This is work in progress)"
+        output = f"```markdown\n"   
+        output += document_text
+        output += "\n```\n"
+        output += "Now we can update some of the sections using the commands.\nYou can use the command update_section followed by the section name to add information about the section"
+        
         self.previous_versions.append(output)
-        self.full(output, callback)
+        if callback:
+            self.full(output, callback)
+        
+        self.current_document = sections
+        
+        if callback:
+            self.json(sections, callback)
+        
         
         return output
 

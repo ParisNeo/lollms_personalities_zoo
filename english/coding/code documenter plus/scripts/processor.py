@@ -37,9 +37,25 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "send_file": self.send_file
+                                    },
+                                    "default": self.generate_doc
+                                },
+                                {
+                                    "name": "waiting_for_file",
+                                    "commands": { # list of commands
+                                    },
+                                    "default": self.receive_file
+                                }                                
+                            ]
                         )
         self.previous_versions = []
+        self.code=[]
         
     def install(self):
         super().install()
@@ -52,6 +68,58 @@ class Processor(APScript):
         # Step 2: Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
         ASCIIColors.success("Installed successfully")
+        
+        
+    def generate_doc(self, prompt):
+        pass
+    
+    def send_file(self, prompt):
+        self.goto_state("waiting_for_file")
+
+    def receive_file(self, prompt):
+        self.add_file(prompt)
+        self.goto_state("idle")
+
+    def parse_python_file(self, filename):
+        import ast
+        with open(filename, 'r') as file:
+            source_code = file.read()
+
+        tree = ast.parse(source_code)
+
+        imports = []
+        functions = []
+        classes = []
+
+        for node in ast.iter_imports(tree):
+            import_name = node.names[0].name
+            imports.append(import_name)
+
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.FunctionDef):
+                function_name = node.name
+                function_code = ast.unparse(node)
+                functions.append({"name": function_name, "content": function_code})
+
+            elif isinstance(node, ast.ClassDef):
+                class_name = node.name
+                methods = []
+
+                for child_node in ast.iter_child_nodes(node):
+                    if isinstance(child_node, ast.FunctionDef):
+                        method_name = child_node.name
+                        method_code = ast.unparse(child_node)
+                        methods.append({"name": method_name, "content": method_code})
+
+                classes.append({"name": class_name, "methods": methods})
+
+        result = {
+            "imports": imports,
+            "functions": functions,
+            "classes": classes
+        }
+
+        return result
 
     def convert_string_to_sections(self, string):
         table_of_content = ""
