@@ -125,9 +125,8 @@ class Processor(APScript):
         final_ideas = []
         summary_prompt = ""
         for j in range(self.personality_config.nb_ideas):
-            if callback:
-                callback(f"Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_START)
-            
+
+            self.step_start(f"Building idea {j+1}", callback)
             ASCIIColors.info(f"============= Starting level {j} of the chain =====================")
             ideas=[]
             print(f"\nIdea {j+1}")
@@ -145,8 +144,7 @@ class Processor(APScript):
             idea = self.generate(idea_prompt, self.personality_config["max_thought_size"]).strip()
             ideas.append(idea)
 
-            if callback:
-                callback(f"Building idea {j+1}", MSG_TYPE.MSG_TYPE_STEP_END)
+            self.step_end(f"Building idea {j+1}", callback)
 
         summary_prompt += f""">Instructions:
 Combine these ideas in a comprihensive and detailed essai that explains how to answer the user's question: {prompt}
