@@ -33,10 +33,10 @@ welcome_message: 'Welcome to the Novelist world. My name is Novelist, I am an AI
 include_welcome_message_in_disucssion: True
 
 # Here are default model parameters
-model_temperature: 0.9 # higher: more creative, lower more deterministic
+model_temperature: 4.9 # higher: more creative, lower more deterministic
 model_n_predicts: 2048 # higher: generates many words, lower generates
-model_top_k: 50
-model_top_p: 0.90
+model_top_k: 100
+model_top_p: 0.60
 model_repeat_penalty: 1.5
 model_repeat_last_n: 20
 
