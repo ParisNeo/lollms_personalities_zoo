@@ -1,7 +1,7 @@
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.helpers import ASCIIColors
+from lollms.helpers import ASCIIColors, trace_exception
 
 import numpy as np
 import json
@@ -10,11 +10,8 @@ import numpy as np
 import json
 
 class TextVectorizer:
-    def __init__(self, model_name, database_file:Path|str, visualize_data_at_startup=False, visualize_data_at_add_file=False, visualize_data_at_generate=False):
-        from transformers import AutoTokenizer, AutoModel
-
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
+    def __init__(self, model, database_file:Path|str, visualize_data_at_startup=False, visualize_data_at_add_file=False, visualize_data_at_generate=False):
+        self.model = model
         self.embeddings = {}
         self.texts = {}
         self.ready = False
@@ -293,14 +290,50 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "help":self.help,
+                                        "set_database": self.set_database,
+                                        "clear_database": self.clear_database
+                                    },
+                                    "default": self.chat_with_doc
+                                },                           
+                            ]
                         )
         self.state = 0
         self.ready = False
         self.personality = personality
         self.callback = None
         self.vector_store = None
-        
+
+    def help(self, prompt):
+        self.full(self.personality.help, self.callback)
+
+    def set_database(self, prompt):
+        self.goto_state("waiting_for_file")
+
+    def clear_database(self,prompt):
+        pass
+
+    def chat_with_doc(self, prompt):
+        self.step_start("Recovering data")
+        ASCIIColors.blue("Recovering data")
+        docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=3)
+        docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
+        full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
+        ASCIIColors.blue("-------------- Documentation -----------------------")
+        ASCIIColors.blue(full_text)
+        ASCIIColors.blue("----------------------------------------------------")
+        ASCIIColors.blue("Thinking")
+        self.step_end("Recovering data")
+        self.step_start("Thinking",self.callback)
+        output = self.generate(full_text, self.personality_config["max_answer_size"])
+        self.step_end("Thinking",self.callback)
+        self.full(output, self.callback)
+
 
     @staticmethod        
     def read_pdf_file(file_path):
@@ -402,11 +435,14 @@ class Processor(APScript):
     def add_file(self, path):
         super().add_file(path)
         try:
+            self.step_start("Vectorizing database",self.callback)
             self.build_db()
+            self.step_end("Vectorizing database",self.callback)
             self.ready = True
             return True
         except Exception as ex:
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
+            trace_exception(ex)
             return False        
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
@@ -425,114 +461,21 @@ class Processor(APScript):
             None
         """
         # State machine
-
+        self.callback = callback
         if self.vector_store is None:
             self.vector_store = TextVectorizer(
-                                        "bert-base-uncased", 
+                                        self.personality.model, 
                                         self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
                                         visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
                                         visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
                                         visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                                        )
+                                        )        
         if len(self.vector_store.embeddings)>0:
             self.ready = True
 
-        output =""
-        self.callback = callback
-        if prompt.strip().lower()=="send_file":
-            self.state = 1
-            print("Please provide the file name")
-            if callback is not None:
-                callback("Please provide the file path", MSG_TYPE.MSG_TYPE_FULL)
-            output = "Please provide the file name"
-        elif prompt.strip().lower()=="help":
-            if callback:
-                callback(self.personality.help,MSG_TYPE.MSG_TYPE_FULL)
-                ASCIIColors.info(help)
-            self.state = 0   
-        elif prompt.strip().lower()=="show_database":
-            try:
-                self.vector_store.show_document()
-            except Exception as ex:
-                if callback is not None:
-                    callback(f"Couldn't show the database\nMake sure you have already uploaded a database.\nReceived exception is: {ex}", MSG_TYPE.MSG_TYPE_FULL)        
+        self.process_state(prompt)
 
-            self.state = 0
-            
-        elif prompt.strip().lower()=="set_database":
-            print("Please provide the database file name")
-            if callback is not None:
-                callback("Please provide the database file path", MSG_TYPE.MSG_TYPE_FULL)
-            output = "Please provide the database file name"
-            self.state = 2
-        elif prompt.strip().lower()=="clear_database":
-            database_fill_path:Path = self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"]
-            if database_fill_path.exists():
-                database_fill_path.unlink()
-                self.vector_store = TextVectorizer(
-                    "bert-base-uncased", 
-                    self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
-                    visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-                    visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
-                    visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                )
-                if callback is not None:
-                    callback("Database file cleared successfully", MSG_TYPE.MSG_TYPE_FULL)        
-            else:
-                if callback is not None:
-                    callback("The database file does not exist yet, so you can't clear it", MSG_TYPE.MSG_TYPE_FULL)        
-            self.state = 0
-        else:
-            if self.state ==1:
-                try:
-                    self.add_file(prompt)
-                    if callback is not None:
-                        callback(f"File {prompt} added successfully", MSG_TYPE.MSG_TYPE_FULL)
-
-                except Exception as ex:
-                    ASCIIColors.error(f"Exception: {ex}")
-                    if callback is not None:
-                        callback(f"Couldn't load file {prompt}.\nThe following exception was thrown: {ex}", MSG_TYPE.MSG_TYPE_FULL)
-                    output = str(ex)
-                self.state=0
-            elif self.state ==2:
-                try:
-                    new_db_path = Path(prompt)
-                    if new_db_path.exists():
-                        self.personality_config["database_path"] = prompt
-                        self.personality_config.save()
-                        self.vector_store = TextVectorizer(
-                            "bert-base-uncased", 
-                            self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
-                            visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-                            visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
-                            visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                            )
-                        
-                        self.save_config_file(self.personality.lollms_paths.personal_configuration_path/f"personality_{self.personality.name}.yaml", self.personality_config)
-                    else:
-                        output = "Database file not found.\nGoing back to default state."
-                except Exception as ex:
-                    ASCIIColors.error(f"Exception: {ex}")
-                    output = str(ex)
-                self.state=0
-            else:
-                if not self.ready:
-                     ASCIIColors.error(f"No data to discuss. Please upload a document first")
-                else:
-                    docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=3)
-                    docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
-                    full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
-                    ASCIIColors.blue("-------------- Documentation -----------------------")
-                    ASCIIColors.blue(full_text)
-                    ASCIIColors.blue("----------------------------------------------------")
-                    ASCIIColors.blue("Thinking")
-                    if callback is not None:
-                        callback("Thinking", MSG_TYPE.MSG_TYPE_FULL)
-                    output = self.generate(full_text, self.personality_config["max_answer_size"])
-                    if callback is not None:
-                        callback(output, MSG_TYPE.MSG_TYPE_FULL)
-        return output
+        return ""
 
 
 

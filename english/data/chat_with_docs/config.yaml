@@ -39,6 +39,8 @@ help:  |
 commands:
   - name: Send File
     value: send_file
+    is_file: true
+    file_types: .doc,.docx,.pdf,.html
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: Set database
     value: set_database
