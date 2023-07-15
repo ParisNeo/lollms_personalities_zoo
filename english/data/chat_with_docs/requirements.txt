@@ -8,3 +8,4 @@ beautifulsoup4
 python-pptx
 plotly
 seaborn
+scikit-learn

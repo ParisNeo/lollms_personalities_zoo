@@ -1,6 +1,7 @@
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.paths import LollmsPaths
 from lollms.helpers import ASCIIColors, trace_exception
 
 import numpy as np
@@ -11,21 +12,32 @@ import json
 import subprocess
 
 class TextVectorizer:
-    def __init__(self, model, database_file:Path|str, visualize_data_at_startup=False, visualize_data_at_add_file=False, visualize_data_at_generate=False):
+    def __init__(self, model, personality_config:ConfigTemplate, lollms_paths:LollmsPaths):
+        
+        
         self.model = model
         self.embeddings = {}
         self.texts = {}
         self.ready = False
-        self.database_file = Path(database_file)
-        self.visualize_data_at_startup  = visualize_data_at_startup
-        self.visualize_data_at_add_file = visualize_data_at_add_file
-        self.visualize_data_at_generate = visualize_data_at_generate
+        self.personality_config = personality_config
+        self.vectorizer = None
+
+        
+        
+        self.database_file = Path(lollms_paths.personal_data_path/self.personality_config["database_path"])
+
+        self.visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
+        self.visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
+        self.visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
+
+        if self.model.embed("hi")==None:
+            self.personality_config.vectorization_method="ftidf_vectorizer"
 
         # Load previous state from the JSON file
         if Path(self.database_file).exists():
             ASCIIColors.success(f"Database file found : {self.database_file}")
             self.load_from_json()
-            if visualize_data_at_startup:
+            if self.visualize_data_at_startup:
                 self.show_document()
             self.ready = True
         else:
@@ -49,95 +61,95 @@ class TextVectorizer:
         else:
             print("Showing t-sne representation :")
         texts = list(self.texts.values())
-        embeddings = torch.stack(list(self.embeddings.values())).detach().squeeze(1).numpy()
-        # Normalize embeddings
-        norms = np.linalg.norm(embeddings, axis=1)
-        normalized_embeddings = embeddings / norms[:, np.newaxis]
+        embeddings = self.embeddings
+        if len(embeddings.values())>=2:
+            # Normalize embeddings
+            norms = np.linalg.norm(embeddings, axis=1)
+            normalized_embeddings = embeddings / norms[:, np.newaxis]
 
-        # Embed the query text
-        query_embedding = self.embed_query(query_text)
-        query_embedding = query_embedding.detach().squeeze().numpy()
-        query_normalized_embedding = query_embedding / np.linalg.norm(query_embedding)
+            # Embed the query text
+            query_embedding = self.embed_query(query_text)
+            query_embedding = query_embedding.detach().squeeze().numpy()
+            query_normalized_embedding = query_embedding / np.linalg.norm(query_embedding)
 
-        # Combine the query embedding with the document embeddings
-        combined_embeddings = np.vstack((normalized_embeddings, query_normalized_embedding))
+            # Combine the query embedding with the document embeddings
+            combined_embeddings = np.vstack((normalized_embeddings, query_normalized_embedding))
 
-        if use_pca:
-            # Use PCA for dimensionality reduction
-            pca = PCA(n_components=2)
-            embeddings_2d = pca.fit_transform(combined_embeddings)
-        else:
-            # Use t-SNE for dimensionality reduction
-            # Adjust the perplexity value
-            perplexity = min(30, combined_embeddings.shape[0] - 1)
-            tsne = TSNE(n_components=2, perplexity=perplexity)
-            embeddings_2d = tsne.fit_transform(combined_embeddings)
-
-
-        # Create a scatter plot using Seaborn
-        sns.scatterplot(x=embeddings_2d[:-1, 0], y=embeddings_2d[:-1, 1])  # Plot document embeddings
-        plt.scatter(embeddings_2d[-1, 0], embeddings_2d[-1, 1], color='red')  # Plot query embedding
-
-        # Add labels to the scatter plot
-        for i, (x, y) in enumerate(embeddings_2d[:-1]):
-            plt.text(x, y, str(i), fontsize=8)
-
-        plt.xlabel('Dimension 1')
-        plt.ylabel('Dimension 2')
-        if use_pca:      
-            plt.title('Embeddings Scatter Plot based on PCA')
-        else:
-            plt.title('Embeddings Scatter Plot based on t-SNE')
-        # Enable mplcursors to show tooltips on hover
-        cursor = mplcursors.cursor(hover=True)
-
-        # Define the hover event handler
-        @cursor.connect("add")
-        def on_hover(sel):
-            index = sel.target.index
-            if index > 0:
-                text = texts[index]
-                wrapped_text = textwrap.fill(text, width=50)  # Wrap the text into multiple lines
-                sel.annotation.set_text(f"Index: {index}\nText:\n{wrapped_text}")
+            if use_pca:
+                # Use PCA for dimensionality reduction
+                pca = PCA(n_components=2)
+                embeddings_2d = pca.fit_transform(combined_embeddings)
             else:
-                sel.annotation.set_text("Query")
+                # Use t-SNE for dimensionality reduction
+                # Adjust the perplexity value
+                perplexity = min(30, combined_embeddings.shape[0] - 1)
+                tsne = TSNE(n_components=2, perplexity=perplexity)
+                embeddings_2d = tsne.fit_transform(combined_embeddings)
 
-        # Define the click event handler using matplotlib event handling mechanism
-        def on_click(event):
-            if event.xdata is not None and event.ydata is not None:
-                x, y = event.xdata, event.ydata
-                distances = ((embeddings_2d[:, 0] - x) ** 2 + (embeddings_2d[:, 1] - y) ** 2)
-                index = distances.argmin()
-                text = texts[index] if index < len(texts) else query_text
 
-                # Open a new Tkinter window with the content of the text
-                root = Tk()
-                root.title(f"Text for Index {index}")
-                frame = Frame(root)
-                frame.pack(fill=BOTH, expand=True)
+            # Create a scatter plot using Seaborn
+            sns.scatterplot(x=embeddings_2d[:-1, 0], y=embeddings_2d[:-1, 1])  # Plot document embeddings
+            plt.scatter(embeddings_2d[-1, 0], embeddings_2d[-1, 1], color='red')  # Plot query embedding
 
-                label = Label(frame, text="Text:")
-                label.pack(side=TOP, padx=5, pady=5)
+            # Add labels to the scatter plot
+            for i, (x, y) in enumerate(embeddings_2d[:-1]):
+                plt.text(x, y, str(i), fontsize=8)
 
-                text_box = Text(frame)
-                text_box.pack(side=TOP, padx=5, pady=5, fill=BOTH, expand=True)
-                text_box.insert(END, text)
+            plt.xlabel('Dimension 1')
+            plt.ylabel('Dimension 2')
+            if use_pca:      
+                plt.title('Embeddings Scatter Plot based on PCA')
+            else:
+                plt.title('Embeddings Scatter Plot based on t-SNE')
+            # Enable mplcursors to show tooltips on hover
+            cursor = mplcursors.cursor(hover=True)
 
-                scrollbar = Scrollbar(frame)
-                scrollbar.pack(side=RIGHT, fill=Y)
-                scrollbar.config(command=text_box.yview)
-                text_box.config(yscrollcommand=scrollbar.set)
+            # Define the hover event handler
+            @cursor.connect("add")
+            def on_hover(sel):
+                index = sel.target.index
+                if index > 0:
+                    text = texts[index]
+                    wrapped_text = textwrap.fill(text, width=50)  # Wrap the text into multiple lines
+                    sel.annotation.set_text(f"Index: {index}\nText:\n{wrapped_text}")
+                else:
+                    sel.annotation.set_text("Query")
 
-                text_box.config(state="disabled")
+            # Define the click event handler using matplotlib event handling mechanism
+            def on_click(event):
+                if event.xdata is not None and event.ydata is not None:
+                    x, y = event.xdata, event.ydata
+                    distances = ((embeddings_2d[:, 0] - x) ** 2 + (embeddings_2d[:, 1] - y) ** 2)
+                    index = distances.argmin()
+                    text = texts[index] if index < len(texts) else query_text
 
-                root.mainloop()
+                    # Open a new Tkinter window with the content of the text
+                    root = Tk()
+                    root.title(f"Text for Index {index}")
+                    frame = Frame(root)
+                    frame.pack(fill=BOTH, expand=True)
 
-        # Connect the click event handler to the figure
-        plt.gcf().canvas.mpl_connect("button_press_event", on_click)
-        plt.show()
+                    label = Label(frame, text="Text:")
+                    label.pack(side=TOP, padx=5, pady=5)
+
+                    text_box = Text(frame)
+                    text_box.pack(side=TOP, padx=5, pady=5, fill=BOTH, expand=True)
+                    text_box.insert(END, text)
+
+                    scrollbar = Scrollbar(frame)
+                    scrollbar.pack(side=RIGHT, fill=Y)
+                    scrollbar.config(command=text_box.yview)
+                    text_box.config(yscrollcommand=scrollbar.set)
+
+                    text_box.config(state="disabled")
+
+                    root.mainloop()
+
+            # Connect the click event handler to the figure
+            plt.gcf().canvas.mpl_connect("button_press_event", on_click)
+            plt.show()
         
     def index_document(self, document_id, text, chunk_size, overlap_size, force_vectorize=False):
-        import torch
 
         if document_id in self.embeddings and not force_vectorize:
             print(f"Document {document_id} already exists. Skipping vectorization.")
@@ -172,25 +184,22 @@ class TextVectorizer:
             chunk = tokens[chunk_start:chunk_end]
             overlapping_chunks.append(chunk)
 
+
+        if self.personality_config.vectorization_method=="ftidf_vectorizer":
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            self.vectorizer = TfidfVectorizer()
+            data = [self.model.detokenize(chunk) for chunk in overlapping_chunks]
+            self.vectorizer.fit(data)
+
         # Generate embeddings for each chunk
         for i, chunk in enumerate(overlapping_chunks):
-            # Pad the chunk if it is smaller than chunk_size
-            # Convert tokens to IDs
-            input_ids = chunk[:chunk_size]
-
-            # Convert input to PyTorch tensor
-            input_tensor = torch.tensor([input_ids],device="cuda")
-
-            # Generate chunk embedding
-            with torch.no_grad():
-                self.model.model.eval()
-                outputs = self.model.model(input_tensor)
-                embeddings = outputs.last_hidden_state.mean(dim=1)
-
             # Store chunk ID, embedding, and original text
             chunk_id = f"{document_id}_chunk_{i + 1}"
-            self.embeddings[chunk_id] = embeddings
             self.texts[chunk_id] = self.model.detokenize(chunk[:chunk_size])
+            if self.personality_config.vectorization_method=="ftidf_vectorizer":
+                self.embeddings[chunk_id] = self.vectorizer.transform([self.texts[chunk_id]]).toarray()
+            else:
+                self.embeddings[chunk_id] = self.model.embed(self.texts[chunk_id])
 
         self.save_to_json()
         self.ready = True
@@ -199,19 +208,11 @@ class TextVectorizer:
 
 
     def embed_query(self, query_text):
-        import torch
-      
-        # Tokenize query text
-        query_tokens = self.model.tokenize(query_text)
-
-        # Convert input to PyTorch tensor
-        query_input_tensor = torch.tensor([query_tokens])
-
         # Generate query embedding
-        with torch.no_grad():
-            self.model.eval()
-            query_outputs = self.model(query_input_tensor)
-            query_embedding = query_outputs.last_hidden_state.mean(dim=1)
+        if self.personality_config.vectorization_method=="ftidf_vectorizer":
+            query_embedding = self.vectorizer.transform(query_text).toarray()
+        else:
+            query_embedding = self.model.embed(query_text)
 
         return query_embedding
 
@@ -219,7 +220,7 @@ class TextVectorizer:
         from sklearn.metrics.pairwise import cosine_similarity
         similarities = {}
         for chunk_id, chunk_embedding in self.embeddings.items():
-            similarity = cosine_similarity(query_embedding.numpy(), chunk_embedding.numpy())[0][0]
+            similarity = cosine_similarity(query_embedding, chunk_embedding)[0][0]
             similarities[chunk_id] = similarity
 
         # Sort the similarities and retrieve the top-k most similar embeddings
@@ -242,12 +243,11 @@ class TextVectorizer:
             json.dump(state, f)
 
     def load_from_json(self):
-        import torch
 
         ASCIIColors.info("Loading vectorized documents")
         with open(self.database_file, "r") as f:
             state = json.load(f)
-            self.embeddings = {k: torch.tensor(v) for k, v in state["embeddings"].items()}
+            self.embeddings = {k: v for k, v in state["embeddings"].items()}
             self.texts = state["texts"]
             self.ready = True
 
@@ -268,6 +268,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
                 {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
                 {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
                 {"name":"chunk_overlap","type":"int","value":20, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
@@ -352,24 +353,26 @@ class Processor(APScript):
         self.goto_state("waiting_for_file")
 
     def clear_database(self,prompt):
-        pass
+        self.vector_store.clear_database()
 
     def chat_with_doc(self, prompt):
         self.step_start("Recovering data")
         ASCIIColors.blue("Recovering data")
-        docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=3)
-        docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
-        full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
-        ASCIIColors.blue("-------------- Documentation -----------------------")
-        ASCIIColors.blue(full_text)
-        ASCIIColors.blue("----------------------------------------------------")
-        ASCIIColors.blue("Thinking")
-        self.step_end("Recovering data")
-        self.step_start("Thinking",self.callback)
-        output = self.generate(full_text, self.personality_config["max_answer_size"])
-        self.step_end("Thinking",self.callback)
-        self.full(output, self.callback)
-
+        if self.vector_store.ready:
+            docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=3)
+            docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
+            full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
+            ASCIIColors.blue("-------------- Documentation -----------------------")
+            ASCIIColors.blue(full_text)
+            ASCIIColors.blue("----------------------------------------------------")
+            ASCIIColors.blue("Thinking")
+            self.step_end("Recovering data")
+            self.step_start("Thinking",self.callback)
+            output = self.generate(full_text, self.personality_config["max_answer_size"])
+            self.step_end("Thinking",self.callback)
+            self.full(output, self.callback)
+        else:
+            self.full("Vector store is not ready. Please send me a document to use. Use Send file command form your chatbox menu to trigger this.", self.callback)
 
     @staticmethod        
     def read_pdf_file(file_path):
@@ -432,12 +435,10 @@ class Processor(APScript):
     def build_db(self):
         if self.vector_store is None:
             self.vector_store = TextVectorizer(
-                                        self.personality.model, 
-                                        self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
-                                        visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-                                        visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
-                                        visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                                        )        
+                                        self.personality.model,
+                                        self.personality_config,
+                                        self.personality.lollms_paths
+                                    )        
         if len(self.vector_store.embeddings)>0:
             self.ready = True
 
@@ -482,6 +483,7 @@ class Processor(APScript):
 
     def add_file(self, path):
         super().add_file(path)
+        self.prepare()
         try:
             self.step_start("Vectorizing database",self.callback)
             self.build_db()
@@ -492,6 +494,24 @@ class Processor(APScript):
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
             trace_exception(ex)
             return False        
+
+    def prepare(self):
+        if self.vector_store is None:
+            self.vector_store = TextVectorizer(
+                                        self.personality.model,
+                                        self.personality_config,
+                                        self.personality.lollms_paths
+                                    )    
+
+        if self.vector_store and self.personality_config.vectorization_method=="ftidf_vectorizer":
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            data = list(self.vector_store.texts.values())
+            if len(data)>0:
+                self.vectorizer = TfidfVectorizer()
+                self.vectorizer.fit(data)
+
+        if len(self.vector_store.embeddings)>0:
+            self.ready = True
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -510,18 +530,9 @@ class Processor(APScript):
         """
         # State machine
         self.callback = callback
-        if self.vector_store is None:
-            self.vector_store = TextVectorizer(
-                                        self.personality.model, 
-                                        self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
-                                        visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-                                        visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
-                                        visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-                                        )        
-        if len(self.vector_store.embeddings)>0:
-            self.ready = True
+        self.prepare()
 
-        self.process_state(prompt)
+        self.process_state(prompt, callback)
 
         return ""
 
