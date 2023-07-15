@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import numpy as np
 import json
+import subprocess
 
 class TextVectorizer:
     def __init__(self, model, database_file:Path|str, visualize_data_at_startup=False, visualize_data_at_add_file=False, visualize_data_at_generate=False):
@@ -143,16 +144,16 @@ class TextVectorizer:
             return
 
         # Tokenize text
-        tokens = self.tokenizer.encode_plus(text, add_special_tokens=False, return_attention_mask=False)['input_ids']
+        tokens = self.model.tokenize(text)
 
         # Split tokens into sentences
-        sentences = self.tokenizer.decode(tokens).split('. ')
+        sentences = self.model.detokenize(tokens).split('. ')
 
         # Generate chunks with overlap and sentence boundaries
         chunks = []
         current_chunk = []
         for sentence in sentences:
-            sentence_tokens = self.tokenizer.encode_plus(sentence, add_special_tokens=False, return_attention_mask=False)['input_ids']
+            sentence_tokens = self.model.tokenize(sentence)
             if len(current_chunk) + len(sentence_tokens) <= chunk_size:
                 current_chunk.extend(sentence_tokens)
             else:
@@ -174,26 +175,22 @@ class TextVectorizer:
         # Generate embeddings for each chunk
         for i, chunk in enumerate(overlapping_chunks):
             # Pad the chunk if it is smaller than chunk_size
-            if len(chunk) < chunk_size:
-                padding = [self.tokenizer.pad_token_id] * (chunk_size - len(chunk))
-                chunk.extend(padding)
-
             # Convert tokens to IDs
             input_ids = chunk[:chunk_size]
 
             # Convert input to PyTorch tensor
-            input_tensor = torch.tensor([input_ids])
+            input_tensor = torch.tensor([input_ids],device="cuda")
 
             # Generate chunk embedding
             with torch.no_grad():
-                self.model.eval()
-                outputs = self.model(input_tensor)
+                self.model.model.eval()
+                outputs = self.model.model(input_tensor)
                 embeddings = outputs.last_hidden_state.mean(dim=1)
 
             # Store chunk ID, embedding, and original text
             chunk_id = f"{document_id}_chunk_{i + 1}"
             self.embeddings[chunk_id] = embeddings
-            self.texts[chunk_id] = self.tokenizer.decode(chunk[:chunk_size], skip_special_tokens=True)
+            self.texts[chunk_id] = self.model.detokenize(chunk[:chunk_size])
 
         self.save_to_json()
         self.ready = True
@@ -205,7 +202,7 @@ class TextVectorizer:
         import torch
       
         # Tokenize query text
-        query_tokens = self.tokenizer.encode(query_text)
+        query_tokens = self.model.tokenize(query_text)
 
         # Convert input to PyTorch tensor
         query_input_tensor = torch.tensor([query_tokens])
@@ -309,6 +306,45 @@ class Processor(APScript):
         self.callback = None
         self.vector_store = None
 
+
+    def install(self):
+        super().install()
+        # Get the current directory
+        root_dir = self.personality.lollms_paths.personal_path
+        # We put this in the shared folder in order as this can be used by other personalities.
+        shared_folder = root_dir/"shared"
+        sd_folder = shared_folder / "sd"
+
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Step 2: Install dependencies using pip from requirements.txt
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
+        try:
+            print("Checking pytorch")
+            import torch
+            import torchvision
+            if torch.cuda.is_available():
+                print("CUDA is supported.")
+            else:
+                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
+                self.reinstall_pytorch_with_cuda()
+        except Exception as ex:
+            self.reinstall_pytorch_with_cuda()
+
+        # Step 1: Clone repository
+        if not sd_folder.exists():
+            subprocess.run(["git", "clone", "https://github.com/CompVis/stable-diffusion.git", str(sd_folder)])
+
+        # Step 2: Install the Python package inside sd folder
+        subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
+
+        # Step 3: Create models/Stable-diffusion folder if it doesn't exist
+        models_folder = shared_folder / "sd_models"
+        models_folder.mkdir(parents=True, exist_ok=True)
+
+        ASCIIColors.success("Installed successfully")
+
+    
+
     def help(self, prompt):
         self.full(self.personality.help, self.callback)
 
@@ -394,6 +430,17 @@ class Processor(APScript):
         return content
     
     def build_db(self):
+        if self.vector_store is None:
+            self.vector_store = TextVectorizer(
+                                        self.personality.model, 
+                                        self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"],
+                                        visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
+                                        visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
+                                        visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
+                                        )        
+        if len(self.vector_store.embeddings)>0:
+            self.ready = True
+
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
         if self.callback is not None:
             self.callback("Vectorizing the database", MSG_TYPE.MSG_TYPE_CHUNK)
@@ -414,7 +461,7 @@ class Processor(APScript):
                 else:
                     text =  Processor.read_text_file(file)
                 try:
-                    chunk_size=int(self.personality_config["chunk_size"])
+                    chunk_size=int(self.personality_config["max_chunk_size"])
                 except:
                     ASCIIColors.warning(f"Couldn't read chunk size. Verify your configuration file")
                     chunk_size=512
@@ -431,6 +478,7 @@ class Processor(APScript):
                 self.ready = True
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
+                trace_exception(ex)
 
     def add_file(self, path):
         super().add_file(path)
