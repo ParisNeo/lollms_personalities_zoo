@@ -44,7 +44,7 @@ class TextVectorizer:
             ASCIIColors.info(f"No database file found : {self.database_file}")
 
                 
-    def show_document(self, query_text="What is the main idea of this text?", use_pca=True):
+    def show_document(self, query_text=None, use_pca=True):
         import textwrap
         import seaborn as sns
         import matplotlib.pyplot as plt
@@ -250,7 +250,12 @@ class TextVectorizer:
             self.embeddings = {k: v for k, v in state["embeddings"].items()}
             self.texts = state["texts"]
             self.ready = True
-
+        if self.vector_store and self.personality_config.vectorization_method=="ftidf_vectorizer":
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            data = list(self.texts.values())
+            if len(data)>0:
+                self.vectorizer = TfidfVectorizer()
+                self.vectorizer.fit(data)
 
 class Processor(APScript):
     """
