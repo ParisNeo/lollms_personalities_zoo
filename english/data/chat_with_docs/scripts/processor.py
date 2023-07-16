@@ -34,14 +34,15 @@ class TextVectorizer:
             self.personality_config.vectorization_method="ftidf_vectorizer"
 
         # Load previous state from the JSON file
-        if Path(self.database_file).exists():
-            ASCIIColors.success(f"Database file found : {self.database_file}")
-            self.load_from_json()
-            if self.visualize_data_at_startup:
-                self.show_document()
-            self.ready = True
-        else:
-            ASCIIColors.info(f"No database file found : {self.database_file}")
+        if self.personality_config.save_db:
+            if Path(self.database_file).exists():
+                ASCIIColors.success(f"Database file found : {self.database_file}")
+                self.load_from_json()
+                if self.visualize_data_at_startup:
+                    self.show_document()
+                self.ready = True
+            else:
+                ASCIIColors.info(f"No database file found : {self.database_file}")
 
                 
     def show_document(self, query_text=None, use_pca=True):
@@ -210,7 +211,9 @@ class TextVectorizer:
             else:
                 self.embeddings[chunk_id] = self.model.embed(self.texts[chunk_id])
 
-        self.save_to_json()
+        if self.personality_config.save_db:
+            self.save_to_json()
+            
         self.ready = True
         if self.visualize_data_at_add_file:
             self.show_document()
@@ -287,6 +290,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
                 {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
                 {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
                 {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
