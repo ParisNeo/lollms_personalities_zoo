@@ -147,7 +147,7 @@ class Processor(APScript):
         name = self.generate(f"""!@>request:{prompt}
 !@>task: Using the request, come up with the name of the personality as asked by the user.
 If the request contains already the name, then use that.
-!@>name:""",128,0.1,10,0.98).strip().split("\n")[0]
+!@>name:""",50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the personality name", callback)
         ASCIIColors.yellow(f"Name:{name}")
         # ----------------------------------------------------------------
@@ -157,7 +157,7 @@ If the request contains already the name, then use that.
         author = self.generate(f"""!@>request:{prompt}
 !@>task: Write the name of the author infered from the request?
 If no author mensioned then respond with ParisNeo
-author name:""",128,0.1,10,0.98).strip().split("\n")[0]
+!@>author name:""",50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the author name", callback)
         ASCIIColors.yellow(f"Author:{author}")
         # ----------------------------------------------------------------
@@ -167,7 +167,7 @@ author name:""",128,0.1,10,0.98).strip().split("\n")[0]
         version = self.generate(f"""!@>request:{prompt}
 !@>task: Write the version of the personality infered from the request?
 If no version mensioned then version is 1.0
-version:""",128,0.1,10,0.98).strip().split("\n")[0]
+!@>version:""",25,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the version", callback)
         ASCIIColors.yellow(f"Version:{version}")
         # ----------------------------------------------------------------
@@ -177,7 +177,7 @@ version:""",128,0.1,10,0.98).strip().split("\n")[0]
         category = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Infer the category of the personality
-category:""",128,0.1,10,0.98).strip().split("\n")[0]
+!@>category:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the category", callback)
         ASCIIColors.yellow(f"Category:{category}")
         # ----------------------------------------------------------------
@@ -186,7 +186,7 @@ category:""",128,0.1,10,0.98).strip().split("\n")[0]
         self.step_start("Coming up with the language", callback)
         language = self.generate(f"""!@>request:{prompt}
 !@>task: Infer the language of the request (english, french, chinese etc)
-language:""",128,0.1,10,0.98).strip().split("\n")[0]
+!@>language:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the language", callback)
         ASCIIColors.yellow(f"Language:{language}")
         # ----------------------------------------------------------------
@@ -197,7 +197,7 @@ language:""",128,0.1,10,0.98).strip().split("\n")[0]
 !@>personality name:{name}
 !@>task: Write a description of the personality
 Use detailed description of the most important traits of the personality
-description:""",128,0.1,10,0.98).strip() 
+!@>description:""",256,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description", callback)
         ASCIIColors.yellow(f"Description:{description}")
         # ----------------------------------------------------------------
@@ -207,7 +207,7 @@ description:""",128,0.1,10,0.98).strip()
         disclaimer = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a disclaimer about the ai personality infered from the request
-disclaimer:""",128,0.1,10,0.98).strip()  
+!@>disclaimer:""",256,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer", callback)
         ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
         # ----------------------------------------------------------------
@@ -218,7 +218,7 @@ disclaimer:""",128,0.1,10,0.98).strip()
 !@>personality name:{name}
 !@>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
 The conditionning is a detailed description of the personality and its important traits of the personality.
-conditioning: Act as""",128,0.1,10,0.98).strip()
+!@>conditioning: Act as""",256,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning", callback)
         ASCIIColors.yellow(f"Conditioning:{conditioning}")
@@ -229,7 +229,7 @@ conditioning: Act as""",128,0.1,10,0.98).strip()
         welcome_message = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a welcome message text that {name} sends to the user at startup
-welcome_message:""",128,0.1,10,0.98).strip()          
+!@>welcome_message:""",256,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message", callback)
         ASCIIColors.yellow(f"Welcome message:{welcome_message}")
         # ----------------------------------------------------------------
