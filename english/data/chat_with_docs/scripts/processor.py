@@ -62,18 +62,24 @@ class TextVectorizer:
             print("Showing t-sne representation :")
         texts = list(self.texts.values())
         embeddings = self.embeddings
-        if len(embeddings.values())>=2:
+        emb = list(embeddings.values())
+        if len(emb)>=2:
             # Normalize embeddings
-            norms = np.linalg.norm(embeddings, axis=1)
-            normalized_embeddings = embeddings / norms[:, np.newaxis]
+            emb = np.vstack(emb)
+            norms = np.linalg.norm(emb, axis=1)
+            normalized_embeddings = emb / norms[:, np.newaxis]
 
             # Embed the query text
-            query_embedding = self.embed_query(query_text)
-            query_embedding = query_embedding.detach().squeeze().numpy()
-            query_normalized_embedding = query_embedding / np.linalg.norm(query_embedding)
+            if query_text is not None:
+                query_embedding = self.embed_query(query_text)
+                query_embedding = query_embedding.detach().squeeze().numpy()
+                query_normalized_embedding = query_embedding / np.linalg.norm(query_embedding)
 
-            # Combine the query embedding with the document embeddings
-            combined_embeddings = np.vstack((normalized_embeddings, query_normalized_embedding))
+                # Combine the query embedding with the document embeddings
+                combined_embeddings = np.vstack((normalized_embeddings, query_normalized_embedding))
+            else:
+                # Combine the query embedding with the document embeddings
+                combined_embeddings = normalized_embeddings
 
             if use_pca:
                 # Use PCA for dimensionality reduction
@@ -88,9 +94,11 @@ class TextVectorizer:
 
 
             # Create a scatter plot using Seaborn
-            sns.scatterplot(x=embeddings_2d[:-1, 0], y=embeddings_2d[:-1, 1])  # Plot document embeddings
-            plt.scatter(embeddings_2d[-1, 0], embeddings_2d[-1, 1], color='red')  # Plot query embedding
-
+            if query_text is not None:
+                sns.scatterplot(x=embeddings_2d[:-1, 0], y=embeddings_2d[:-1, 1])  # Plot document embeddings
+                plt.scatter(embeddings_2d[-1, 0], embeddings_2d[-1, 1], color='red')  # Plot query embedding
+            else:
+                sns.scatterplot(x=embeddings_2d[:, 0], y=embeddings_2d[:, 1])  # Plot document embeddings
             # Add labels to the scatter plot
             for i, (x, y) in enumerate(embeddings_2d[:-1]):
                 plt.text(x, y, str(i), fontsize=8)
@@ -191,6 +199,7 @@ class TextVectorizer:
             data = [self.model.detokenize(chunk) for chunk in overlapping_chunks]
             self.vectorizer.fit(data)
 
+        self.embeddings = {}
         # Generate embeddings for each chunk
         for i, chunk in enumerate(overlapping_chunks):
             # Store chunk ID, embedding, and original text
@@ -210,7 +219,7 @@ class TextVectorizer:
     def embed_query(self, query_text):
         # Generate query embedding
         if self.personality_config.vectorization_method=="ftidf_vectorizer":
-            query_embedding = self.vectorizer.transform(query_text).toarray()
+            query_embedding = self.vectorizer.transform([query_text]).toarray()
         else:
             query_embedding = self.model.embed(query_text)
 
@@ -220,7 +229,7 @@ class TextVectorizer:
         from sklearn.metrics.pairwise import cosine_similarity
         similarities = {}
         for chunk_id, chunk_embedding in self.embeddings.items():
-            similarity = cosine_similarity(query_embedding, chunk_embedding)[0][0]
+            similarity = cosine_similarity(query_embedding, chunk_embedding)
             similarities[chunk_id] = similarity
 
         # Sort the similarities and retrieve the top-k most similar embeddings
@@ -236,7 +245,7 @@ class TextVectorizer:
 
     def save_to_json(self):
         state = {
-            "embeddings": {str(k): v.tolist() for k, v in self.embeddings.items()},
+            "embeddings": {str(k): v.tolist()  if type(v)!=list else v for k, v in self.embeddings.items() },
             "texts": self.texts,
         }
         with open(self.database_file, "w") as f:
@@ -250,12 +259,17 @@ class TextVectorizer:
             self.embeddings = {k: v for k, v in state["embeddings"].items()}
             self.texts = state["texts"]
             self.ready = True
-        if self.vector_store and self.personality_config.vectorization_method=="ftidf_vectorizer":
+        if self.personality_config.vectorization_method=="ftidf_vectorizer":
             from sklearn.feature_extraction.text import TfidfVectorizer
             data = list(self.texts.values())
             if len(data)>0:
                 self.vectorizer = TfidfVectorizer()
                 self.vectorizer.fit(data)
+                self.embeddings={}
+                for k,v in self.texts.items():
+                    self.embeddings[k]= self.vectorizer.transform([v]).toarray()
+
+
 
 class Processor(APScript):
     """
@@ -374,6 +388,8 @@ class Processor(APScript):
             self.step_end("Recovering data")
             self.step_start("Thinking",self.callback)
             output = self.generate(full_text, self.personality_config["max_answer_size"])
+            ASCIIColors.yellow(output)
+
             self.step_end("Thinking",self.callback)
             self.full(output, self.callback)
         else:

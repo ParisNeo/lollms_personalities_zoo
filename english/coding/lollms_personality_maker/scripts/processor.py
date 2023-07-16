@@ -285,7 +285,7 @@ recommended_model: ''
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!@>'"<|end|>","<|user|>","<|system|>"]
+anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
         """
         personality_path:Path = output_path/(name.lower().replace(" ","_").replace("\n",""))
         personality_path.mkdir(parents=True, exist_ok=True)
