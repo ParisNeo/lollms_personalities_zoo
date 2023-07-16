@@ -29,10 +29,13 @@ class TextVectorizer:
         self.visualize_data_at_startup=self.personality_config["visualize_data_at_startup"]
         self.visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"]
         self.visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
-
-        if self.model.embed("hi")==None:
-            self.personality_config.vectorization_method="ftidf_vectorizer"
-
+        
+        try:
+            if self.model.embed("hi")==None:
+                self.personality_config.vectorization_method="ftidf_vectorizer"
+        except Exception as ex:
+            ASCIIColors.error("Couldn't embed the text, so trying to use tfidf instead.")
+            trace_exception(ex)
         # Load previous state from the JSON file
         if self.personality_config.save_db:
             if Path(self.database_file).exists():
@@ -197,6 +200,7 @@ class TextVectorizer:
         if self.personality_config.vectorization_method=="ftidf_vectorizer":
             from sklearn.feature_extraction.text import TfidfVectorizer
             self.vectorizer = TfidfVectorizer()
+            print(len(chunk))
             data = [self.model.detokenize(chunk) for chunk in overlapping_chunks]
             self.vectorizer.fit(data)
 
@@ -292,6 +296,8 @@ class Processor(APScript):
             [
                 {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
                 {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
+                
+                {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Number of data chunks to use for its vector (at most nb_chunks*max_chunk_size must not exeed two thirds the context size)"},
                 {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
                 {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
                 {"name":"chunk_overlap","type":"int","value":20, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
@@ -382,9 +388,14 @@ class Processor(APScript):
         self.step_start("Recovering data")
         ASCIIColors.blue("Recovering data")
         if self.vector_store.ready:
-            docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=3)
+            docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=self.personality_config.nb_chunks)
+            # for doc in docs:
+            #     tk = self.personality.model.tokenize(doc)
+            #     print(len(tk))
             docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
             full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
+            tk = self.personality.model.tokenize(full_text)
+            # print(f"total: {len(tk)}")           
             ASCIIColors.blue("-------------- Documentation -----------------------")
             ASCIIColors.blue(full_text)
             ASCIIColors.blue("----------------------------------------------------")
