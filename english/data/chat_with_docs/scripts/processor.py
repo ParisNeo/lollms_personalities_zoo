@@ -26,8 +26,8 @@ class TextVectorizer:
         
         self.database_file = Path(lollms_paths.personal_data_path/self.personality_config["database_path"])
 
-        self.visualize_data_at_startup=self.personality_config["visualize_data_at_startup"],
-        self.visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"],
+        self.visualize_data_at_startup=self.personality_config["visualize_data_at_startup"]
+        self.visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"]
         self.visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
 
         if self.model.embed("hi")==None:
