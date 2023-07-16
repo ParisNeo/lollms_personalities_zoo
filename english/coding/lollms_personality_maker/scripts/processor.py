@@ -144,81 +144,97 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Coming up with the personality name", callback)
-        name = self.generate(f"""!@>request:{prompt}
-!@>task: Using the request, come up with the name of the personality as asked by the user.
+        name = self.generate(f"""{self.personality.personality_conditioning}
+!@>user request:{prompt}
+!@>task: What is the name of the personality requested by the user?
 If the request contains already the name, then use that.
-!@>name:""",50,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix}
+name:""",50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the personality name", callback)
         ASCIIColors.yellow(f"Name:{name}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the author name", callback)
-        author = self.generate(f"""!@>request:{prompt}
+        author = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>task: Write the name of the author infered from the request?
-If no author mensioned then respond with ParisNeo
-!@>author name:""",50,0.1,10,0.98).strip().split("\n")[0]
+If no author mensioned then respond with ParisNeo.
+{self.personality.ai_message_prefix}
+author name:""",50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the author name", callback)
         ASCIIColors.yellow(f"Author:{author}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the version", callback)
-        version = self.generate(f"""!@>request:{prompt}
+        version = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>task: Write the version of the personality infered from the request?
 If no version mensioned then version is 1.0
-!@>version:""",25,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix}
+version:""",25,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the version", callback)
         ASCIIColors.yellow(f"Version:{version}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the category", callback)
-        category = self.generate(f"""!@>request:{prompt}
+        category = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Infer the category of the personality
-!@>category:""",256,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix}
+author name:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the category", callback)
         ASCIIColors.yellow(f"Category:{category}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the language", callback)
-        language = self.generate(f"""!@>request:{prompt}
+        language = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>task: Infer the language of the request (english, french, chinese etc)
-!@>language:""",256,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix}
+language:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the language", callback)
         ASCIIColors.yellow(f"Language:{language}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description", callback)
-        description = self.generate(f"""!@>request:{prompt}
+        description = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a description of the personality
 Use detailed description of the most important traits of the personality
-!@>description:""",256,0.1,10,0.98).strip() 
+{self.personality.ai_message_prefix}
+description:""",256,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description", callback)
         ASCIIColors.yellow(f"Description:{description}")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the disclaimer", callback)
-        disclaimer = self.generate(f"""!@>request:{prompt}
+        disclaimer = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a disclaimer about the ai personality infered from the request
-!@>disclaimer:""",256,0.1,10,0.98).strip()  
+{self.personality.ai_message_prefix}
+disclaimer:""",256,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer", callback)
         ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning", callback)
-        conditioning = self.generate(f"""!@>request:{prompt}
+        conditioning = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
 The conditionning is a detailed description of the personality and its important traits of the personality.
-!@>conditioning: Act as""",256,0.1,10,0.98).strip()
+{self.personality.ai_message_prefix}
+conditionning: Act as""",256,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning", callback)
         ASCIIColors.yellow(f"Conditioning:{conditioning}")
@@ -226,10 +242,12 @@ The conditionning is a detailed description of the personality and its important
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the welcome message", callback)
-        welcome_message = self.generate(f"""!@>request:{prompt}
+        welcome_message = self.generate(f"""{self.personality.personality_conditioning}
+!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a welcome message text that {name} sends to the user at startup
-!@>welcome_message:""",256,0.1,10,0.98).strip()          
+{self.personality.ai_message_prefix}
+welcome message:""",256,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message", callback)
         ASCIIColors.yellow(f"Welcome message:{welcome_message}")
         # ----------------------------------------------------------------
