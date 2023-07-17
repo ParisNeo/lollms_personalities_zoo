@@ -239,7 +239,7 @@ class TextVectorizer:
         if self.visualize_data_at_generate:
             self.show_document()
 
-        return texts
+        return texts, sorted_similarities
 
     def save_to_json(self):
         state = {
@@ -374,8 +374,9 @@ class Processor(APScript):
 
     def help(self, prompt):
         self.full(self.personality.help, self.callback)
-    def show_database(self):
+    def show_database(self, prompt):
         self.vector_store.show_document()
+        self.full("Database is ready.",self.callback)
 
     def set_database(self, prompt):
         self.goto_state("waiting_for_file")
@@ -387,7 +388,7 @@ class Processor(APScript):
         self.step_start("Recovering data")
         ASCIIColors.blue("Recovering data")
         if self.vector_store.ready:
-            docs = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=self.personality_config.nb_chunks)
+            docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=self.personality_config.nb_chunks)
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
@@ -404,7 +405,8 @@ class Processor(APScript):
             tk = self.personality.model.tokenize(full_text)
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             output = self.generate(full_text, self.personality_config["max_answer_size"])
-            
+            output += "\n## Used References:\n" + "\n".join([f'[{"_".join(v[0].split("_")[:-2])}]({"_".join(v[0].split("_")[:-2])})' for v in sorted_similarities])
+
             ASCIIColors.yellow(output)
 
             self.step_end("Thinking",self.callback)
