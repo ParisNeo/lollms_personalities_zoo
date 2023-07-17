@@ -167,46 +167,37 @@ class TextVectorizer:
             print(f"Document {document_id} already exists. Skipping vectorization.")
             return
 
-        # Tokenize text
-        tokens = self.model.tokenize(text)
-
         # Split tokens into sentences
-        sentences = self.model.detokenize(tokens).split('. ')
-
+        sentences = text.split('. ')
+        def remove_empty_sentences(sentences):
+            return [sentence for sentence in sentences if sentence.strip() != '']
+        sentences = remove_empty_sentences(sentences)
         # Generate chunks with overlap and sentence boundaries
         chunks = []
         current_chunk = []
-        for sentence in sentences:
+        for i in range(len(sentences)):
+            sentence = sentences[i]
             sentence_tokens = self.model.tokenize(sentence)
             if len(current_chunk) + len(sentence_tokens) <= chunk_size:
                 current_chunk.extend(sentence_tokens)
             else:
                 if current_chunk:
                     chunks.append(current_chunk)
-                current_chunk = sentence_tokens
+                current_chunk = []
+                i -= overlap_size
 
         if current_chunk:
             chunks.append(current_chunk)
 
-        # Generate overlapping chunks
-        overlapping_chunks = []
-        for i in range(len(chunks)):
-            chunk_start = i * (chunk_size - overlap_size)
-            chunk_end = min(chunk_start + chunk_size, len(tokens))
-            chunk = tokens[chunk_start:chunk_end]
-            overlapping_chunks.append(chunk)
-
-
         if self.personality_config.vectorization_method=="ftidf_vectorizer":
             from sklearn.feature_extraction.text import TfidfVectorizer
             self.vectorizer = TfidfVectorizer()
-            print(len(chunk))
-            data = [self.model.detokenize(chunk) for chunk in overlapping_chunks]
+            data = [self.model.detokenize(chunk) for chunk in chunks]
             self.vectorizer.fit(data)
 
         self.embeddings = {}
         # Generate embeddings for each chunk
-        for i, chunk in enumerate(overlapping_chunks):
+        for i, chunk in enumerate(chunks):
             # Store chunk ID, embedding, and original text
             chunk_id = f"{document_id}_chunk_{i + 1}"
             self.texts[chunk_id] = self.model.detokenize(chunk[:chunk_size])
@@ -275,7 +266,12 @@ class TextVectorizer:
                 self.embeddings={}
                 for k,v in self.texts.items():
                     self.embeddings[k]= self.vectorizer.transform([v]).toarray()
-
+    def clear_database(self):
+        self.vectorizer=None
+        self.embeddings = {}
+        self.texts={}
+        if self.personality_config.save_db:
+            self.save_to_json()
 
 
 class Processor(APScript):
@@ -300,7 +296,7 @@ class Processor(APScript):
                 {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Number of data chunks to use for its vector (at most nb_chunks*max_chunk_size must not exeed two thirds the context size)"},
                 {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
                 {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
-                {"name":"chunk_overlap","type":"int","value":20, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
+                {"name":"chunk_overlap_sentences","type":"int","value":1, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
                 
                 {"name":"max_answer_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum number of tokens to allow the generator to generate as an answer to your question"},
                 
@@ -323,6 +319,7 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
+                                        "show_database": self.show_database,
                                         "set_database": self.set_database,
                                         "clear_database": self.clear_database
                                     },
@@ -377,6 +374,8 @@ class Processor(APScript):
 
     def help(self, prompt):
         self.full(self.personality.help, self.callback)
+    def show_database(self):
+        self.vector_store.show_document()
 
     def set_database(self, prompt):
         self.goto_state("waiting_for_file")
@@ -402,7 +401,10 @@ class Processor(APScript):
             ASCIIColors.blue("Thinking")
             self.step_end("Recovering data")
             self.step_start("Thinking",self.callback)
+            tk = self.personality.model.tokenize(full_text)
+            ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             output = self.generate(full_text, self.personality_config["max_answer_size"])
+            
             ASCIIColors.yellow(output)
 
             self.step_end("Thinking",self.callback)
@@ -503,7 +505,7 @@ class Processor(APScript):
                     ASCIIColors.warning(f"Couldn't read chunk size. Verify your configuration file")
                     chunk_size=512
                 try:
-                    overlap_size=int(self.personality_config["chunk_overlap"])
+                    overlap_size=int(self.personality_config["chunk_overlap_sentences"])
                 except:
                     ASCIIColors.warning(f"Couldn't read chunk size. Verify your configuration file")
                     overlap_size=50

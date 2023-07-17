@@ -8,21 +8,20 @@
 ## talking to.
 #
 #
-ai_message_prefix: '# chat_with_docs:'
+ai_message_prefix: '!@>chat_with_docs:'
 author: ParisNeo
 category: data
 dependencies: []
 disclaimer: ''
 language: english
 link_text: '\n'
-name: chat_with_docs
+name: Chat With Docs
 personality_conditioning: |
   !@>Instruction: 
   Use the following chunks of ducuments to answer user question.
   
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'
-user_message_prefix: '!@>User:
-  '
+user_message_prefix: '!@>User:'
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to chat with docs AI. This AI can read long docs and answer your questions just like a human woud do. Give it your documents and it will learn to answer you based on them.'
@@ -43,9 +42,6 @@ commands:
     is_file: true
     file_types: .doc,.docx,.pdf,.html
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
-  - name: Set database
-    value: set_database
-    help: changes the vectorized database to a file.
   - name: Clear database
     value: clear_database
     help: clears the vectorized database.
