@@ -12,30 +12,43 @@ import json
 import subprocess
 
 class TextVectorizer:
-    def __init__(self, model, personality_config:ConfigTemplate, lollms_paths:LollmsPaths):
+    def __init__(self, processor):
         
-        
-        self.model = model
+        self.processor:APScript = processor
+        self.personality = self.processor.personality
+        self.model = self.personality.model
+        self.personality_config = self.processor.personality_config
+        self.lollms_paths = self.personality.lollms_paths
         self.embeddings = {}
         self.texts = {}
         self.ready = False
-        self.personality_config = personality_config
         self.vectorizer = None
 
         
         
-        self.database_file = Path(lollms_paths.personal_data_path/self.personality_config["database_path"])
+        self.database_file = Path(self.lollms_paths.personal_data_path/self.personality_config["database_path"])
 
         self.visualize_data_at_startup=self.personality_config["visualize_data_at_startup"]
         self.visualize_data_at_add_file=self.personality_config["visualize_data_at_add_file"]
         self.visualize_data_at_generate=self.personality_config["visualize_data_at_generate"]
         
-        try:
-            if self.model.embed("hi")==None:
-                self.personality_config.vectorization_method="ftidf_vectorizer"
-        except Exception as ex:
-            ASCIIColors.error("Couldn't embed the text, so trying to use tfidf instead.")
-            trace_exception(ex)
+        if self.personality_config.vectorization_method=="model_embedding":
+            try:
+                if self.model.embed("hi")==None:
+                    self.personality_config.vectorization_method="ftidf_vectorizer"
+                    self.infos={
+                        "vectorization_method":"ftidf_vectorizer"
+                    }
+                else:
+                    self.infos={
+                        "vectorization_method":"model_embedding"
+                    }
+            except Exception as ex:
+                ASCIIColors.error("Couldn't embed the text, so trying to use tfidf instead.")
+                trace_exception(ex)
+                self.infos={
+                    "vectorization_method":"ftidf_vectorizer"
+                }
         # Load previous state from the JSON file
         if self.personality_config.save_db:
             if Path(self.database_file).exists():
@@ -48,7 +61,7 @@ class TextVectorizer:
                 ASCIIColors.info(f"No database file found : {self.database_file}")
 
                 
-    def show_document(self, query_text=None, use_pca=True):
+    def show_document(self, query_text=None):
         import textwrap
         import seaborn as sns
         import matplotlib.pyplot as plt
@@ -59,6 +72,11 @@ class TextVectorizer:
         from sklearn.manifold import TSNE
         from sklearn.decomposition import PCA
         import torch
+
+        if self.personality_config.data_visualization_method=="PCA":
+            use_pca =  True
+        else:
+            use_pca =  False
         
         if use_pca:
             print("Showing pca representation :")
@@ -159,6 +177,7 @@ class TextVectorizer:
 
             # Connect the click event handler to the figure
             plt.gcf().canvas.mpl_connect("button_press_event", on_click)
+            plt.savefig(self.lollms_paths.personal_uploads_path / self.personality.personality_folder_name/ "db.png")
             plt.show()
         
     def index_document(self, document_id, text, chunk_size, overlap_size, force_vectorize=False):
@@ -178,13 +197,21 @@ class TextVectorizer:
         for i in range(len(sentences)):
             sentence = sentences[i]
             sentence_tokens = self.model.tokenize(sentence)
+                   
+
+            # ASCIIColors.yellow(len(sentence_tokens))
             if len(current_chunk) + len(sentence_tokens) <= chunk_size:
                 current_chunk.extend(sentence_tokens)
             else:
                 if current_chunk:
                     chunks.append(current_chunk)
-                current_chunk = []
-                i -= overlap_size
+
+                while len(sentence_tokens)>chunk_size:
+                    current_chunk = sentence_tokens[0:chunk_size]
+                    sentence_tokens = sentence_tokens[chunk_size:]
+                    chunks.append(current_chunk)
+                current_chunk = sentence_tokens
+                
 
         if current_chunk:
             chunks.append(current_chunk)
@@ -192,7 +219,14 @@ class TextVectorizer:
         if self.personality_config.vectorization_method=="ftidf_vectorizer":
             from sklearn.feature_extraction.text import TfidfVectorizer
             self.vectorizer = TfidfVectorizer()
-            data = [self.model.detokenize(chunk) for chunk in chunks]
+            #if self.personality.config.debug:
+            #    ASCIIColors.yellow(','.join([len(chunk) for chunk in chunks]))
+            data=[]
+            for chunk in chunks:
+                try:
+                    data.append(self.model.detokenize(chunk) ) 
+                except Exception as ex:
+                    print("oups")
             self.vectorizer.fit(data)
 
         self.embeddings = {}
@@ -200,11 +234,14 @@ class TextVectorizer:
         for i, chunk in enumerate(chunks):
             # Store chunk ID, embedding, and original text
             chunk_id = f"{document_id}_chunk_{i + 1}"
-            self.texts[chunk_id] = self.model.detokenize(chunk[:chunk_size])
-            if self.personality_config.vectorization_method=="ftidf_vectorizer":
-                self.embeddings[chunk_id] = self.vectorizer.transform([self.texts[chunk_id]]).toarray()
-            else:
-                self.embeddings[chunk_id] = self.model.embed(self.texts[chunk_id])
+            try:
+                self.texts[chunk_id] = self.model.detokenize(chunk[:chunk_size])
+                if self.personality_config.vectorization_method=="ftidf_vectorizer":
+                    self.embeddings[chunk_id] = self.vectorizer.transform([self.texts[chunk_id]]).toarray()
+                else:
+                    self.embeddings[chunk_id] = self.model.embed(self.texts[chunk_id])
+            except Exception as ex:
+                print("oups")
 
         if self.personality_config.save_db:
             self.save_to_json()
@@ -245,6 +282,7 @@ class TextVectorizer:
         state = {
             "embeddings": {str(k): v.tolist()  if type(v)!=list else v for k, v in self.embeddings.items() },
             "texts": self.texts,
+            "infos": self.infos
         }
         with open(self.database_file, "w") as f:
             json.dump(state, f)
@@ -256,6 +294,7 @@ class TextVectorizer:
             state = json.load(f)
             self.embeddings = {k: v for k, v in state["embeddings"].items()}
             self.texts = state["texts"]
+            self.infos= state["infos"]
             self.ready = True
         if self.personality_config.vectorization_method=="ftidf_vectorizer":
             from sklearn.feature_extraction.text import TfidfVectorizer
@@ -300,6 +339,8 @@ class Processor(APScript):
                 
                 {"name":"max_answer_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum number of tokens to allow the generator to generate as an answer to your question"},
                 
+                {"name":"data_visualization_method","type":"str","value":f"PCA", "options":["PCA", "TSNE"], "help":"The method to be used to show data"},
+                {"name":"interactive_mode_visualization","type":"bool","value":False, "help":"If true, you can get an interactive visualization where you can point on data to get the text"},
                 {"name":"visualize_data_at_startup","type":"bool","value":False, "help":"If true, the database will be visualized at startup"},
                 {"name":"visualize_data_at_add_file","type":"bool","value":False, "help":"If true, the database will be visualized when a new file is added"},
                 {"name":"visualize_data_at_generate","type":"bool","value":False, "help":"If true, the database will be visualized at generation time"},
@@ -372,19 +413,25 @@ class Processor(APScript):
 
     
 
-    def help(self, prompt):
+    def help(self, prompt, full_context):
         self.full(self.personality.help, self.callback)
-    def show_database(self, prompt):
-        self.vector_store.show_document()
-        self.full("Database is ready.",self.callback)
 
-    def set_database(self, prompt):
+    def show_database(self, prompt, full_context):
+        if self.ready:
+            self.vector_store.show_document()
+            out_path = f"/uploads/{self.personality.personality_folder_name}/db.png"
+            if self.personality_config.data_visualization_method=="PCA":
+                self.full(f"Database representation (PCA):\n![{out_path}]({out_path})",self.callback)
+            else:
+                self.full(f"Database representation (TSNE):\n![{out_path}]({out_path})",self.callback)
+
+    def set_database(self, prompt, full_context):
         self.goto_state("waiting_for_file")
 
-    def clear_database(self,prompt):
+    def clear_database(self,prompt, full_context):
         self.vector_store.clear_database()
 
-    def chat_with_doc(self, prompt):
+    def chat_with_doc(self, prompt, full_context):
         self.step_start("Recovering data")
         ASCIIColors.blue("Recovering data")
         if self.vector_store.ready:
@@ -392,8 +439,8 @@ class Processor(APScript):
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"Doc{i}:\n{v}" for i,v in enumerate(docs)])
-            full_text = self.personality.personality_conditioning+"\n### Docs:\n"+docs+"\n### Question: "+prompt+"\n### Answer:"
+            docs = '\n'.join([f"chunk number {i}:\n{v}" for i,v in enumerate(docs)])
+            full_text = full_context+"\n!@>document chunks:\n"+docs+"\ninstructor:Using the information from the document, answer this question. Be precise and give details in your answer.\nquestion: "+prompt+"\nanswer: Given the provided document chunks,"
             tk = self.personality.model.tokenize(full_text)
             # print(f"total: {len(tk)}")           
             ASCIIColors.blue("-------------- Documentation -----------------------")
@@ -404,8 +451,18 @@ class Processor(APScript):
             self.step_start("Thinking",self.callback)
             tk = self.personality.model.tokenize(full_text)
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
-            output = self.generate(full_text, self.personality_config["max_answer_size"])
-            output += "\n## Used References:\n" + "\n".join([f'[{"_".join(v[0].split("_")[:-2])}]({"_".join(v[0].split("_")[:-2])})' for v in sorted_similarities])
+            if self.personality.config.debug:
+                ASCIIColors.yellow(full_text)
+            output = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
+            docs_sources=[]
+            for entry in sorted_similarities:
+                e = "_".join(entry[0].replace("\\","/").split("/")[-1].split('_')[:-2])
+                ci = "_".join(entry[0].replace("\\","/").split("/")[-1].split('_')[-2:])
+                name = "/uploads/" + self.personality.personality_folder_name + "/" + e
+                path = e + f" chunk id : {ci}"
+                docs_sources.append([path, name])
+
+            output += "\n## Used References:\n" + "\n".join([f'[{v[0]}]({v[1]})\n' for v in docs_sources])
 
             ASCIIColors.yellow(output)
 
@@ -475,16 +532,14 @@ class Processor(APScript):
     def build_db(self):
         if self.vector_store is None:
             self.vector_store = TextVectorizer(
-                                        self.personality.model,
-                                        self.personality_config,
-                                        self.personality.lollms_paths
+                                        self
                                     )        
         if len(self.vector_store.embeddings)>0:
             self.ready = True
 
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
         if self.callback is not None:
-            self.callback("Vectorizing the database", MSG_TYPE.MSG_TYPE_CHUNK)
+            self.callback("Vectorizing the database", MSG_TYPE.MSG_TYPE_STEP)
         for file in self.files:
             try:
                 if Path(file).suffix==".pdf":
@@ -538,9 +593,7 @@ class Processor(APScript):
     def prepare(self):
         if self.vector_store is None:
             self.vector_store = TextVectorizer(
-                                        self.personality.model,
-                                        self.personality_config,
-                                        self.personality.lollms_paths
+                                        self
                                     )    
 
         if self.vector_store and self.personality_config.vectorization_method=="ftidf_vectorizer":
@@ -553,7 +606,7 @@ class Processor(APScript):
         if len(self.vector_store.embeddings)>0:
             self.ready = True
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    def run_workflow(self, prompt, full_context="", callback=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -572,7 +625,7 @@ class Processor(APScript):
         self.callback = callback
         self.prepare()
 
-        self.process_state(prompt, callback)
+        self.process_state(prompt, full_context, callback)
 
         return ""
 
