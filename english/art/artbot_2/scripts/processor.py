@@ -141,17 +141,14 @@ class Processor(APScript):
             None
         """
         self.word_callback = callback
-        if callback is not None:
-            callback("# Imagining\n![](/personalities/english/art/artbot/assets/imagine_animation.gif)", MSG_TYPE.MSG_TYPE_STEP_START)
+        self.step_start("Imagining", callback)
         # 1 first ask the model to formulate a query
         prompt = f"{self.remove_image_links(previous_discussion_text)}"
         print(prompt)
         sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
-        if callback is not None:
-            callback("Painting\n![](/personalities/english/art/artbot/assets/painting_animation.gif)", MSG_TYPE.MSG_TYPE_STEP_END)
+        self.step_end("Imagining", callback)
 
-        if callback is not None:
-            callback(sd_prompt.strip(), MSG_TYPE.MSG_TYPE_CHUNK)
+        self.full(sd_prompt.strip(), callback)
 
         files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         output = sd_prompt.strip()+"\n"
@@ -162,10 +159,9 @@ class Processor(APScript):
             pth = "/".join(pth[idx:])
             file_path = f"![](/{pth})\n"
             output += file_path
-            print(f"Generated file in here : {files[i]}")
+            ASCIIColors.yellow(f"Generated file in here : {files[i]}")
 
-        if callback:
-            callback(output,MSG_TYPE.MSG_TYPE_FULL)
+        self.full(output.strip(), callback)
         return output
 
 
