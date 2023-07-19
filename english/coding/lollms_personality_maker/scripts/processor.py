@@ -1,6 +1,6 @@
 import subprocess
 from pathlib import Path
-from lollms.helpers import ASCIIColors
+from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
@@ -343,7 +343,14 @@ Avoid text as the generative ai is not good at generating text.
 
         # ----------------------------------------------------------------
         self.step_start("# Painting Icon", callback)
-        files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
+        self.full("![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        try:
+            files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
+        except Exception as ex:
+            self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
+            ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
+            trace_exception(ex)
+            files=[]
         output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
@@ -356,7 +363,7 @@ Avoid text as the generative ai is not good at generating text.
             print(f"Generated file in here : {files[i]}")
         output += f"\nYou can find your personality files here : {personality_path}"
         # ----------------------------------------------------------------
-        self.step_end("# Painting Icon ![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
+        self.step_end("# Painting Icon", callback)
         
         self.full(output, callback)
         

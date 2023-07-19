@@ -440,7 +440,14 @@ class Processor(APScript):
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
             docs = '\n'.join([f"chunk number {i}:\n{v}" for i,v in enumerate(docs)])
-            full_text = full_context+"\n!@>document chunks:\n"+docs+"\ninstructor:Using the information from the document, answer this question. Be precise and give details in your answer.\nquestion: "+prompt+"\nanswer: Given the provided document chunks,"
+            full_text =f"""{full_context}
+!@>document chunks:
+{docs}
+!@>instructor:Using the information from the document chunks, answer this question.
+question: {prompt}
+Be precise and give details in your answer.
+!@>answer: Given the provided document chunks,"""
+
             tk = self.personality.model.tokenize(full_text)
             # print(f"total: {len(tk)}")           
             ASCIIColors.blue("-------------- Documentation -----------------------")
