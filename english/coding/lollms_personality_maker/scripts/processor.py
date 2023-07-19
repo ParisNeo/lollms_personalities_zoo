@@ -140,7 +140,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        output_path = self.personality.lollms_paths.personal_outputs_path
+        output_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
+        output_path.mkdir(parents=True, exist_ok=True)
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Coming up with the personality name", callback)
@@ -228,13 +229,13 @@ disclaimer:""",256,0.1,10,0.98).strip()
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning", callback)
-        conditioning = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        conditioning = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
-The conditionning is a detailed description of the personality and its important traits of the personality.
+The conditionning is a detailed description of the personality and its important traits.
 {self.personality.ai_message_prefix}
-conditionning: Act as""",256,0.1,10,0.98).strip()
+!@>lollms_personality_maker: Here is the conditionning text for the personality {name}:
+Act as""",256,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning", callback)
         ASCIIColors.yellow(f"Conditioning:{conditioning}")
@@ -361,7 +362,8 @@ Avoid text as the generative ai is not good at generating text.
             file_path = f"![](/{pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
-        output += f"\nYou can find your personality files here : {personality_path}"
+            server_path = "/outputs/"+"/".join(personality_path.replace('\\','/').split('/')[-2:])
+        output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
         # ----------------------------------------------------------------
         self.step_end("# Painting Icon", callback)
         
