@@ -37,7 +37,8 @@ commands:
   - name: Set project path
     value: set_project_path
     icon: personalities/english/data/code_documenter_pro/assets/send_file.png
-    is_file: false
+    params: 
+      - path
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: Document
     value: document
