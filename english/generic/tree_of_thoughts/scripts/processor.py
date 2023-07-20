@@ -199,7 +199,10 @@ Write the next idea. Please give a single idea.
                 print("Warning, the model made a wrong answer, taking random idea as the best")
                 number = random.randint(0,self.personality_config["nb_samples_per_idea"])
                 print(f"Chosen thought n:{number}")
-                final_ideas.append(local_ideas[number]) 
+                if number>=0 and number<len(local_ideas):
+                    final_ideas.append(local_ideas[number]) 
+                else:
+                    final_ideas.append(local_ideas[0]) 
                 if callback is not None:
                     callback(f"!@> Best local idea:\n{best_local_idea}", MSG_TYPE.MSG_TYPE_STEP)
 
