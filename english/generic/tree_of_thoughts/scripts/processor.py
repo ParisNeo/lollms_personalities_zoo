@@ -157,11 +157,9 @@ class Processor(APScript):
         selections = []
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j} of the tree =====================")
-            if callback:
-                callback(f"Starting level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_START)
-
+            self.step_start(f"Starting level {j} of the tree", callback)
             local_ideas=[]
-            judgement_prompt = f">prompt: {prompt}\n"
+            judgement_prompt = f"!@>prompt: {prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
@@ -171,20 +169,19 @@ class Processor(APScript):
 >previous ideas: {final_ideas_text}
 >idea:"""
                 else:
-                    idea_prompt = f""">Instruction: 
+                    idea_prompt = f"""!@>Instruction: 
 Write the next idea. Please give a single idea. 
->prompt:{prompt}
->idea:"""
+!@>prompt:{prompt}
+!@>idea:"""
                 idea = self.generate(idea_prompt,self.personality_config.max_thought_size)
-                if callback is not None:
-                    callback(f"Idea: {idea}", MSG_TYPE.MSG_TYPE_STEP)
+                self.full(f"Idea: {idea}: {idea}", callback)
 
                 local_ideas.append(idea.strip())
-                judgement_prompt += f"\n>Idea {i}:{idea}\n"
+                judgement_prompt += f"\n!@>Idea {i}:{idea}\n"
             prompt_ids = ",".join([str(i) for i in range(self.personality_config["nb_samples_per_idea"])])
             judgement_prompt += f"""
->Instructions: Which idea seems the most approcpriate. Answer the question by giving the best idea number without explanations. What is the best idea number {prompt_ids}?
->judgement: The best idea is idea number"""
+!@>Instructions: Which idea seems the most approcpriate. Answer the question by giving the best idea number without explanations. What is the best idea number {prompt_ids}?
+!@>judgement: The best idea is idea number"""
             # print(judgement_prompt)
             self.bot_says = ""
             best_local_idea = self.generate(judgement_prompt,self.personality_config.max_judgement_size, temperature = 0.1, top_k=1).strip()
@@ -210,25 +207,22 @@ Write the next idea. Please give a single idea.
             selections.append(number)
             self.add_graph_level(thought_graph, local_ideas, prev_number)
             prev_number = number
-            if callback:
-                callback(f"level {j} of the tree", MSG_TYPE.MSG_TYPE_STEP_END)
+            
+            self.step_end(f"Starting level {j} of the tree", callback)
 
         self.visualize_thought_graph(thought_graph)
-        if callback:
-            callback(f"final summary", MSG_TYPE.MSG_TYPE_STEP_START)
-        summary_prompt += ">Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
+        self.step_start(f"Starting final summary", callback)
+        summary_prompt += "!@>Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
         for idea in final_ideas:
             summary_prompt += f">Idea: {idea}\n"
-        summary_prompt += ">Ideas summary:"
+        summary_prompt += "!@>Ideas summary:"
 
         final_summary = self.generate(summary_prompt, self.personality_config.max_summary_size)
 
         ASCIIColors.success("Summary built successfully")
-        if callback:
-            callback(f"Starting final summary", MSG_TYPE.MSG_TYPE_STEP_END)
+        self.step_end(f"Starting final summary", callback)
         
-        if callback:
-            callback(final_summary, MSG_TYPE.MSG_TYPE_FULL)
+        self.full(final_summary, callback)
         
         
         tree_full_output = {
@@ -236,9 +230,8 @@ Write the next idea. Please give a single idea.
             "selections":selections,
             "summary":final_summary
         }
-        if callback:
-            callback(tree_full_output, MSG_TYPE.MSG_TYPE_JSON_INFOS)
-
+        
+        self.json(tree_full_output, callback)
 
         return final_summary
 
