@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 import json
 import subprocess
+import ast
+
 
 class TextVectorizer:
     def __init__(self, processor):
@@ -23,8 +25,6 @@ class TextVectorizer:
         self.texts = {}
         self.ready = False
         self.vectorizer = None
-
-        
         
         self.database_file = Path(self.lollms_paths.personal_data_path/self.personality_config["database_path"])
 
@@ -59,6 +59,8 @@ class TextVectorizer:
                 self.ready = True
             else:
                 ASCIIColors.info(f"No database file found : {self.database_file}")
+
+
 
                 
     def show_document(self, query_text=None):
@@ -312,6 +314,73 @@ class TextVectorizer:
         if self.personality_config.save_db:
             self.save_to_json()
 
+
+
+def decompose_python_file(file_path):
+    with open(file_path, 'r') as file:
+        code = file.read()
+
+    tree = ast.parse(code)
+    decomposed_data = {'root': {'imports': [], 'functions': [], 'classes': {}}}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                decomposed_data['root']['imports'].append(alias.name)
+
+        elif isinstance(node, ast.FunctionDef):
+            function_info = {
+                'name': node.name,
+                'type': 'function',
+                'code': ast.get_source_segment(code, node)
+            }
+            decomposed_data['root']['functions'].append(function_info)
+
+        elif isinstance(node, ast.ClassDef):
+            class_info = {
+                'name': node.name,
+                'type': 'class',
+                'code': ast.get_source_segment(code, node),
+                'constructor': None,
+                'methods': [],
+                'static_methods': [],
+                'properties': []
+            }
+
+            for class_node in node.body:
+                if isinstance(class_node, ast.FunctionDef):
+                    if class_node.name == '__init__':
+                        class_info['constructor'] = {
+                            'name': class_node.name,
+                            'type': 'constructor',
+                            'code': ast.get_source_segment(code, class_node)
+                        }
+                    elif 'staticmethod' in [d.id for d in class_node.decorator_list]:
+                        static_method_info = {
+                            'name': class_node.name,
+                            'type': 'staticmethod',
+                            'code': ast.get_source_segment(code, class_node)
+                        }
+                        class_info['static_methods'].append(static_method_info)
+                    else:
+                        method_info = {
+                            'name': class_node.name,
+                            'type': 'method',
+                            'code': ast.get_source_segment(code, class_node)
+                        }
+                        class_info['methods'].append(method_info)
+
+                elif isinstance(class_node, ast.FunctionDef):
+                    property_info = {
+                        'name': class_node.name,
+                        'type': 'property',
+                        'code': ast.get_source_segment(code, class_node)
+                    }
+                    class_info['properties'].append(property_info)
+
+            decomposed_data['root']['classes'][node.name] = class_info
+
+    return decomposed_data
 
 class Processor(APScript):
     """

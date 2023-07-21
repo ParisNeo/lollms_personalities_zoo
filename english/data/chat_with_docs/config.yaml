@@ -55,8 +55,8 @@ model_temperature: 0.1 # higher: more creative, lower more deterministic
 model_n_predicts: 1024 # higher: generates many words, lower generates
 model_top_k: 5
 model_top_p: 0.98
-model_repeat_penalty: 1.0
-model_repeat_last_n: 60
+model_repeat_penalty: 1.9
+model_repeat_last_n: 90
 
 # Here are special configurations for the processor 
 processor_cfg:
