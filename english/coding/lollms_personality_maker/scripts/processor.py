@@ -336,14 +336,14 @@ Avoid text as the generative ai is not good at generating text.
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("# Loading stable diffusion", callback)
+        self.step_start("Loading stable diffusion", callback)
         if self.sd is None:
             self.sd  = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
         self.step_end("# Loading stable diffusion", callback)
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
-        self.step_start("# Painting Icon", callback)
+        self.step_start("Painting Icon", callback)
         self.full("![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
         try:
             files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
@@ -362,10 +362,10 @@ Avoid text as the generative ai is not good at generating text.
             file_path = f"![](/{pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
-            server_path = "/outputs/"+"/".join(personality_path.replace('\\','/').split('/')[-2:])
+        server_path = "/outputs/"+"/".join(personality_path.replace('\\','/').split('/')[-2:])
         output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
         # ----------------------------------------------------------------
-        self.step_end("# Painting Icon", callback)
+        self.step_end("Painting Icon", callback)
         
         self.full(output, callback)
         
