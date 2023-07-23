@@ -339,7 +339,7 @@ Avoid text as the generative ai is not good at generating text.
         self.step_start("Loading stable diffusion", callback)
         if self.sd is None:
             self.sd  = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
-        self.step_end("# Loading stable diffusion", callback)
+        self.step_end("Loading stable diffusion", callback)
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
