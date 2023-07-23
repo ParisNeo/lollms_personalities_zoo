@@ -362,7 +362,7 @@ Avoid text as the generative ai is not good at generating text.
             file_path = f"![](/{pth})\n"
             output += file_path
             print(f"Generated file in here : {files[i]}")
-        server_path = "/outputs/"+"/".join(personality_path.replace('\\','/').split('/')[-2:])
+        server_path = "/outputs/"+"/".join(str(personality_path).replace('\\','/').split('/')[-2:])
         output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
         # ----------------------------------------------------------------
         self.step_end("Painting Icon", callback)
