@@ -8,7 +8,7 @@ import re
 import importlib
 import requests
 from tqdm import tqdm
-
+import webbrowser
 
 class Processor(APScript):
     """
@@ -53,6 +53,8 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
+                                        "new_image":self.new_image,
+                                        "show_SD":self.show_sd,
                                     },
                                     "default": self.artbot2
                                 },                           
@@ -67,55 +69,10 @@ class Processor(APScript):
         shared_folder = root_dir/"shared"
         sd_folder = shared_folder / "auto_sd"
 
-        try:
-            print("Checking pytorch")
-            import torch
-            import torchvision
-            if torch.cuda.is_available():
-                print("CUDA is supported.")
-            else:
-                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
-                self.reinstall_pytorch_with_cuda()
-        except Exception as ex:
-            self.reinstall_pytorch_with_cuda()
-
-        
         # Step 1: Clone repository
         if not sd_folder.exists():
             subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(sd_folder)])
         
-        """
-                # Step 2: Install the Python package inside sd folder
-                # subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
-
-                requirements_file = self.personality.personality_package_path / "requirements.txt"
-                # Step 2: Install dependencies using pip from requirements.txt
-                subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file), "--use-pep517"])            
-
-        
-        """
-
-        # Step 3: Create models/Stable-diffusion folder if it doesn't exist
-        models_folder = shared_folder / "sd_models"
-        models_folder.mkdir(parents=True, exist_ok=True)
-
-        # Step 4: Download model file
-        model_url = "https://huggingface.co/Lykon/DreamShaper/resolve/main/DreamShaper_5_beta2_noVae_half_pruned.ckpt"
-        model_file = models_folder / "DreamShaper_5_beta2_noVae_half_pruned.ckpt"
-        
-        # Download with progress using tqdm
-        if not model_file.exists():
-            response = requests.get(model_url, stream=True)
-            total_size = int(response.headers.get("content-length", 0))
-            block_size = 1024  # 1KB
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True)
-
-            with open(model_file, "wb") as file:
-                for data in response.iter_content(block_size):
-                    progress_bar.update(len(data))
-                    file.write(data)
-            
-            progress_bar.close()
         ASCIIColors.success("Installed successfully")
 
 
@@ -137,8 +94,15 @@ class Processor(APScript):
 
         return text_without_image_links
 
+
     def help(self, prompt, full_context):
         self.full(self.personality.help, self.callback)
+    
+    def new_image(self, prompt, full_context):
+        self.files=[]
+        
+    def show_sd(self, prompt, full_context):
+        webbrowser.open("http://127.0.0.1:7860")        
         
     def add_file(self, path):
         super().add_file(path)
