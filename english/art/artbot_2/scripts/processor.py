@@ -55,7 +55,7 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                         "new_image":self.new_image,
-                                        "show_SD":self.show_sd,
+                                        "show_sd":self.show_sd,
                                     },
                                     "default": self.artbot2
                                 },                           
