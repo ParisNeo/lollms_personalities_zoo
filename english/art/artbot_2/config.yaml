@@ -85,9 +85,9 @@ commands:
   - name: New Image
     value: new_image
     help: start 
-  - name: Show Database
-    value: show_database
-    help: shows the vectorized database in cloud point format.
+  - name: Show Stable diffusion UI
+    value: show_sd
+    help: shows the full stable diffusion ui for more options.
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!>","User:","!>User","!>Prompt"]

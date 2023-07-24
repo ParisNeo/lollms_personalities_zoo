@@ -8,7 +8,7 @@ import re
 import importlib
 import requests
 from tqdm import tqdm
-
+import webbrowser
 
 class Processor(APScript):
     """
@@ -53,6 +53,8 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
+                                        "new_image":self.new_image,
+                                        "show_SD":self.show_sd,
                                     },
                                     "default": self.artbot2
                                 },                           
@@ -139,6 +141,12 @@ class Processor(APScript):
 
     def help(self, prompt, full_context):
         self.full(self.personality.help, self.callback)
+    
+    def new_image(self, prompt, full_context):
+        self.files=[]
+        
+    def show_sd(self, prompt, full_context):
+        webbrowser.open("http://127.0.0.1:7860")
         
     def add_file(self, path):
         super().add_file(path)
@@ -159,21 +167,20 @@ class Processor(APScript):
         self.step_start("Imagining positive prompt", self.callback)
         # 1 first ask the model to formulate a query
         prompt = f"""{self.remove_image_links(full_context)}
-!@>Instruction:
-Generate a prompt to generate an image based on the idea presented below.
-Do not use line breaks and keep concise, do not write a long text.
+!@>Task:
+Generate a prompt based on the idea presented below.
 !@>idea: {prompt}
 !@>artbot:
 prompt:"""
         ASCIIColors.yellow(prompt)
-        sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
+        sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Imagining positive prompt", self.callback)
         # ====================================================================================
         # ====================================================================================
         self.step_start("Imagining negative prompt", self.callback)
         # 1 first ask the model to formulate a query
         prompt = f"""{self.remove_image_links(full_context)}
-!@>Instruction:
+!@>Task:
 Generate negative prompt based on the idea.
 The negative prompt is a list of keywords that should not be present in our image.
 Try to force the generator not to generate text or extra fingers or deformed faces. 
@@ -183,14 +190,15 @@ example: blurry, deformed, bad, ugly etc.
 prompt:{sd_positive_prompt}
 negative_prompt:"""
         ASCIIColors.yellow(prompt)
-        sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
+        sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Imagining negative prompt", self.callback)
         # ====================================================================================
 
         output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}"
+        self.full(output, self.callback)
         files = []
         for i in range(self.personality_config.num_images):
-            self.step_start(f"Building image number {i}", self.callback)
+            self.step_start(f"Building image number {i}/{self.personality_config.num_images}", self.callback)
             files += self.sd.txt_to_img(
                         sd_positive_prompt,
                         negative_prompt=sd_negative_prompt, 
@@ -207,7 +215,7 @@ negative_prompt:"""
                         script_name="",
                         upscaler_name="",
                         )["image_paths"]
-            self.step_end(f"Building image number {i}", self.callback)
+            self.step_end(f"Building image number {i}/{self.personality_config.num_images}", self.callback)
         
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")

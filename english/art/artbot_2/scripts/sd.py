@@ -25,20 +25,21 @@ class SD:
         self.sd_folder = shared_folder / "auto_sd"
         self.output_dir = root_dir / "outputs/sd"
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        # Launch the Flask service using the appropriate script for the platform
-        if platform.system() == "Windows":
-            script_path = self.sd_folder / "lollms_webui.bat"
-        else:
-            script_path = self.sd_folder / "lollms_webui.sh"
+        if not self.wait_for_service(1):
+            # Launch the Flask service using the appropriate script for the platform
+            if platform.system() == "Windows":
+                script_path = self.sd_folder / "lollms_webui.bat"
+            else:
+                script_path = self.sd_folder / "lollms_webui.sh"
 
-        subprocess.Popen(script_path, cwd=self.sd_folder)
+            subprocess.Popen(script_path, cwd=self.sd_folder)
 
         # Wait until the service is available at http://127.0.0.1:7860/
         self.wait_for_service()
 
-    def wait_for_service(self):
+    def wait_for_service(self, max_retries = 30):
         url = f"{self.auto_sd_url}/internal/ping"
-        max_retries = 30  # Adjust this value as needed
+        # Adjust this value as needed
         retries = 0
 
         while retries < max_retries:
@@ -46,7 +47,7 @@ class SD:
                 response = requests.get(url)
                 if response.status_code == 200:
                     print("Service is available.")
-                    return
+                    return True
             except requests.exceptions.RequestException:
                 pass
 
@@ -54,7 +55,8 @@ class SD:
             time.sleep(1)
 
         print("Service did not become available within the given time.")
-        
+        return False
+    
     def get_available_image_name(self, save_folder, base_name):
         index = 0
         while True:
