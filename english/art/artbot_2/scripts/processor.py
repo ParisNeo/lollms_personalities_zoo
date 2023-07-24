@@ -170,6 +170,13 @@ negative_prompt:"""
                         script_name="",
                         upscaler_name="",
                         )["image_paths"]
+            f = str(files[-1]).replace("\\","/")
+            pth = f.split('/')
+            idx = pth.index("outputs")
+            pth = "/".join(pth[idx:])
+            file_path = f"![](/{pth})\n"
+            self.full(file_path, self.callback)
+            
             self.step_end(f"Building image number {i}/{self.personality_config.num_images}", self.callback)
         
         for i in range(len(files)):
