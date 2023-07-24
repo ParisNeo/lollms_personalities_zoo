@@ -29,22 +29,23 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
-                {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
-                {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
-                
-                {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Number of data chunks to use for its vector (at most nb_chunks*max_chunk_size must not exeed two thirds the context size)"},
-                {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
-                {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
-                {"name":"chunk_overlap_sentences","type":"int","value":1, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
-                
-                {"name":"max_answer_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum number of tokens to allow the generator to generate as an answer to your question"},
-                
-                {"name":"data_visualization_method","type":"str","value":f"PCA", "options":["PCA", "TSNE"], "help":"The method to be used to show data"},
-                {"name":"interactive_mode_visualization","type":"bool","value":False, "help":"If true, you can get an interactive visualization where you can point on data to get the text"},
-                {"name":"visualize_data_at_startup","type":"bool","value":False, "help":"If true, the database will be visualized at startup"},
-                {"name":"visualize_data_at_add_file","type":"bool","value":False, "help":"If true, the database will be visualized when a new file is added"},
-                {"name":"visualize_data_at_generate","type":"bool","value":False, "help":"If true, the database will be visualized at generation time"},
+                {"name":"build_keywords","type":"bool","value":True, "help":"Si vrai, le modèle générera d'abord des mots-clés avant de rechercher."},
+                {"name":"save_db","type":"bool","value":False, "help":"Si vrai, la base de données vectorisée sera sauvegardée pour une utilisation future."},
+                {"name":"vectorization_method","type":"str","value":"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Méthode de vectorisation à utiliser (modifier cela réinitialisera la base de données)."},
+
+                {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Nombre de morceaux de données à utiliser pour sa vectorisation (au plus nb_chunks*max_chunk_size ne doit pas dépasser deux tiers de la taille du contexte)."},
+                {"name":"database_path","type":"str","value":"nom_de_la_personnalite_db.json", "help":"Chemin vers la base de données."},
+                {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Taille maximale des morceaux de texte à vectoriser."},
+                {"name":"chunk_overlap_sentences","type":"int","value":1, "min":0, "max":personality.config["ctx_size"],"help":"Chevauchement entre les morceaux."},
+
+                {"name":"max_answer_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Nombre maximal de jetons autorisés pour que le générateur génère une réponse à votre question."},
+
+                {"name":"data_visualization_method","type":"str","value":"PCA", "options":["PCA", "TSNE"], "help":"La méthode à utiliser pour afficher les données."},
+                {"name":"interactive_mode_visualization","type":"bool","value":False, "help":"Si vrai, vous pouvez obtenir une visualisation interactive où vous pouvez pointer sur les données pour obtenir le texte."},
+                {"name":"visualize_data_at_startup","type":"bool","value":False, "help":"Si vrai, la base de données sera visualisée au démarrage."},
+                {"name":"visualize_data_at_add_file","type":"bool","value":False, "help":"Si vrai, la base de données sera visualisée lorsqu'un nouveau fichier est ajouté."},
+                {"name":"visualize_data_at_generate","type":"bool","value":False, "help":"Si vrai, la base de données sera visualisée lors de la génération."}
+
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -137,7 +138,7 @@ class Processor(APScript):
         if self.vector_store.ready:
             self.step_start("Analyzing request",self.callback)
             if self.personality_config.build_keywords:
-                full_text =f"""!@>instructor:Extract keywords out of this prompt for searching inside a vectorized database.
+                full_text =f"""!@>instructor:Extraire des mots-clés de cette indication pour la recherche dans une base de données vectorisée.
 !@>prompt: {prompt}
 keywords:"""
                 preprocessed_prompt = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
@@ -156,6 +157,7 @@ keywords:"""
 !@>instructor:Using the information from the document chunks, answer this question.
 !@>question: {prompt}
 Be precise and give details in your answer.
+Answer in French.
 answer:"""
 
             tk = self.personality.model.tokenize(full_text)

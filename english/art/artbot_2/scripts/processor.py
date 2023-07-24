@@ -16,14 +16,13 @@ class Processor(APScript):
 
     Inherits from APScript.
     """
-
-
     def __init__(
                  self, 
                  personality: AIPersonality
                 ) -> None:
         
         self.word_callback = None
+        self.sd = None
         personality_config_template = ConfigTemplate(
             [
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
@@ -48,9 +47,17 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "help":self.help,
+                                    },
+                                    "default": self.artbot2
+                                },                           
+                            ]
                         )
-        self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
         
     def install(self):
         super().install()
@@ -58,11 +65,11 @@ class Processor(APScript):
         root_dir = self.personality.lollms_paths.personal_path
         # We put this in the shared folder in order as this can be used by other personalities.
         shared_folder = root_dir/"shared"
-        sd_folder = shared_folder / "sd"
+        sd_folder = shared_folder / "auto_sd"
 
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Step 2: Install dependencies using pip from requirements.txt
-        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file), "--use-pep517"])            
         try:
             print("Checking pytorch")
             import torch
@@ -77,7 +84,7 @@ class Processor(APScript):
 
         # Step 1: Clone repository
         if not sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/CompVis/stable-diffusion.git", str(sd_folder)])
+            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(sd_folder)])
 
         # Step 2: Install the Python package inside sd folder
         subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
@@ -124,8 +131,52 @@ class Processor(APScript):
 
         return text_without_image_links
 
+    def help(self, prompt, full_context):
+        self.full(self.personality.help, self.callback)
+        
+        
+    def artbot2(self, prompt, full_context):    
+        # ====================================================================================
+        self.step_start("Imagining positive prompt", self.callback)
+        # 1 first ask the model to formulate a query
+        prompt = f"""{self.remove_image_links(full_context)}
+!@>Instruction: Generate positive prompt.
+!@>artbot:
+prompt:"""
+        ASCIIColors.yellow(prompt)
+        sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
+        self.step_end("Imagining positive prompt", self.callback)
+        # ====================================================================================
+        # ====================================================================================
+        self.step_start("Imagining positive prompt", self.callback)
+        # 1 first ask the model to formulate a query
+        prompt = f"""{self.remove_image_links(full_context)}
+!@>Instruction: Generate negative prompt. A list of keywortds that should not be present in our image like blurry, deformed, bad, ugly etc.
+!@>artbot:
+negative_prompt:"""
+        ASCIIColors.yellow(prompt)
+        sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
+        self.step_end("Imagining positive prompt", self.callback)
+        # ====================================================================================
+
+        self.full(f"positive_prompt :\n{sd_positive_prompt}\nnegative_prompt :\n{sd_negative_prompt}", self.callback)
 
     
+        """
+        files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
+        output = sd_prompt.strip()+"\n"
+        for i in range(len(files)):
+            files[i] = str(files[i]).replace("\\","/")
+            pth = files[i].split('/')
+            idx = pth.index("outputs")
+            pth = "/".join(pth[idx:])
+            file_path = f"![](/{pth})\n"
+            output += file_path
+            ASCIIColors.yellow(f"Generated file in here : {files[i]}")
+
+        self.full(output.strip(), self.callback)
+        
+        """
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -140,28 +191,14 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.word_callback = callback
-        self.step_start("Imagining", callback)
-        # 1 first ask the model to formulate a query
-        prompt = f"{self.remove_image_links(previous_discussion_text)}"
-        print(prompt)
-        sd_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size)
-        self.step_end("Imagining", callback)
+        if self.sd is None:
+            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            
+        self.callback = callback
+        self.prepare()
 
-        self.full(sd_prompt.strip(), callback)
+        self.process_state(prompt, previous_discussion_text, callback)
 
-        files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
-        output = sd_prompt.strip()+"\n"
-        for i in range(len(files)):
-            files[i] = str(files[i]).replace("\\","/")
-            pth = files[i].split('/')
-            idx = pth.index("outputs")
-            pth = "/".join(pth[idx:])
-            file_path = f"![](/{pth})\n"
-            output += file_path
-            ASCIIColors.yellow(f"Generated file in here : {files[i]}")
-
-        self.full(output.strip(), callback)
-        return output
+        return ""
 
 
