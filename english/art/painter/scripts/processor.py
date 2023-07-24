@@ -103,6 +103,7 @@ class Processor(APScript):
         
     def show_sd(self, prompt, full_context):
         webbrowser.open("http://127.0.0.1:7860")        
+        self.full("Showing Stable diffusion UI", self.callback)
         
     def add_file(self, path):
         super().add_file(path)
