@@ -1,6 +1,6 @@
 import subprocess
 from pathlib import Path
-from lollms.helpers import ASCIIColors
+from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
@@ -27,10 +27,10 @@ class Processor(APScript):
             [
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sampler_name","type":"str","value":"ddim", "options":["ddim","dpms","plms"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
-                {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
+                {"name":"steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
-                {"name":"W","type":"int","value":512, "min":10, "max":2048},
-                {"name":"H","type":"int","value":512, "min":10, "max":2048},
+                {"name":"width","type":"int","value":512, "min":10, "max":2048},
+                {"name":"height","type":"int","value":512, "min":10, "max":2048},
                 {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
                 {"name":"batch_size","type":"int","value":1, "min":1, "max":100,"help":"Number of images per batch (requires more memory)"},
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
@@ -67,9 +67,6 @@ class Processor(APScript):
         shared_folder = root_dir/"shared"
         sd_folder = shared_folder / "auto_sd"
 
-        requirements_file = self.personality.personality_package_path / "requirements.txt"
-        # Step 2: Install dependencies using pip from requirements.txt
-        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file), "--use-pep517"])            
         try:
             print("Checking pytorch")
             import torch
@@ -82,12 +79,21 @@ class Processor(APScript):
         except Exception as ex:
             self.reinstall_pytorch_with_cuda()
 
+        
         # Step 1: Clone repository
         if not sd_folder.exists():
             subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(sd_folder)])
+        
+        """
+                # Step 2: Install the Python package inside sd folder
+                # subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
 
-        # Step 2: Install the Python package inside sd folder
-        subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
+                requirements_file = self.personality.personality_package_path / "requirements.txt"
+                # Step 2: Install dependencies using pip from requirements.txt
+                subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file), "--use-pep517"])            
+
+        
+        """
 
         # Step 3: Create models/Stable-diffusion folder if it doesn't exist
         models_folder = shared_folder / "sd_models"
@@ -134,13 +140,29 @@ class Processor(APScript):
     def help(self, prompt, full_context):
         self.full(self.personality.help, self.callback)
         
+    def add_file(self, path):
+        super().add_file(path)
+        self.prepare()
+        try:
+            self.step_start("Vectorizing database",self.callback)
+            self.build_db()
+            self.step_end("Vectorizing database",self.callback)
+            self.ready = True
+            return True
+        except Exception as ex:
+            ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
+            trace_exception(ex)
+            return False    
         
     def artbot2(self, prompt, full_context):    
         # ====================================================================================
         self.step_start("Imagining positive prompt", self.callback)
         # 1 first ask the model to formulate a query
         prompt = f"""{self.remove_image_links(full_context)}
-!@>Instruction: Generate positive prompt.
+!@>Instruction:
+Generate a prompt to generate an image based on the idea presented below.
+Do not use line breaks and keep concise, do not write a long text.
+!@>idea: {prompt}
 !@>artbot:
 prompt:"""
         ASCIIColors.yellow(prompt)
@@ -148,23 +170,45 @@ prompt:"""
         self.step_end("Imagining positive prompt", self.callback)
         # ====================================================================================
         # ====================================================================================
-        self.step_start("Imagining positive prompt", self.callback)
+        self.step_start("Imagining negative prompt", self.callback)
         # 1 first ask the model to formulate a query
         prompt = f"""{self.remove_image_links(full_context)}
-!@>Instruction: Generate negative prompt. A list of keywortds that should not be present in our image like blurry, deformed, bad, ugly etc.
+!@>Instruction:
+Generate negative prompt based on the idea.
+The negative prompt is a list of keywords that should not be present in our image.
+Try to force the generator not to generate text or extra fingers or deformed faces. 
+example: blurry, deformed, bad, ugly etc.
+!@>idea: {prompt}
 !@>artbot:
+positive_prompt:{sd_positive_prompt}
 negative_prompt:"""
         ASCIIColors.yellow(prompt)
         sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
-        self.step_end("Imagining positive prompt", self.callback)
+        self.step_end("Imagining negative prompt", self.callback)
         # ====================================================================================
 
-        self.full(f"positive_prompt :\n{sd_positive_prompt}\nnegative_prompt :\n{sd_negative_prompt}", self.callback)
-
-    
-        """
-        files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
-        output = sd_prompt.strip()+"\n"
+        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}"
+        files = []
+        for i in range(self.personality_config.num_images):
+            self.step_start(f"Building image number {i}", self.callback)
+            files += self.sd.txt_to_img(
+                        sd_positive_prompt,
+                        negative_prompt=sd_negative_prompt, 
+                        sampler_name="Euler",
+                        seed=self.personality_config.seed,
+                        cfg_scale=self.personality_config.scale,
+                        steps=self.personality_config.steps,
+                        width=self.personality_config.width,
+                        height=self.personality_config.height,
+                        tiling=False,
+                        restore_faces=False,
+                        styles=None, 
+                        save_folder=None, 
+                        script_name="",
+                        upscaler_name="",
+                        )["image_paths"]
+            self.step_end(f"Building image number {i}", self.callback)
+        
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
             pth = files[i].split('/')
@@ -176,7 +220,6 @@ negative_prompt:"""
 
         self.full(output.strip(), self.callback)
         
-        """
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -191,11 +234,12 @@ negative_prompt:"""
         Returns:
             None
         """
-        if self.sd is None:
-            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
-            
         self.callback = callback
-        self.prepare()
+        if self.sd is None:
+            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+            
 
         self.process_state(prompt, previous_discussion_text, callback)
 

@@ -58,6 +58,21 @@ include_welcome_message_in_disucssion: False
 
 help: |
   Artbot 2 uses auto1111's stable diffusion to generate images. It can help you generate beautiful images out of your ideas, convert your imagination into concrete artworks and help you fine tune them to become even better.
+
+commands:
+  - name: Send File
+    value: send_file
+    icon: personalities/english/art/artbot_2/assets/send_file.png
+    is_file: true
+    file_types: .png,.jpg,.bmp
+    help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
+  - name: New Image
+    value: clear_database
+    help: clears the vectorized database.
+  - name: Show Database
+    value: show_database
+    help: shows the vectorized database in cloud point format.
+
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!>","User:","!>User","!>Prompt"]
 

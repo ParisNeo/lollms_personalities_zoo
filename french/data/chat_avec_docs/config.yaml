@@ -24,7 +24,7 @@ personality_description: 'Cette personnalité utilise la puissance des bases de 
 user_message_prefix: '!@>User:'
 user_name: utilisateur
 version: 1.0.0
-welcome_message: 'Bienvenue dans le chat avec l'IA des documents. Cette IA peut lire de longs documents et répondre à vos questions comme le ferait un humain. Donnez-lui vos documents et elle apprendra à vous répondre en fonction d'eux.'
+welcome_message: Bienvenue dans le chat avec l'IA des documents. Cette IA peut lire de longs documents et répondre à vos questions comme le ferait un humain. Donnez-lui vos documents et elle apprendra à vous répondre en fonction d'eux.
 anti_prompts: ["!@>", "!@> User", "!@> chat_with_docs", "!@> Assistant", "!@> Question","!@> Answer","!@>Instructions:","!@>Instruction:", "!@> Documentation:"]
 
 help: |
