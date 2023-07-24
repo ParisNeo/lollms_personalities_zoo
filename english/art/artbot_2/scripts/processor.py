@@ -26,7 +26,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
-                {"name":"sampler_name","type":"str","value":"ddim", "options":["ddim","dpms","plms"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
+                {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
                 {"name":"width","type":"int","value":512, "min":10, "max":2048},
@@ -180,7 +180,7 @@ Try to force the generator not to generate text or extra fingers or deformed fac
 example: blurry, deformed, bad, ugly etc.
 !@>idea: {prompt}
 !@>artbot:
-positive_prompt:{sd_positive_prompt}
+prompt:{sd_positive_prompt}
 negative_prompt:"""
         ASCIIColors.yellow(prompt)
         sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip()
