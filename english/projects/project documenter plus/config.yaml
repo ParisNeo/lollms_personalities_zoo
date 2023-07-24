@@ -18,7 +18,7 @@ disclaimer: ''
 # Actual useful stuff
 personality_conditioning: None
 user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>lollms_personality_maker:'
+ai_message_prefix: '!@>project_documenter_plus:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
