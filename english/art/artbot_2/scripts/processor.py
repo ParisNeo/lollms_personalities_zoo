@@ -25,6 +25,7 @@ class Processor(APScript):
         self.sd = None
         personality_config_template = ConfigTemplate(
             [
+                {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"steps","type":"int","value":50, "min":10, "max":1024},
@@ -164,7 +165,7 @@ negative_prompt:"""
                         width=self.personality_config.width,
                         height=self.personality_config.height,
                         tiling=False,
-                        restore_faces=False,
+                        restore_faces=self.personality_config.restore_faces,
                         styles=None, 
                         save_folder=None, 
                         script_name="",
