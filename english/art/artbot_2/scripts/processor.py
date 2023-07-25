@@ -75,13 +75,13 @@ class Processor(APScript):
         # Step 1: Clone repository
         if not self.sd_folder.exists():
             subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-        
+        self.prepare()
         ASCIIColors.success("Installed successfully")
 
     def prepare(self):
         if self.sd is None:
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
-            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
         
     def get_sd(self):
