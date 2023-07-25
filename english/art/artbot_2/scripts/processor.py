@@ -140,8 +140,8 @@ class Processor(APScript):
     !@>Task:
     Upgrade the last prompt based on the idea presented below and examples.
     Don't write too much text. 
-    Emphesize the most important expression using this syntax ([txt]:1.3). 
-    Replace [txt] by the expression to emphesize.
+    Emphesize the most important expression using this syntax (text to emphesize:factor (between 1.0 and 1.5)).
+    Example (beautiful:1.3) 
     !@>idea: {prompt}
     !@>artbot:
     prompt:"""
