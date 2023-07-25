@@ -32,6 +32,7 @@ class Processor(APScript):
             [
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
+                {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
                 {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
                 {"name":"caption_received_files","type":"bool","value":False,"help":"If active, the received file will be captioned"},
@@ -239,6 +240,8 @@ class Processor(APScript):
                 output += file_path
                 ASCIIColors.yellow(f"Generated file in here : {files[i]}")
             
+            if self.personality_config.continue_from_last_image:
+                self.files= [files[-1]]
         self.full(output.strip(), self.callback)
         
 
