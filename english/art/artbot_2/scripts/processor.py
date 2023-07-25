@@ -137,10 +137,14 @@ class Processor(APScript):
             # 1 first ask the model to formulate a query
             prompt = f"""{self.remove_image_links(full_context)}
     !@>Task:
-    Generate a prompt based on the idea presented below.
+    Upgrade the last prompt based on the idea presented below and examples.
+    Don't write too much text. 
+    Emphesize the most important expression using this syntax ([txt]:1.3). 
+    Replace [txt] by the expression to emphesize.
     !@>idea: {prompt}
     !@>artbot:
     prompt:"""
+           
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt", self.callback)
@@ -172,8 +176,9 @@ class Processor(APScript):
                 sd_positive_prompt = prompt[0]
                 sd_negative_prompt = ""
             
-            
-        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}"
+
+
+        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
         if self.personality_config.paint:
             files = []
             for i in range(self.personality_config.num_images):

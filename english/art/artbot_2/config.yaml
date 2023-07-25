@@ -102,8 +102,8 @@ model_temperature: 0.9 # higher: more creative, lower more deterministic
 model_n_predicts: 1024 # higher: generates many words, lower generates
 model_top_k: 50
 model_top_p: 0.50
-model_repeat_penalty: 1.5
-model_repeat_last_n: 20
+model_repeat_penalty: 1.9
+model_repeat_last_n: 30
 
 processor_cfg:
   custom_workflow: true
