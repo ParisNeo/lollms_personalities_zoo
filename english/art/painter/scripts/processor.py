@@ -20,12 +20,19 @@ class Processor(APScript):
                  self, 
                  personality: AIPersonality
                 ) -> None:
+        # Get the current directory
+        root_dir = personality.lollms_paths.personal_path
+        # We put this in the shared folder in order as this can be used by other personalities.
+        shared_folder = root_dir/"shared"
+        self.sd_folder = shared_folder / "auto_sd"
         
-        self.word_callback = None
+        self.callback = None
         self.sd = None
         personality_config_template = ConfigTemplate(
             [
+                {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
                 {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
+                {"name":"caption_received_files","type":"bool","value":False,"help":"If active, the received file will be captioned"},
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
@@ -56,28 +63,27 @@ class Processor(APScript):
                                         "new_image":self.new_image,
                                         "show_sd":self.show_sd,
                                     },
-                                    "default": self.artbot2
+                                    "default": self.main_process
                                 },                           
                             ]
                         )
         
     def install(self):
         super().install()
-        # Get the current directory
-        root_dir = self.personality.lollms_paths.personal_path
-        # We put this in the shared folder in order as this can be used by other personalities.
-        shared_folder = root_dir/"shared"
-        sd_folder = shared_folder / "auto_sd"
-
         # Step 1: Clone repository
-        if not sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(sd_folder)])
+        if not self.sd_folder.exists():
+            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
         
         ASCIIColors.success("Installed successfully")
 
-
+    def prepare(self):
+        if self.sd is None:
+            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+        
     def get_sd(self):
-        sd_script_path = Path(__file__).parent / "sd.py"
+        sd_script_path = self.sd_folder / "lollms_sd.py"
         if sd_script_path.exists():
             module_name = sd_script_path.stem  # Remove the ".py" extension
             # use importlib to load the module from the file path
@@ -100,26 +106,28 @@ class Processor(APScript):
     
     def new_image(self, prompt, full_context):
         self.files=[]
+        self.full("Starting fresh :)", self.callback)
+        
         
     def show_sd(self, prompt, full_context):
-        webbrowser.open("http://127.0.0.1:7860")        
+        self.prepare()
+        webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
         self.full("Showing Stable diffusion UI", self.callback)
         
     def add_file(self, path):
-        super().add_file(path)
         self.prepare()
-        try:
-            self.step_start("Vectorizing database",self.callback)
-            self.build_db()
-            self.step_end("Vectorizing database",self.callback)
-            self.ready = True
-            return True
-        except Exception as ex:
-            ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
-            trace_exception(ex)
-            return False    
+        super().add_file(path)
+        if self.personality_config.caption_received_files:
+            self.step_start("Understanding the image", self.callback)
+            description = self.sd.interrogate(path)
+            ASCIIColors.yellow(description)
+            self.step_end("Understanding the image", self.callback)
+            self.full(f"File added successfully\nImage description :{description}", self.callback)
+        else:    
+            self.full(f"File added successfully\n", self.callback)
         
-    def artbot2(self, prompt, full_context):    
+    def main_process(self, prompt, full_context):    
+        self.prepare()
         prompt = prompt.split("\n")
         if len(prompt)>1:
             sd_positive_prompt = prompt[0]
@@ -131,31 +139,53 @@ class Processor(APScript):
         output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}"
         files = []
         for i in range(self.personality_config.num_images):
-            self.step_start(f"Building image number {i}/{self.personality_config.num_images}", self.callback)
-            files += self.sd.txt_to_img(
-                        sd_positive_prompt,
-                        negative_prompt=sd_negative_prompt, 
-                        sampler_name="Euler",
-                        seed=self.personality_config.seed,
-                        cfg_scale=self.personality_config.scale,
-                        steps=self.personality_config.steps,
-                        width=self.personality_config.width,
-                        height=self.personality_config.height,
-                        tiling=False,
-                        restore_faces=self.personality_config.restore_faces,
-                        styles=None, 
-                        save_folder=None, 
-                        script_name="",
-                        upscaler_name="",
-                        )["image_paths"]
-            f = str(files[-1]).replace("\\","/")
-            pth = f.split('/')
-            idx = pth.index("outputs")
-            pth = "/".join(pth[idx:])
-            file_path = f"![](/{pth})\n"
-            self.full(file_path, self.callback)
+            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
+            if len(self.files)>0:
+                out = self.sd.img_to_img(
+                            self.files,
+                            sd_positive_prompt,
+                            negative_prompt=sd_negative_prompt, 
+                            sampler_name="Euler",
+                            seed=self.personality_config.seed,
+                            cfg_scale=self.personality_config.scale,
+                            steps=self.personality_config.steps,
+                            width=self.personality_config.width,
+                            height=self.personality_config.height,
+                            denoising_strength=self.personality_config.img2img_denoising_strength,
+                            tiling=False,
+                            restore_faces=self.personality_config.restore_faces,
+                            styles=None, 
+                            save_folder=None, 
+                            script_name="",
+                            )
+                if out:
+                    files += out["image_paths"]        
+            else:
+                files += self.sd.txt_to_img(
+                            sd_positive_prompt,
+                            negative_prompt=sd_negative_prompt, 
+                            sampler_name="Euler",
+                            seed=self.personality_config.seed,
+                            cfg_scale=self.personality_config.scale,
+                            steps=self.personality_config.steps,
+                            width=self.personality_config.width,
+                            height=self.personality_config.height,
+                            tiling=False,
+                            restore_faces=self.personality_config.restore_faces,
+                            styles=None, 
+                            save_folder=None, 
+                            script_name="",
+                            upscaler_name="",
+                            )["image_paths"]
+            if len(files)>0:
+                f = str(files[-1]).replace("\\","/")
+                pth = f.split('/')
+                idx = pth.index("outputs")
+                pth = "/".join(pth[idx:])
+                file_path = f"![](/{pth})\n"
+                self.full(file_path, self.callback)
             
-            self.step_end(f"Building image number {i}/{self.personality_config.num_images}", self.callback)
+            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
         
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
@@ -183,12 +213,6 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        if self.sd is None:
-            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
-            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
-            
-
         self.process_state(prompt, previous_discussion_text, callback)
 
         return ""

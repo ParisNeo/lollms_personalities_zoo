@@ -213,8 +213,11 @@ answer:"""
                     text =  GenericDataLoader.read_csv_file(file)
                 elif Path(file).suffix==".html":
                     text =  GenericDataLoader.read_html_file(file)
-                else:
+                elif Path(file).suffix in [".txt", ".md"]:
                     text =  GenericDataLoader.read_text_file(file)
+                else:
+                    ASCIIColors.error("File type not supported")
+                    return False
                 try:
                     chunk_size=int(self.personality_config["max_chunk_size"])
                 except:
@@ -231,9 +234,11 @@ answer:"""
                 print(ASCIIColors.color_reset)
                 ASCIIColors.success(f"File {file} vectorized successfully")
                 self.ready = True
+                return True
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
                 trace_exception(ex)
+                return False
 
     def add_file(self, path):
         super().add_file(path)

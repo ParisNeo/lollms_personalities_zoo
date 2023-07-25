@@ -39,7 +39,7 @@ help:  |
 commands:
   - name: Send File
     value: send_file
-    icon: personalities/english/data/chat_with_docs/assets/send_file.png
+    icon: send_file.svg
     is_file: true
     file_types: .doc,.docx,.pdf,.html
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.

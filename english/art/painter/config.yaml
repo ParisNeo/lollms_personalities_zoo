@@ -39,15 +39,17 @@ help: |
 commands:
   - name: Send File
     value: send_file
-    icon: personalities/english/art/artbot_2/assets/send_file.png
+    icon: personalities/english/art/painter/assets/send_file.svg
     is_file: true
     file_types: .png,.jpg,.bmp
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: New Image
     value: new_image
+    icon: personalities/english/art/painter/assets/file.svg
     help: start 
   - name: Show Stable diffusion UI
     value: show_sd
+    icon: personalities/english/art/painter/assets/open_sd.svg
     help: shows the full stable diffusion ui for more options.
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
