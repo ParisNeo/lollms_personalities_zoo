@@ -39,6 +39,9 @@ class Processor(APScript):
         
         self.callback = None
         self.sd = None
+        self.previous_sd_positive_prompt = None
+        self.sd_negative_prompt = None
+
         personality_config_template = ConfigTemplate(
             [
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
@@ -76,6 +79,7 @@ class Processor(APScript):
                                         "help":self.help,
                                         "new_image":self.new_image,
                                         "show_sd":self.show_sd,
+                                        "regenerate":self.regenerate
                                     },
                                     "default": self.main_process
                                 },                           
@@ -144,6 +148,77 @@ class Processor(APScript):
         else:    
             self.full(f"File added successfully\n", self.callback)
         
+    def regenerate(self, prompt, full_context):
+        if self.previous_sd_positive_prompt:
+            out = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt)
+            self.full(out)
+        else:
+            self.full("Please generate an image first then retry")
+
+    def paint(self,sd_positive_prompt, sd_negative_prompt, output =""):
+        files = []
+        for i in range(self.personality_config.num_images):
+            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
+            if len(self.files)>0:
+                out = self.sd.img_to_img(
+                            self.files,
+                            sd_positive_prompt,
+                            negative_prompt=sd_negative_prompt, 
+                            sampler_name="Euler",
+                            seed=self.personality_config.seed,
+                            cfg_scale=self.personality_config.scale,
+                            steps=self.personality_config.steps,
+                            width=self.personality_config.width,
+                            height=self.personality_config.height,
+                            denoising_strength=self.personality_config.img2img_denoising_strength,
+                            tiling=False,
+                            restore_faces=self.personality_config.restore_faces,
+                            styles=None, 
+                            save_folder=None, 
+                            script_name="",
+                            )
+                if out:
+                    files += out["image_paths"]        
+            else:
+                files += self.sd.txt_to_img(
+                            sd_positive_prompt,
+                            negative_prompt=sd_negative_prompt, 
+                            sampler_name="Euler",
+                            seed=self.personality_config.seed,
+                            cfg_scale=self.personality_config.scale,
+                            steps=self.personality_config.steps,
+                            width=self.personality_config.width,
+                            height=self.personality_config.height,
+                            tiling=False,
+                            restore_faces=self.personality_config.restore_faces,
+                            styles=None, 
+                            save_folder=None, 
+                            script_name="",
+                            upscaler_name="",
+                            )["image_paths"]
+            if len(files)>0:
+                f = str(files[-1]).replace("\\","/")
+                pth = f.split('/')
+                idx = pth.index("outputs")
+                pth = "/".join(pth[idx:])
+                file_path = f"![](/{pth})\n"
+                self.full(file_path, self.callback)
+            
+            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
+        
+        for i in range(len(files)):
+            files[i] = str(files[i]).replace("\\","/")
+            pth = files[i].split('/')
+            idx = pth.index("outputs")
+            pth = "/".join(pth[idx:])
+            file_path = f"![](/{pth})\n"
+            output += file_path
+            ASCIIColors.yellow(f"Generated file in here : {files[i]}")
+        
+        if self.personality_config.continue_from_last_image:
+            self.files= [files[-1]]
+        return files, output
+
     def main_process(self, prompt, full_context):    
         self.prepare()
         
@@ -193,71 +268,14 @@ class Processor(APScript):
                 sd_positive_prompt = prompt[0]
                 sd_negative_prompt = ""
             
-
+        self.previous_sd_positive_prompt = sd_positive_prompt
+        self.previous_sd_negative_prompt = sd_negative_prompt
 
         output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
+
         if self.personality_config.paint:
-            files = []
-            for i in range(self.personality_config.num_images):
-                self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
-                if len(self.files)>0:
-                    out = self.sd.img_to_img(
-                                self.files,
-                                sd_positive_prompt,
-                                negative_prompt=sd_negative_prompt, 
-                                sampler_name="Euler",
-                                seed=self.personality_config.seed,
-                                cfg_scale=self.personality_config.scale,
-                                steps=self.personality_config.steps,
-                                width=self.personality_config.width,
-                                height=self.personality_config.height,
-                                denoising_strength=self.personality_config.img2img_denoising_strength,
-                                tiling=False,
-                                restore_faces=self.personality_config.restore_faces,
-                                styles=None, 
-                                save_folder=None, 
-                                script_name="",
-                                )
-                    if out:
-                        files += out["image_paths"]        
-                else:
-                    files += self.sd.txt_to_img(
-                                sd_positive_prompt,
-                                negative_prompt=sd_negative_prompt, 
-                                sampler_name="Euler",
-                                seed=self.personality_config.seed,
-                                cfg_scale=self.personality_config.scale,
-                                steps=self.personality_config.steps,
-                                width=self.personality_config.width,
-                                height=self.personality_config.height,
-                                tiling=False,
-                                restore_faces=self.personality_config.restore_faces,
-                                styles=None, 
-                                save_folder=None, 
-                                script_name="",
-                                upscaler_name="",
-                                )["image_paths"]
-                if len(files)>0:
-                    f = str(files[-1]).replace("\\","/")
-                    pth = f.split('/')
-                    idx = pth.index("outputs")
-                    pth = "/".join(pth[idx:])
-                    file_path = f"![](/{pth})\n"
-                    self.full(file_path, self.callback)
-                
-                self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
-            
-            for i in range(len(files)):
-                files[i] = str(files[i]).replace("\\","/")
-                pth = files[i].split('/')
-                idx = pth.index("outputs")
-                pth = "/".join(pth[idx:])
-                file_path = f"![](/{pth})\n"
-                output += file_path
-                ASCIIColors.yellow(f"Generated file in here : {files[i]}")
-            
-            if self.personality_config.continue_from_last_image:
-                self.files= [files[-1]]
+            output = self.paint(sd_positive_prompt, sd_negative_prompt, output)
+
         self.full(output.strip(), self.callback)
         
 

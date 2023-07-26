@@ -90,6 +90,9 @@ commands:
     value: show_sd
     icon: personalities/english/art/artbot_2/assets/open_sd.svg
     help: shows the full stable diffusion ui for more options.
+  - name: Regenerate with last prompt
+    value: regenerate
+    help: shows the stable diffusion settings
   - name: Show Advanceed settings
     value: show_settings
     help: shows the stable diffusion settings
