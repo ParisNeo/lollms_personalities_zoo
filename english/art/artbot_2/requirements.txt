@@ -1,26 +1,2 @@
 Pillow
-accelerate
 
-basicsr
-blendmodes
-clean-fid
-einops
-gfpgan
-inflection
-jsonmerge
-kornia
-lark
-numpy
-omegaconf
-
-piexif
-psutil
-pytorch_lightning
-realesrgan
-requests
-resize-right
-
-safetensors
-scikit-image>=0.19
-timm
-tomesd
