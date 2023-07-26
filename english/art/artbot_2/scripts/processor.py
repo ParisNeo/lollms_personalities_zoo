@@ -109,7 +109,7 @@ class Processor(APScript):
     def get_sd(self):
         
         sd_script_path = self.sd_folder / "lollms_sd.py"
-        # git_pull(self.sd_folder)
+        git_pull(self.sd_folder)
         
         if sd_script_path.exists():
             module_name = sd_script_path.stem  # Remove the ".py" extension
