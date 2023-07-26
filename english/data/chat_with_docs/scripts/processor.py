@@ -78,37 +78,10 @@ class Processor(APScript):
 
     def install(self):
         super().install()
-        # Get the current directory
-        root_dir = self.personality.lollms_paths.personal_path
-        # We put this in the shared folder in order as this can be used by other personalities.
-        shared_folder = root_dir/"shared"
-        sd_folder = shared_folder / "sd"
 
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Step 2: Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
-        try:
-            print("Checking pytorch")
-            import torch
-            import torchvision
-            if torch.cuda.is_available():
-                print("CUDA is supported.")
-            else:
-                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
-                self.reinstall_pytorch_with_cuda()
-        except Exception as ex:
-            self.reinstall_pytorch_with_cuda()
-
-        # Step 1: Clone repository
-        if not sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/CompVis/stable-diffusion.git", str(sd_folder)])
-
-        # Step 2: Install the Python package inside sd folder
-        subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
-
-        # Step 3: Create models/Stable-diffusion folder if it doesn't exist
-        models_folder = shared_folder / "sd_models"
-        models_folder.mkdir(parents=True, exist_ok=True)
 
         ASCIIColors.success("Installed successfully")
 
@@ -197,8 +170,6 @@ answer:"""
             self.ready = True
 
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
-        if self.callback is not None:
-            self.callback("Vectorizing the database", MSG_TYPE.MSG_TYPE_STEP)
         for file in self.files:
             try:
                 if Path(file).suffix==".pdf":

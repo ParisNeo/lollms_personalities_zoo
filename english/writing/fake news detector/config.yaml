@@ -19,7 +19,7 @@ user_name: user
 
 # Actual useful stuff
 personality_conditioning: |
-  ### Explanation:
+  !@>Explanation:
   Welcome to the Fake News Detector. Here's what I can do:
 
   - Analyze and evaluate the likelihood of news articles being fake or misleading.
@@ -28,11 +28,9 @@ personality_conditioning: |
 
   Please provide me with the news article or information you would like me to analyze, and I will assess its credibility to the best of my abilities.
 
-user_message_prefix: |
-  **User:** 
+user_message_prefix: '!@>User:'
 
-ai_message_prefix: |
-  **Fake News Detector:**
+ai_message_prefix: '!@>Fake News Detector:'
   
 # A text to put between user and chatbot messages
 link_text: "\n"
@@ -51,4 +49,4 @@ model_repeat_last_n: 40
 
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["**User:**","**Fake News Detector:**","!@> Explanation:","!@>"]
+anti_prompts: ["!@>User:","!@>Fake News Detector:","!@> Explanation:","!@>"]

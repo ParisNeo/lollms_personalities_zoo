@@ -1,53 +1,17 @@
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.helpers import ASCIIColors
+from lollms.paths import LollmsPaths
+from lollms.helpers import ASCIIColors, trace_exception
+from lollms.utilities import GenericDataLoader
 
+import numpy as np
 import json
 from pathlib import Path
-
-
-class Text2Paragraphs:
-    def __init__(self, database_path=None, max_chunk_size=2000):
-        self.paragraphs = []
-        self.database_path = database_path
-        self.max_chunk_size = max_chunk_size
-        if database_path is not None:
-            if Path(database_path).exists():
-                self.load_from_json()
-
-    def chunk_text(self, text):
-        paragraphs = text.split("\n")  # Split text by double newlines to separate paragraphs
-        if self.max_chunk_size is not None:
-            current_chunk = []
-            current_chunk_size = 0
-            for paragraph in paragraphs:
-                if current_chunk_size + len(paragraph) <= self.max_chunk_size:
-                    current_chunk.append(paragraph)
-                    current_chunk_size += len(paragraph)
-                else:
-                    self.paragraphs.append("\n".join(current_chunk))
-                    current_chunk = [paragraph]
-                    current_chunk_size = len(paragraph)
-            if current_chunk:
-                self.paragraphs.append("\n".join(current_chunk))
-        else:
-            self.paragraphs.extend(paragraphs)  # Add new paragraphs to the existing ones
-
-    def load_from_json(self, filename=None):
-        if filename is None:
-            filename = self.database_path
-        with open(filename, "r") as file:
-            data = json.load(file)
-            self.paragraphs = data["paragraphs"]
-
-    def save_to_json(self, filename=None):
-        if filename is None:
-            filename = self.database_path
-        data = {"paragraphs": self.paragraphs}
-        with open(filename, "w") as file:
-            json.dump(data, file)
-
+import numpy as np
+import json
+import subprocess
+from urllib.parse import quote
 
 class Processor(APScript):
     """
@@ -61,14 +25,26 @@ class Processor(APScript):
                  personality: AIPersonality
                 ) -> None:
         
-        self.word_callback = None
-        
+        self.word_callback = None    
+
         personality_config_template = ConfigTemplate(
             [
+                {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
+                {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
+                {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
+                
+                {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Number of data chunks to use for its vector (at most nb_chunks*max_chunk_size must not exeed two thirds the context size)"},
                 {"name":"database_path","type":"str","value":f"{personality.name}_db.json", "help":"Path to the database"},
                 {"name":"max_chunk_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum size of text chunks to vectorize"},
+                {"name":"chunk_overlap_sentences","type":"int","value":1, "min":0, "max":personality.config["ctx_size"],"help":"Overlap between chunks"},
+                
                 {"name":"max_answer_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"],"help":"Maximum number of tokens to allow the generator to generate as an answer to your question"},
                 
+                {"name":"data_visualization_method","type":"str","value":f"PCA", "options":["PCA", "TSNE"], "help":"The method to be used to show data"},
+                {"name":"interactive_mode_visualization","type":"bool","value":False, "help":"If true, you can get an interactive visualization where you can point on data to get the text"},
+                {"name":"visualize_data_at_startup","type":"bool","value":False, "help":"If true, the database will be visualized at startup"},
+                {"name":"visualize_data_at_add_file","type":"bool","value":False, "help":"If true, the database will be visualized when a new file is added"},
+                {"name":"visualize_data_at_generate","type":"bool","value":False, "help":"If true, the database will be visualized at generation time"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -79,112 +55,160 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "help":self.help,
+                                        "zip":self.zip_doc,
+                                        "clear_database": self.clear_database
+                                    },
+                                    "default": self.zip_text
+                                },                           
+                            ]
                         )
-        
         self.state = 0
+        self.ready = False
+        self.personality = personality
+        self.callback = None
+        self.text = ""
+        self.paragraphs = None
 
-        self.text_store = Text2Paragraphs(
-                                    self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,
-                                    max_chunk_size=self.personality_config.max_chunk_size
-                                    )
-        
-    @staticmethod        
-    def read_pdf_file(file_path):
-        import PyPDF2
-        with open(file_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text()
-        return text
 
-    @staticmethod
-    def read_docx_file(file_path):
-        from docx import Document
-        doc = Document(file_path)
-        text = ""
-        for paragraph in doc.paragraphs:
-            text += paragraph.text + "\n"
-        return text
+    def install(self):
+        super().install()
 
-    @staticmethod
-    def read_json_file(file_path):
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        return data
-    
-    @staticmethod
-    def read_csv_file(file_path):
-        import csv
-        with open(file_path, 'r') as file:
-            csv_reader = csv.reader(file)
-            lines = [row for row in csv_reader]
-        return lines    
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Step 2: Install dependencies using pip from requirements.txt
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
 
-    @staticmethod
-    def read_html_file(file_path):
-        from bs4 import BeautifulSoup
-        with open(file_path, 'r') as file:
-            soup = BeautifulSoup(file, 'html.parser')
-            text = soup.get_text()
-        return text
-    @staticmethod
-    def read_pptx_file(file_path):
-        from pptx import Presentation
-        prs = Presentation(file_path)
-        text = ""
-        for slide in prs.slides:
-            for shape in slide.shapes:
-                if shape.has_text_frame:
-                    for paragraph in shape.text_frame.paragraphs:
-                        for run in paragraph.runs:
-                            text += run.text
-        return text
-    @staticmethod
-    def read_text_file(file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-        return content
-    
+        ASCIIColors.success("Installed successfully")
+
+    def clear_database(self, prompt, full_context):
+        self.text=""
+
+    def help(self, prompt, full_context):
+        self.full(self.personality.help, self.callback)
+
     def build_db(self):
-        ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
+        ASCIIColors.info("-> Loading text data"+ASCIIColors.color_orange)
         for file in self.files:
             try:
                 if Path(file).suffix==".pdf":
-                    text =  Processor.read_pdf_file(file)
+                    text =  GenericDataLoader.read_pdf_file(file)
                 elif Path(file).suffix==".docx":
-                    text =  Processor.read_docx_file(file)
+                    text =  GenericDataLoader.read_docx_file(file)
                 elif Path(file).suffix==".docx":
-                    text =  Processor.read_pptx_file(file)
+                    text =  GenericDataLoader.read_pptx_file(file)
                 elif Path(file).suffix==".json":
-                    text =  Processor.read_json_file(file)
+                    text =  GenericDataLoader.read_json_file(file)
                 elif Path(file).suffix==".csv":
-                    text =  Processor.read_csv_file(file)
+                    text =  GenericDataLoader.read_csv_file(file)
                 elif Path(file).suffix==".html":
-                    text =  Processor.read_html_file(file)
+                    text =  GenericDataLoader.read_html_file(file)
+                elif Path(file).suffix in [".txt", ".md"]:
+                    text =  GenericDataLoader.read_text_file(file)
                 else:
-                    text =  Processor.read_text_file(file)
-                    
-                self.text_store.chunk_text(text)       
-                self.text_store.save_to_json()         
+                    ASCIIColors.error("File type not supported")
+                    return False
+
+
+                self.text += text + "\n"
+                self.paragraphs = self.chunk_text_into_paragraphs(self.text, self.personality_config.max_chunk_size)
+                              
                 print(ASCIIColors.color_reset)
                 ASCIIColors.success(f"File {file} vectorized successfully")
+                self.ready = True
+                return True
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
+                trace_exception(ex)
+                return False
 
     def add_file(self, path):
         super().add_file(path)
-        try:
-            self.build_db()
-            if self.word_callback:
-                self.word_callback("File added successfully",MSG_TYPE.MSG_TYPE_STEP_END)
-            return True
-        except Exception as ex:
-            ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
-            return False        
+        self.prepare()
+        self.step_start("Reading document",self.callback)
+        self.build_db()
+        self.step_end("Reading document",self.callback)
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    @staticmethod
+    def is_end_of_sentence(char):
+        # A simple heuristic to detect the end of a sentence.
+        # We assume a sentence ends with a period, exclamation mark, or question mark.
+        return char in {'.', '!', '?'}
+
+    @staticmethod
+    def chunk_text_into_paragraphs(text, max_chunk_size):
+        sentences = []  # List to store individual sentences
+        current_sentence = ""
+        paragraphs = []
+        current_paragraph = ""
+        current_size = 0
+
+        # Tokenize the text into individual sentences
+        for char in text:
+            current_sentence += char
+            current_size += 1
+
+            if Processor.is_end_of_sentence(char):
+                sentences.append(current_sentence.strip())
+                current_sentence = ""
+
+        # Create paragraphs from the sentences while respecting the max_chunk_size
+        for sentence in sentences:
+            sentence_size = len(sentence)
+
+            if current_size + sentence_size <= max_chunk_size:
+                current_paragraph += sentence + " "
+                current_size += sentence_size + 1  # +1 accounts for the space after the period
+            else:
+                # Add the current paragraph to the list of paragraphs
+                paragraphs.append(current_paragraph.strip())
+
+                # Reset variables for the next paragraph
+                current_paragraph = sentence + " "
+                current_size = sentence_size + 1
+
+        # Add the last paragraph to the list of paragraphs
+        if current_paragraph:
+            paragraphs.append(current_paragraph.strip())
+
+        return paragraphs
+    
+    def zip_text(self, paragraph, full_text):
+            full_text = f"""Summerize the following paragraph:
+{paragraph}
+summary:"""
+            summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
+            self.full(summary, self.callback)
+
+    def zip_doc(self, prompt, full_context):
+        if not self.paragraphs:
+            self.full("Please upload a file to be zipped first.")
+            return
+        full_summery = ""
+        for i,paragraph in enumerate(self.paragraphs):
+            ASCIIColors.info(f"Processing paragraph {i+1}/{len(self.paragraphs)}")
+            self.step_start(f"Processing paragraph {i+1}/{len(self.paragraphs)}", self.callback)
+            self.full(paragraph)
+            full_text = f"""Summerize the following paragraph:
+{paragraph}
+summary:"""
+            summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
+            self.full(f"# Original\n{paragraph}\nSummary:\n{summary}", self.callback)
+            full_summery+=summary+"\n"
+            self.step_end(f"Processing paragraph {i+1}/{len(self.paragraphs)}", self.callback)
+        self.full(full_summery, self.callback)
+
+
+    def prepare(self):
+        if self.text=="":
+            self.build_db()
+            
+
+    def run_workflow(self, prompt, full_context="", callback=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -200,104 +224,12 @@ class Processor(APScript):
             None
         """
         # State machine
-        self.word_callback = callback
-        output =""
-        if prompt.strip().lower()=="send_file":
-            self.state = 1
-            print("Please provide the file name")
-            if callback is not None:
-                callback("Please provide the file path", MSG_TYPE.MSG_TYPE_FULL)
-            output = "Please provide the file name"
-        elif prompt.strip().lower()=="help":
-            if callback:
-                callback(self.personality.help,MSG_TYPE.MSG_TYPE_FULL)
-                ASCIIColors.info(help)
-            self.state = 0   
-        elif prompt.strip().lower()=="show_database":
-            if callback:
-                callback("Current database\n",MSG_TYPE.MSG_TYPE_CHUNK)
-                print("Current database\n")
-            for chunk in self.text_store.paragraphs:
-                if callback:
-                    callback(chunk+"\n",MSG_TYPE.MSG_TYPE_CHUNK)
-                    print(chunk)
-            
-            self.state = 0
-        elif prompt.strip().lower()=="clear_database":
-            database_fill_path:Path = self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"]
-            if database_fill_path.exists():
-                database_fill_path.unlink()
-                self.personality_config.database_path = prompt
-                self.personality_config.save()
-                self.text_store = Text2Paragraphs(
-                                self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,
-                                max_chunk_size=self.personality_config.max_chunk_size
-                                )   
-                if callback is not None:
-                    callback("Database file cleared successfully", MSG_TYPE.MSG_TYPE_FULL)        
-            else:
-                if callback is not None:
-                    callback("The database file does not exist yet, so you can't clear it", MSG_TYPE.MSG_TYPE_FULL)        
-            self.state = 0
-        elif prompt.strip().lower()=="set_database":
-            print("Please provide the database file name")
-            if callback is not None:
-                callback("Please provide the database file path", MSG_TYPE.MSG_TYPE_FULL)
-            output = "Please provide the database file name"
-            self.state = 2
-        elif prompt.strip().lower()=="convert":
-            if callback is not None:
-                callback("# Full bullet points summary:\n", MSG_TYPE.MSG_TYPE_CHUNK)
-            for i,chunk in enumerate(self.text_store.paragraphs):
-                if len(chunk.split())<50:
-                    print(chunk)
-                    continue
-                docs = |
-  !@>Instructions: Summarize the following paragraph in the form of bullet points.\nParagraph:'+chunk+"\nBullet points:\n-"
-                ASCIIColors.error("\n-------------- Documentation -----------------------")
-                ASCIIColors.error(docs)
-                ASCIIColors.error("----------------------------------------------------")
-                print("Thinking")
-                output = self.generate(docs, self.personality_config.max_answer_size)
-                self.text_store.paragraphs[i]= output
-                if callback is not None:
-                    callback(output, MSG_TYPE.MSG_TYPE_CHUNK)
-                    
-        elif prompt.strip().lower()=="clear_database":
-            (self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"]).unlink()
-            self.text_store = Text2Paragraphs(
-                            self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,
-                            max_chunk_size=self.personality_config.max_chunk_size
-                            )            
-            self.state = 0
-        else:
-            if self.state ==1:
-                try:
-                    self.add_file(prompt)
-                except Exception as ex:
-                    ASCIIColors.error(f"Exception: {ex}")
-                    output = str(ex)
-                self.state=0
-            elif self.state ==2:
-                try:
-                    new_db_path = Path(prompt)
-                    if new_db_path.exists():
-                        self.personality_config.database_path = prompt
-                        self.text_store = Text2Paragraphs(
-                                        self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,
-                                        max_chunk_size=self.personality_config.max_chunk_size
-                                        )   
-                        
-                        self.personality_config.config.save_config()
-                    else:
-                        output = "Database file not found.\nGoing back to default state."
-                except Exception as ex:
-                    ASCIIColors.error(f"Exception: {ex}")
-                    output = str(ex)
-                self.state=0
-            else:
-                output = "unknown command"
-        return output
+        self.callback = callback
+        self.prepare()
+
+        self.process_state(prompt, full_context, callback)
+
+        return ""
 
 
 

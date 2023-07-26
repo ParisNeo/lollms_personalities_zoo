@@ -10,6 +10,17 @@ import requests
 from tqdm import tqdm
 import webbrowser
 
+def git_pull(folder_path):
+    try:
+        # Change the current working directory to the desired folder
+        subprocess.run(["git", "checkout", folder_path], check=True, cwd=folder_path)
+        # Run 'git pull' in the specified folder
+        subprocess.run(["git", "pull"], check=True, cwd=folder_path)
+        print("Git pull successful in", folder_path)
+    except subprocess.CalledProcessError as e:
+        print("Error occurred while executing Git pull:", e)
+        # Handle any specific error handling here if required
+
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -85,8 +96,12 @@ class Processor(APScript):
             self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
         
+        
     def get_sd(self):
+        
         sd_script_path = self.sd_folder / "lollms_sd.py"
+        git_pull(self.sd_folder)
+        
         if sd_script_path.exists():
             module_name = sd_script_path.stem  # Remove the ".py" extension
             # use importlib to load the module from the file path
@@ -138,10 +153,11 @@ class Processor(APScript):
             # 1 first ask the model to formulate a query
             prompt = f"""{self.remove_image_links(full_context)}
     !@>Task:
-    Upgrade the last prompt based on the idea presented below and examples.
-    Don't write too much text. 
-    Emphesize the most important expression using this syntax (text to emphesize:factor (between 1.0 and 1.5)).
-    Example (beautiful:1.3) 
+    Make a prompt based on the idea presented below.
+    Try to generate between 10 to 50 words. 
+    Emphesize the most important expressions in the prompt.
+    For example to emphesize beautiful, you need to type (beautiful:1.3).
+    A higher value means more emphasis.
     !@>idea: {prompt}
     !@>artbot:
     prompt:"""
