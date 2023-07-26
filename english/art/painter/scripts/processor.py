@@ -43,7 +43,6 @@ class Processor(APScript):
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
-                
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
