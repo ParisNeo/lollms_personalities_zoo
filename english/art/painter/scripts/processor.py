@@ -10,6 +10,17 @@ import requests
 from tqdm import tqdm
 import webbrowser
 
+def git_pull(folder_path):
+    try:
+        # Change the current working directory to the desired folder
+        subprocess.run(["git", "checkout", folder_path], check=True, cwd=folder_path)
+        # Run 'git pull' in the specified folder
+        subprocess.run(["git", "pull"], check=True, cwd=folder_path)
+        print("Git pull successful in", folder_path)
+    except subprocess.CalledProcessError as e:
+        print("Error occurred while executing Git pull:", e)
+        # Handle any specific error handling here if required
+
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -28,8 +39,12 @@ class Processor(APScript):
         
         self.callback = None
         self.sd = None
+        self.previous_sd_positive_prompt = None
+        self.sd_negative_prompt = None
+
         personality_config_template = ConfigTemplate(
             [
+                {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
                 {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
                 {"name":"caption_received_files","type":"bool","value":False,"help":"If active, the received file will be captioned"},
@@ -43,6 +58,7 @@ class Processor(APScript):
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
+                
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -61,6 +77,7 @@ class Processor(APScript):
                                         "help":self.help,
                                         "new_image":self.new_image,
                                         "show_sd":self.show_sd,
+                                        "regenerate":self.regenerate
                                     },
                                     "default": self.main_process
                                 },                           
@@ -69,20 +86,29 @@ class Processor(APScript):
         
     def install(self):
         super().install()
-        # Step 1: Clone repository
+        
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Install dependencies using pip from requirements.txt
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+
+        # Clone repository
         if not self.sd_folder.exists():
             subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-        
+        self.prepare()
         ASCIIColors.success("Installed successfully")
 
     def prepare(self):
         if self.sd is None:
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
-            self.sd = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
+            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
         
+        
     def get_sd(self):
+        
         sd_script_path = self.sd_folder / "lollms_sd.py"
+        git_pull(self.sd_folder)
+        
         if sd_script_path.exists():
             module_name = sd_script_path.stem  # Remove the ".py" extension
             # use importlib to load the module from the file path
@@ -125,57 +151,78 @@ class Processor(APScript):
         else:    
             self.full(f"File added successfully\n", self.callback)
         
-    def main_process(self, prompt, full_context):    
-        self.prepare()
-        prompt = prompt.split("\n")
-        if len(prompt)>1:
-            sd_positive_prompt = prompt[0]
-            sd_negative_prompt = prompt[1]
+    def regenerate(self, prompt, full_context):
+        if self.previous_sd_positive_prompt:
+            files, out = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt)
+            self.full(out)
         else:
-            sd_positive_prompt = prompt[0]
-            sd_negative_prompt = ""
-            
-        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}"
+            self.full("Please generate an image first then retry")
+
+    def paint(self,sd_positive_prompt, sd_negative_prompt, output ="", append_infos=False):
         files = []
+        infos = {}
         for i in range(self.personality_config.num_images):
             self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
             if len(self.files)>0:
-                out = self.sd.img_to_img(
-                            self.files,
-                            sd_positive_prompt,
-                            negative_prompt=sd_negative_prompt, 
-                            sampler_name="Euler",
-                            seed=self.personality_config.seed,
-                            cfg_scale=self.personality_config.scale,
-                            steps=self.personality_config.steps,
-                            width=self.personality_config.width,
-                            height=self.personality_config.height,
-                            denoising_strength=self.personality_config.img2img_denoising_strength,
-                            tiling=False,
-                            restore_faces=self.personality_config.restore_faces,
-                            styles=None, 
-                            save_folder=None, 
-                            script_name="",
-                            )
-                if out:
-                    files += out["image_paths"]        
+                try:
+                    generated = self.sd.img2img(
+                                sd_positive_prompt,
+                                sd_negative_prompt, 
+                                [self.sd.loadImage(f) for f in self.files],
+                                sampler_name="Euler",
+                                seed=self.personality_config.seed,
+                                cfg_scale=self.personality_config.scale,
+                                steps=self.personality_config.steps,
+                                width=self.personality_config.width,
+                                height=self.personality_config.height,
+                                denoising_strength=self.personality_config.img2img_denoising_strength,
+                                tiling=False,
+                                restore_faces=self.personality_config.restore_faces,
+                                styles=None, 
+                                script_name="",
+                                )
+                    """
+                        images: list
+                        parameters: dict
+                        info: dict
+                    """
+                    img_paths = []
+                    for img in generated.images:
+                        img_paths.append(self.sd.saveImage(img))
+                    files += img_paths
+                    infos = generated.info
+                except Exception as ex:
+                    ASCIIColors.error("Couldn't generate the image")
+                    trace_exception(ex)  
             else:
-                files += self.sd.txt_to_img(
-                            sd_positive_prompt,
-                            negative_prompt=sd_negative_prompt, 
-                            sampler_name="Euler",
-                            seed=self.personality_config.seed,
-                            cfg_scale=self.personality_config.scale,
-                            steps=self.personality_config.steps,
-                            width=self.personality_config.width,
-                            height=self.personality_config.height,
-                            tiling=False,
-                            restore_faces=self.personality_config.restore_faces,
-                            styles=None, 
-                            save_folder=None, 
-                            script_name="",
-                            upscaler_name="",
-                            )["image_paths"]
+                try:
+                    generated = self.sd.txt2img(
+                                sd_positive_prompt,
+                                negative_prompt=sd_negative_prompt, 
+                                sampler_name="Euler",
+                                seed=self.personality_config.seed,
+                                cfg_scale=self.personality_config.scale,
+                                steps=self.personality_config.steps,
+                                width=self.personality_config.width,
+                                height=self.personality_config.height,
+                                tiling=False,
+                                restore_faces=self.personality_config.restore_faces,
+                                styles=None, 
+                                script_name="",
+                                )
+                    """
+                        images: list
+                        parameters: dict
+                        info: dict
+                    """
+                    img_paths = []
+                    for img in generated.images:
+                        img_paths.append(self.sd.saveImage(img))
+                    files += img_paths  
+                    infos = generated.info
+                except Exception as ex:
+                    ASCIIColors.error("Couldn't generate the image")
+                    trace_exception(ex)  
             if len(files)>0:
                 f = str(files[-1]).replace("\\","/")
                 pth = f.split('/')
@@ -194,6 +241,30 @@ class Processor(APScript):
             file_path = f"![](/{pth})\n"
             output += file_path
             ASCIIColors.yellow(f"Generated file in here : {files[i]}")
+        if append_infos:
+            output += str(infos)
+
+        if self.personality_config.continue_from_last_image:
+            self.files= [files[-1]]
+        return files, output
+
+    def main_process(self, prompt, full_context):    
+        self.prepare()
+        
+        prompt = prompt.split("\n")
+        if len(prompt)>1:
+            sd_positive_prompt = prompt[0]
+            sd_negative_prompt = prompt[1]
+        else:
+            sd_positive_prompt = prompt[0]
+            sd_negative_prompt = ""
+            
+        self.previous_sd_positive_prompt = sd_positive_prompt
+        self.previous_sd_negative_prompt = sd_negative_prompt
+
+        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
+
+        files, output = self.paint(sd_positive_prompt, sd_negative_prompt, output)
 
         self.full(output.strip(), self.callback)
         
@@ -215,5 +286,4 @@ class Processor(APScript):
         self.process_state(prompt, previous_discussion_text, callback)
 
         return ""
-
 
