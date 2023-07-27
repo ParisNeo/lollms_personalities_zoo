@@ -22,7 +22,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         
         self.word_callback = None    
@@ -66,7 +67,8 @@ class Processor(APScript):
                                     },
                                     "default": self.zip_text
                                 },                           
-                            ]
+                            ],
+                            callback=callback
                         )
         self.state = 0
         self.ready = False
@@ -89,7 +91,7 @@ class Processor(APScript):
         self.text=""
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help, self.callback)
+        self.full(self.personality.help, callback=self.callback)
 
     def build_db(self):
         ASCIIColors.info("-> Loading text data"+ASCIIColors.color_orange)
@@ -129,9 +131,9 @@ class Processor(APScript):
     def add_file(self, path):
         super().add_file(path)
         self.prepare()
-        self.step_start("Reading document",self.callback)
+        self.step_start("Reading document", callback=self.callback)
         self.build_db()
-        self.step_end("Reading document",self.callback)
+        self.step_end("Reading document", callback=self.callback)
 
     @staticmethod
     def is_end_of_sentence(char):
@@ -182,7 +184,7 @@ class Processor(APScript):
 {paragraph}
 summary:"""
             summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
-            self.full(summary, self.callback)
+            self.full(summary, callback=self.callback)
 
     def zip_doc(self, prompt, full_context):
         if not self.paragraphs:
@@ -191,16 +193,16 @@ summary:"""
         full_summery = ""
         for i,paragraph in enumerate(self.paragraphs):
             ASCIIColors.info(f"Processing paragraph {i+1}/{len(self.paragraphs)}")
-            self.step_start(f"Processing paragraph {i+1}/{len(self.paragraphs)}", self.callback)
+            self.step_start(f"Processing paragraph {i+1}/{len(self.paragraphs)}", callback=self.callback)
             self.full(paragraph)
             full_text = f"""Summerize the following paragraph:
 {paragraph}
 summary:"""
             summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
-            self.full(f"# Original\n{paragraph}\nSummary:\n{summary}", self.callback)
+            self.full(f"# Original\n{paragraph}\nSummary:\n{summary}", callback=self.callback)
             full_summery+=summary+"\n"
-            self.step_end(f"Processing paragraph {i+1}/{len(self.paragraphs)}", self.callback)
-        self.full(full_summery, self.callback)
+            self.step_end(f"Processing paragraph {i+1}/{len(self.paragraphs)}", callback=self.callback)
+        self.full(full_summery, callback=self.callback)
 
 
     def prepare(self):

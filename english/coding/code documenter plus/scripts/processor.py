@@ -21,7 +21,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         self.word_callback = None
         personality_config_template = ConfigTemplate(
@@ -52,7 +53,8 @@ class Processor(APScript):
                                     },
                                     "default": self.receive_file
                                 }                                
-                            ]
+                            ],
+                            callback=callback
                         )
         self.previous_versions = []
         self.code=[]

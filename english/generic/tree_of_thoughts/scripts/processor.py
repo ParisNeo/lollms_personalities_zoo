@@ -41,7 +41,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         personality_config_template = ConfigTemplate([
                 {"name":"max_thought_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
@@ -57,7 +58,8 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            callback=callback
                         )
         
     def install(self):

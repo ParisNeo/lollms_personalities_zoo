@@ -94,7 +94,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         
         personality_config = TypedConfig(
@@ -107,7 +108,8 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            callback=callback
                         )
         
     def install(self):

@@ -59,7 +59,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         
         self.word_callback = None
@@ -81,7 +82,8 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            callback=callback
                         )
         
         self.state = 0

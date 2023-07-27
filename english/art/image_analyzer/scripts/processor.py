@@ -4,6 +4,7 @@ import os
 import sys
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
+from lollms.helpers import ASCIIColors
 from lollms.personality import APScript, AIPersonality
 import time
 from pathlib import Path
@@ -22,8 +23,10 @@ class Processor(APScript):
     Inherits from APScript.
     """
 
-    def __init__(self, personality: AIPersonality) -> None:
-        super().__init__()
+    def __init__(self, personality: AIPersonality, callback=None) -> None:
+        super().__init__(
+                            callback=callback
+        )
         self.personality=personality
         print("Preparing Image Analyzer. Please Stand by")
         self.personality = personality
@@ -35,7 +38,24 @@ class Processor(APScript):
         self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
         self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
 
-
+    def install(self):
+        super().install()
+        try:
+            print("Checking pytorch")
+            import torch
+            import torchvision
+            if torch.cuda.is_available():
+                print("CUDA is supported.")
+            else:
+                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
+                self.reinstall_pytorch_with_cuda()
+        except Exception as ex:
+            self.reinstall_pytorch_with_cuda()
+        
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Install dependencies using pip from requirements.txt
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+        ASCIIColors.success("Installed successfully")
 
     def add_file(self, path):
         try:

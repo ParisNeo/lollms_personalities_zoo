@@ -29,7 +29,8 @@ class Processor(APScript):
     """
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         # Get the current directory
         root_dir = personality.lollms_paths.personal_path
@@ -81,7 +82,8 @@ class Processor(APScript):
                                     },
                                     "default": self.main_process
                                 },                           
-                            ]
+                            ],
+                            callback=callback
                         )
         
     def install(self):
@@ -99,9 +101,9 @@ class Processor(APScript):
 
     def prepare(self):
         if self.sd is None:
-            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", callback=self.callback)
             self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", self.callback)
+            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", callback=self.callback)
         
         
     def get_sd(self):
@@ -127,29 +129,29 @@ class Processor(APScript):
 
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help, self.callback)
+        self.full(self.personality.help, callback=self.callback)
     
     def new_image(self, prompt, full_context):
         self.files=[]
-        self.full("Starting fresh :)", self.callback)
+        self.full("Starting fresh :)", callback=self.callback)
         
         
     def show_sd(self, prompt, full_context):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
-        self.full("Showing Stable diffusion UI", self.callback)
+        self.full("Showing Stable diffusion UI", callback=self.callback)
         
     def add_file(self, path):
         self.prepare()
         super().add_file(path)
         if self.personality_config.caption_received_files:
-            self.step_start("Understanding the image", self.callback)
+            self.step_start("Understanding the image", callback=self.callback)
             description = self.sd.interrogate(path)
             ASCIIColors.yellow(description)
-            self.step_end("Understanding the image", self.callback)
-            self.full(f"File added successfully\nImage description :{description}", self.callback)
+            self.step_end("Understanding the image", callback=self.callback)
+            self.full(f"File added successfully\nImage description :{description}", callback=self.callback)
         else:    
-            self.full(f"File added successfully\n", self.callback)
+            self.full(f"File added successfully\n", callback=self.callback)
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:
@@ -162,7 +164,7 @@ class Processor(APScript):
         files = []
         infos = {}
         for i in range(self.personality_config.num_images):
-            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
+            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", callback=self.callback)
             if len(self.files)>0:
                 try:
                     generated = self.sd.img2img(
@@ -229,9 +231,9 @@ class Processor(APScript):
                 idx = pth.index("outputs")
                 pth = "/".join(pth[idx:])
                 file_path = f"![](/{pth})\n"
-                self.full(file_path, self.callback)
+                self.full(file_path, callback=self.callback)
             
-            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", self.callback)
+            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", callback=self.callback)
         
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
@@ -266,7 +268,7 @@ class Processor(APScript):
 
         files, output = self.paint(sd_positive_prompt, sd_negative_prompt, output)
 
-        self.full(output.strip(), self.callback)
+        self.full(output.strip(), callback=self.callback)
         
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):

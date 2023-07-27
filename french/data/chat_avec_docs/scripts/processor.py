@@ -22,7 +22,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         
         self.word_callback = None    
@@ -68,7 +69,8 @@ class Processor(APScript):
                                     },
                                     "default": self.chat_with_doc
                                 },                           
-                            ]
+                            ],
+                            callback=callback
                         )
         self.state = 0
         self.ready = False
@@ -116,16 +118,16 @@ class Processor(APScript):
     
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help, self.callback)
+        self.full(self.personality.help, callback=self.callback)
 
     def show_database(self, prompt, full_context):
         if self.ready:
             self.vector_store.show_document()
             out_path = f"/uploads/{self.personality.personality_folder_name}/db.png"
             if self.personality_config.data_visualization_method=="PCA":
-                self.full(f"Database representation (PCA):\n![{out_path}]({out_path})",self.callback)
+                self.full(f"Database representation (PCA):\n![{out_path}]({out_path})", callback=self.callback)
             else:
-                self.full(f"Database representation (TSNE):\n![{out_path}]({out_path})",self.callback)
+                self.full(f"Database representation (TSNE):\n![{out_path}]({out_path})", callback=self.callback)
 
     def set_database(self, prompt, full_context):
         self.goto_state("waiting_for_file")
@@ -136,7 +138,7 @@ class Processor(APScript):
     def chat_with_doc(self, prompt, full_context):
         self.step_start("Recovering data")
         if self.vector_store.ready:
-            self.step_start("Analyzing request",self.callback)
+            self.step_start("Analyzing request", callback=self.callback)
             if self.personality_config.build_keywords:
                 full_text =f"""!@>instructor:Extraire des mots-clés de cette indication pour la recherche dans une base de données vectorisée.
 !@>prompt: {prompt}
@@ -144,7 +146,7 @@ keywords:"""
                 preprocessed_prompt = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
             else:
                 preprocessed_prompt = prompt
-            self.step_end("Analyzing request",self.callback)
+            self.step_end("Analyzing request", callback=self.callback)
 
             docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(preprocessed_prompt), top_k=self.personality_config.nb_chunks)
             # for doc in docs:
@@ -167,7 +169,7 @@ answer:"""
             ASCIIColors.blue("----------------------------------------------------")
             ASCIIColors.blue("Thinking")
             self.step_end("Recovering data")
-            self.step_start("Thinking",self.callback)
+            self.step_start("Thinking", callback=self.callback)
             tk = self.personality.model.tokenize(full_text)
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             if self.personality.config.debug:
@@ -185,10 +187,10 @@ answer:"""
 
             ASCIIColors.yellow(output)
 
-            self.step_end("Thinking",self.callback)
-            self.full(output, self.callback)
+            self.step_end("Thinking", callback=self.callback)
+            self.full(output, callback=self.callback)
         else:
-            self.full("Vector store is not ready. Please send me a document to use. Use Send file command form your chatbox menu to trigger this.", self.callback)
+            self.full("Vector store is not ready. Please send me a document to use. Use Send file command form your chatbox menu to trigger this.", callback=self.callback)
 
     def build_db(self):
         if self.vector_store is None:
@@ -241,9 +243,9 @@ answer:"""
         super().add_file(path)
         self.prepare()
         try:
-            self.step_start("Vectorizing database",self.callback)
+            self.step_start("Vectorizing database", callback=self.callback)
             self.build_db()
-            self.step_end("Vectorizing database",self.callback)
+            self.step_end("Vectorizing database", callback=self.callback)
             self.ready = True
             return True
         except Exception as ex:

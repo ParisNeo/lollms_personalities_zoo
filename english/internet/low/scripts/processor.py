@@ -22,7 +22,8 @@ class Processor(APScript):
 
     def __init__(
                  self, 
-                 personality: AIPersonality
+                 personality: AIPersonality,
+                 callback = None,
                 ) -> None:
         self.queries=[]
         self.formulations=[]
@@ -44,7 +45,8 @@ class Processor(APScript):
         )
         super().__init__(
                             personality,
-                            personality_config
+                            personality_config,
+                            callback=callback
                         )
         
         #Now try to import stuff to verify that installation succeeded
