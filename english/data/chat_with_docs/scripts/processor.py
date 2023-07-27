@@ -97,10 +97,11 @@ class Processor(APScript):
 
     def show_database(self, prompt, full_context):
         if self.ready:
+            out_pth = self.personality.lollms_paths.personal_configuration_path/f"uploads/{self.personality.personality_folder_name}/"
+            out_pth.mkdir(parents=True, exist_ok=True)
             out_path = f"/uploads/{self.personality.personality_folder_name}/"
-            Path(out_path).mkdir(parents=True, exist_ok=True)
             out_path+="db.png"
-            self.vector_store.show_document(save_fig_path=str(self.personality.lollms_paths.personal_configuration_path)+out_path,show_interactive_form=self.personality_config.show_interactive_form)
+            self.vector_store.show_document(save_fig_path=out_pth/"db.png",show_interactive_form=self.personality_config.show_interactive_form)
             if self.personality_config.data_visualization_method=="PCA":
                 self.full(f"Database representation (PCA):\n![{out_path}]({out_path})", callback=self.callback)
             else:
