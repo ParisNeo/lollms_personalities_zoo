@@ -130,24 +130,22 @@ keywords:"""
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"chunk number {i}:\n{v}" for i,v in enumerate(docs)])
-            full_text =f"""{full_context}
-!@>document chunks:
-{docs}
-!@>instructor:Using the information from the document chunks, answer this question.
-!@>question: {prompt}
-Be precise and give details in your answer.
-!@>answer:"""
+            docs = '\n'.join([f"{v}" for i,v in enumerate(docs)])
+            full_text =f"""{docs}
+{full_context}"""
 
             tk = self.personality.model.tokenize(full_text)
             # print(f"total: {len(tk)}")           
             ASCIIColors.blue("-------------- Documentation -----------------------")
             ASCIIColors.blue(full_text)
+            ASCIIColors.blue(f"Number of tokens :{len(tk)}")
             ASCIIColors.blue("----------------------------------------------------")
             ASCIIColors.blue("Thinking")
             self.step_end("Recovering data")
             self.step_start("Thinking", callback=self.callback)
             tk = self.personality.model.tokenize(full_text)
+            print(tk[0])
+            print(self.personality.model.detokenize([tk[0]]))
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             if self.personality.config.debug:
                 ASCIIColors.yellow(full_text)
