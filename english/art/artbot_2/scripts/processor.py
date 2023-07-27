@@ -46,6 +46,8 @@ class Processor(APScript):
             [
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
+                {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
+                
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
                 {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
@@ -155,7 +157,7 @@ class Processor(APScript):
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:
-            files, out = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt)
+            files, out = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt, append_infos=self.personality_config.show_infos)
             self.full(out)
         else:
             self.full("Please generate an image first then retry")
@@ -305,7 +307,7 @@ class Processor(APScript):
         output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
-            files, output = self.paint(sd_positive_prompt, sd_negative_prompt, output)
+            files, output = self.paint(sd_positive_prompt, sd_negative_prompt, output, append_infos=self.personality_config.show_infos)
 
         self.full(output.strip(), self.callback)
         
