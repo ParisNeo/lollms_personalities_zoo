@@ -170,7 +170,7 @@ class Processor(APScript):
                     generated = self.sd.img2img(
                                 sd_positive_prompt,
                                 sd_negative_prompt, 
-                                [self.sd.loadImage(f) for f in self.files],
+                                [self.sd.loadImage(self.files[-1])],
                                 sampler_name="Euler",
                                 seed=self.personality_config.seed,
                                 cfg_scale=self.personality_config.scale,
