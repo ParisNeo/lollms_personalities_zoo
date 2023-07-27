@@ -97,7 +97,7 @@ class Processor(APScript):
 
     def show_database(self, prompt, full_context):
         if self.ready:
-            out_pth = self.personality.lollms_paths.personal_configuration_path/f"uploads/{self.personality.personality_folder_name}/"
+            out_pth = self.personality.lollms_paths.personal_uploads_path/f"{self.personality.personality_folder_name}/"
             out_pth.mkdir(parents=True, exist_ok=True)
             out_path = f"/uploads/{self.personality.personality_folder_name}/"
             out_path+="db.png"
