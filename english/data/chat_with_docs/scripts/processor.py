@@ -67,7 +67,8 @@ class Processor(APScript):
                                         "help":self.help,
                                         "show_database": self.show_database,
                                         "set_database": self.set_database,
-                                        "clear_database": self.clear_database
+                                        "clear_database": self.clear_database,
+                                        "show_files":self.show_files
                                     },
                                     "default": self.chat_with_doc
                                 },                           
@@ -96,11 +97,13 @@ class Processor(APScript):
         self.full(self.personality.help, callback=self.callback)
 
     def show_database(self, prompt, full_context):
+        import random
         if self.ready:
             out_pth = self.personality.lollms_paths.personal_uploads_path/f"{self.personality.personality_folder_name}/"
             out_pth.mkdir(parents=True, exist_ok=True)
             out_path = f"/uploads/{self.personality.personality_folder_name}/"
-            out_path+="db.png"
+            end = random.randint(0,99999)
+            out_path+=f"db{end}.png"
             self.vector_store.show_document(save_fig_path=out_pth/"db.png",show_interactive_form=self.personality_config.show_interactive_form)
             if self.personality_config.data_visualization_method=="PCA":
                 self.full(f"Database representation (PCA):\n![{out_path}]({out_path})", callback=self.callback)
@@ -112,25 +115,32 @@ class Processor(APScript):
 
     def clear_database(self,prompt, full_context):
         self.vector_store.clear_database()
+        self.full("Starting fresh")
+        
+    def show_files(self,prompt, full_context):
+        files = "\n".join([f.name for f in self.files])
+        self.full(files)
+        
 
     def chat_with_doc(self, prompt, full_context):
         self.step_start("Recovering data")
         if self.vector_store.ready:
             self.step_start("Analyzing request", callback=self.callback)
             if self.personality_config.build_keywords:
-                full_text =f"""!@>instructor:Extract keywords out of this prompt for searching inside a vectorized database. Just write keywords separated by comma.
+                full_text =f"""!@>instructor:Extract keywords from this prompt. The keywords output format is comma separated values.
 !@>prompt: {prompt}
 keywords:"""
                 preprocessed_prompt = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
             else:
                 preprocessed_prompt = prompt
             self.step_end("Analyzing request", callback=self.callback)
+            self.full(f"Query : {preprocessed_prompt}")
 
             docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(preprocessed_prompt), top_k=self.personality_config.nb_chunks)
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"{v}" for i,v in enumerate(docs)])
+            docs = '\n'.join([f"document chunk {s[0].split('_')[-2:]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
             full_text =f"""{docs}
 {full_context}"""
 
@@ -144,8 +154,6 @@ keywords:"""
             self.step_end("Recovering data")
             self.step_start("Thinking", callback=self.callback)
             tk = self.personality.model.tokenize(full_text)
-            print(tk[0])
-            print(self.personality.model.detokenize([tk[0]]))
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             if self.personality.config.debug:
                 ASCIIColors.yellow(full_text)

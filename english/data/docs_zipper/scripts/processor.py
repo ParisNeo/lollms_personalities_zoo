@@ -118,6 +118,7 @@ class Processor(APScript):
 
                 self.text += text + "\n"
                 self.paragraphs = self.chunk_text_into_paragraphs(self.text, self.personality_config.max_chunk_size)
+                self.chunks = self.fuse_paragraphs(self.paragraphs, self.personality_config.max_chunk_size)
                               
                 print(ASCIIColors.color_reset)
                 ASCIIColors.success(f"File {file} vectorized successfully")
@@ -141,6 +142,17 @@ class Processor(APScript):
         # We assume a sentence ends with a period, exclamation mark, or question mark.
         return char in {'.', '!', '?'}
 
+    @staticmethod
+    def fuse_paragraphs(paragraphs, max_chunk_size):
+        chunks=[]
+        current_chunk=""
+        for p in paragraphs:
+            if len(current_chunk) + len(p)< max_chunk_size:
+                current_chunk+=p
+            else:
+                chunks.append(current_chunk)
+                current_chunk=p
+        return chunks
     @staticmethod
     def chunk_text_into_paragraphs(text, max_chunk_size):
         sentences = []  # List to store individual sentences
@@ -191,17 +203,20 @@ summary:"""
             self.full("Please upload a file to be zipped first.")
             return
         full_summery = ""
-        for i,paragraph in enumerate(self.paragraphs):
-            ASCIIColors.info(f"Processing paragraph {i+1}/{len(self.paragraphs)}")
-            self.step_start(f"Processing paragraph {i+1}/{len(self.paragraphs)}", callback=self.callback)
-            self.full(paragraph)
-            full_text = f"""Summerize the following paragraph:
-{paragraph}
-summary:"""
-            summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
-            self.full(f"# Original\n{paragraph}\nSummary:\n{summary}", callback=self.callback)
+        for i,paragraph in enumerate(self.chunks):
+            ASCIIColors.info(f"Processing paragraph {i+1}/{len(self.chunks)}")
+            if len(paragraph)>200:
+                self.step_start(f"Processing paragraph {i+1}/{len(self.chunks)}", callback=self.callback)
+                full_text = f"""Summerize the following paragraph:
+    {paragraph}
+    summary:"""
+                summary = self.generate(full_text, self.personality_config["max_answer_size"]).strip()            
+                self.full(f"# Original\n{paragraph}\n# Summary:\n{summary}", callback=self.callback)
+            else:
+                self.full(f"# Paragraph\n{paragraph}\n# Skipping summary because this is a very small paragraph", callback=self.callback)
+                summary = paragraph
             full_summery+=summary+"\n"
-            self.step_end(f"Processing paragraph {i+1}/{len(self.paragraphs)}", callback=self.callback)
+            self.step_end(f"Processing paragraph {i+1}/{len(self.chunks)}", callback=self.callback)
         self.full(full_summery, callback=self.callback)
 
 

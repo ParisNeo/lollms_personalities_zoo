@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors
+from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
@@ -27,7 +28,8 @@ class Processor(APScript):
         self.word_callback = None
         personality_config_template = ConfigTemplate(
             [
-                {"name":"layout_max_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},                
+                {"name":"project_path","type":"str","value":'', "help":"The path to the project to document"},
+                {"name":"layout_max_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -43,16 +45,10 @@ class Processor(APScript):
                                 {
                                     "name": "idle",
                                     "commands": { # list of commands
-                                        "send_file": self.send_file
+                                        "start_documenting": self.start_documenting
                                     },
                                     "default": self.generate_doc
-                                },
-                                {
-                                    "name": "waiting_for_file",
-                                    "commands": { # list of commands
-                                    },
-                                    "default": self.receive_file
-                                }                                
+                                },                               
                             ],
                             callback=callback
                         )
@@ -72,21 +68,23 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")
         
         
-    def generate_doc(self, prompt):
+    def generate_doc(self, prompt, full_context):
+        results = self.parse_python_file(prompt)
+        self.full(results)
+        
+    def start_documenting(self, prompt, full_context):
         pass
     
-    def send_file(self, prompt):
-        self.goto_state("waiting_for_file")
-
-    def receive_file(self, prompt):
-        self.add_file(prompt)
-        self.goto_state("idle")
-
-    def parse_python_file(self, filename):
-        import ast
-        with open(filename, 'r') as file:
-            source_code = file.read()
-
+    def parse_python_file(self, filename:str=None, source_code:str=None):
+        try:
+            import ast
+        except:
+            PackageManager.install_package("ast")
+            import ast
+        if filename is not None:
+            with open(filename, 'r') as file:
+                source_code = file.read()
+                
         tree = ast.parse(source_code)
 
         imports = []
@@ -142,7 +140,7 @@ class Processor(APScript):
                         current_section['subsections'].append(subsection_title)
         return sections, table_of_content
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    def run_workflow(self, prompt, full_context="", callback=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -155,54 +153,63 @@ class Processor(APScript):
         Returns:
             None
         """
-        output_path = self.personality.lollms_paths.personal_outputs_path
         
-        # First we create the yaml file
-        # ----------------------------------------------------------------
-        self.step_start("Building the title...", callback)
-        title = self.generate(f"""project_information:\n{prompt}
-User: Create a title that reflects the idea of this project. The title should contain at least 2 words.
-Documentation builder ai:
-suggested title:""",512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
-        self.step_end("Building the title...", callback)
-        ASCIIColors.yellow(f"title:{title}")
-        # ----------------------------------------------------------------
+        self.callback = callback
+        self.prepare()
 
-        # ----------------------------------------------------------------
-        self.step_start("Building the layout...", callback)
-        layout = "## Introduction\n##"+self.generate(f"""Documentation builder aiis a tool that can understand project information and convert it to a documentation table of content.
-project_information:{prompt}
-User: Write a table of content for this project
-Documentation builder ai: Here is the table of contents for the project documentation in markdown format:
-```markdown 
-# {title}
-## Introduction
-##""",512,**GenerationPresets.deterministic_preset())
-        self.step_end("Building the layout...", callback)
-        ASCIIColors.yellow(f"structure:\n{layout}")
-        # ----------------------------------------------------------------
-        sections, table_of_content = self.convert_string_to_sections(layout) #[{"name": section} for section in layout.split("\n")]
-        for section in sections:
-            # ----------------------------------------------------------------
-            self.step_start(f"Building section {section['name']}...", callback)
-            section["content"] = self.generate(f"""project information:
-{prompt}
-Table of content:
-
-User: Using the project information, populate the content of the section {section['name']}.
-
-!@>section title: {section['name']}
-!@>section content:""",1024,**GenerationPresets.deterministic_preset())
-            self.step_end(f"Building section {section['name']}...", callback)
-            ASCIIColors.yellow(f"{section}\n")
-            # ----------------------------------------------------------------
+        self.process_state(prompt, full_context, callback)
         
-        output = f"```markdown\n# {title}\n\n"   
-        output += "\n".join([f"{s['name']}\n{s['content']}\n" for s in sections])
-        output += "```\n"
-        output += "Now we can update some of the sections using the commands.(This is work in progress)"
-        self.previous_versions.append(output)
-        self.full(output, callback)
+        
+        
+#         output_path = self.personality.lollms_paths.personal_outputs_path
+        
+#         # First we create the yaml file
+#         # ----------------------------------------------------------------
+#         self.step_start("Building the title...", callback)
+#         title = self.generate(f"""project_information:\n{prompt}
+# User: Create a title that reflects the idea of this project. The title should contain at least 2 words.
+# Documentation builder ai:
+# suggested title:""",512,**GenerationPresets.deterministic_preset()).strip().split("\n")[0]
+#         self.step_end("Building the title...", callback)
+#         ASCIIColors.yellow(f"title:{title}")
+#         # ----------------------------------------------------------------
+
+#         # ----------------------------------------------------------------
+#         self.step_start("Building the layout...", callback)
+#         layout = "## Introduction\n##"+self.generate(f"""Documentation builder aiis a tool that can understand project information and convert it to a documentation table of content.
+# project_information:{prompt}
+# User: Write a table of content for this project
+# Documentation builder ai: Here is the table of contents for the project documentation in markdown format:
+# ```markdown 
+# # {title}
+# ## Introduction
+# ##""",512,**GenerationPresets.deterministic_preset())
+#         self.step_end("Building the layout...", callback)
+#         ASCIIColors.yellow(f"structure:\n{layout}")
+#         # ----------------------------------------------------------------
+#         sections, table_of_content = self.convert_string_to_sections(layout) #[{"name": section} for section in layout.split("\n")]
+#         for section in sections:
+#             # ----------------------------------------------------------------
+#             self.step_start(f"Building section {section['name']}...", callback)
+#             section["content"] = self.generate(f"""project information:
+# {prompt}
+# Table of content:
+
+# User: Using the project information, populate the content of the section {section['name']}.
+
+# !@>section title: {section['name']}
+# !@>section content:""",1024,**GenerationPresets.deterministic_preset())
+#             self.step_end(f"Building section {section['name']}...", callback)
+#             ASCIIColors.yellow(f"{section}\n")
+#             # ----------------------------------------------------------------
+        
+#         output = f"```markdown\n# {title}\n\n"   
+#         output += "\n".join([f"{s['name']}\n{s['content']}\n" for s in sections])
+#         output += "```\n"
+#         output += "Now we can update some of the sections using the commands.(This is work in progress)"
+#         self.previous_versions.append(output)
+#         self.full(output, callback)
+
         
         return output
 

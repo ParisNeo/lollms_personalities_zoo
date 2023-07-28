@@ -49,6 +49,9 @@ commands:
   - name: Show Database
     value: show_database
     help: shows the vectorized database in cloud point format.
+  - name: Show files
+    value: show_files
+    help: shows the file names.
 
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower more deterministic
