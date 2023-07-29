@@ -48,6 +48,8 @@ class Processor(APScript):
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
+                {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
+                
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
@@ -277,16 +279,12 @@ class Processor(APScript):
             self.step_start("Imagining positive prompt", callback=self.callback)
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            prompt = f"""{past}
+            prompt = f"""{past if self.personality_config.continuous_discussion else ''}
 !@>Task:
 Make a prompt based on the idea presented below.
-Try to generate between 10 to 50 words. 
-Emphesize the most important expressions in the prompt.
-For example to emphesize beautiful, you need to type (beautiful:1.3).
-A higher value means more emphasis.
+Make sure you mension every thing asked by the user's idea. Do not make a very long text. Add style description and if posssible use an artist name.
 !@>idea: {prompt}
-!@>artbot:
-    prompt:"""
+!@>prompt:"""
            
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
@@ -304,9 +302,9 @@ A higher value means more emphasis.
     !@>idea: {prompt}
     !@>artbot:
     prompt:{sd_positive_prompt}
-    negative_prompt:"""
+    negative_prompt:blurry,"""
             ASCIIColors.yellow(prompt)
-            sd_negative_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining negative prompt", callback=self.callback)
             # ====================================================================================            
             
