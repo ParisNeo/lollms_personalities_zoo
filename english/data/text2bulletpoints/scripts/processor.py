@@ -177,12 +177,13 @@ class Processor(APScript):
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
 
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
         super().add_file(path)
         try:
             self.build_db()
-            if self.word_callback:
-                self.word_callback("File added successfully",MSG_TYPE.MSG_TYPE_STEP_END)
+            self.info("File added successfully", callback=callback)
             return True
         except Exception as ex:
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")

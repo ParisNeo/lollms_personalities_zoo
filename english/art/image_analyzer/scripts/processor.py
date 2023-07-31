@@ -57,18 +57,21 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
         ASCIIColors.success("Installed successfully")
 
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
         try:
             # only one path is required
             self.raw_image = Image.open(path).convert('RGB')
             self.files = [path]
             inputs = self.processor(self.raw_image, return_tensors="pt").to(self.device) #"cuda")
-            def callback(output):
+            def local_callback(output):
                 token = output.argmax(dim=-1)
                 token_str = self.processor.decode(token)
+                self.full(token_str, callback=callback)
                 print(token_str, end='')
             print("Processing...")
-            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=callback)
+            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=local_callback)
             print("Image description: "+output)
             return True
         except:

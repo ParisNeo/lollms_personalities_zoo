@@ -129,12 +129,14 @@ class Processor(APScript):
                 trace_exception(ex)
                 return False
 
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
         super().add_file(path)
         self.prepare()
-        self.step_start("Reading document", callback=self.callback)
+        self.step_start("Reading document", callback=callback)
         self.build_db()
-        self.step_end("Reading document", callback=self.callback)
+        self.step_end("Reading document", callback=callback)
 
     @staticmethod
     def is_end_of_sentence(char):

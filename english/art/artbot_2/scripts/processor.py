@@ -162,17 +162,27 @@ class Processor(APScript):
         else:
             self.full("Showing Stable diffusion settings UI", callback=self.callback)        
         
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
+
         self.prepare()
         super().add_file(path)
         if self.personality_config.caption_received_files:
-            self.step_start("Understanding the image", callback=self.callback)
-            description = self.sd.interrogate(path)
+            self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
+            self.step_start("Understanding the image", callback=callback)
+            description = self.sd.interrogate(str(path)).info
             ASCIIColors.yellow(description)
-            self.step_end("Understanding the image", callback=self.callback)
-            self.full(f"File added successfully\nImage description :{description}", callback=self.callback)
+            self.step_end("Understanding the image", callback=callback)
+            pth = str(path).replace("\\","/").split('/')
+            idx = pth.index("uploads")
+            pth = "/".join(pth[idx:])
+            file_path = f"![](/{pth})\n"
+
+            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({file_path})", callback=callback)
+            self.finished_message()
         else:    
-            self.full(f"File added successfully\n", callback=self.callback)
+            self.full(f"File added successfully\n", callback=callback)
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:

@@ -239,15 +239,17 @@ keywords:"""
             trace_exception(ex)
             return False
             
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
         super().add_file(path)
         self.prepare()
         try:
-            self.step_start("Vectorizing database", callback = self.callback)
+            self.step_start("Vectorizing database", callback = callback)
             if not self.build_db():
-                self.step_end("Vectorizing database",status=False, callback = self.callback)
+                self.step_end("Vectorizing database",status=False, callback = callback)
             else:
-                self.step_end("Vectorizing database",status=False, callback = self.callback)
+                self.step_end("Vectorizing database",status=False, callback = callback)
             self.ready = True
             return True
         except Exception as ex:

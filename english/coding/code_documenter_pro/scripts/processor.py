@@ -654,13 +654,15 @@ Be precise and give details in your answer.
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
                 trace_exception(ex)
 
-    def add_file(self, path):
+    def add_file(self, path, callback=None):
+        if callback is None and self.callback is not None:
+            callback = self.callback
         super().add_file(path)
         self.prepare()
         try:
-            self.step_start("Vectorizing database", callback=self.callback)
+            self.step_start("Vectorizing database", callback=callback)
             self.build_db()
-            self.step_end("Vectorizing database", callback=self.callback)
+            self.step_end("Vectorizing database", callback=callback)
             self.ready = True
             return True
         except Exception as ex:
