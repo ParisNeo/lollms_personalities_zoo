@@ -179,7 +179,7 @@ class Processor(APScript):
             pth = "/".join(pth[idx:])
             file_path = f"![](/{pth})\n"
 
-            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({file_path})", callback=callback)
+            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!{file_path}", callback=callback)
             self.finished_message()
         else:    
             self.full(f"File added successfully\n", callback=callback)
