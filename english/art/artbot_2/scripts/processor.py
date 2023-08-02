@@ -186,12 +186,14 @@ class Processor(APScript):
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:
-            files, out = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt, append_infos=self.personality_config.show_infos)
+            files, out, infos = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt)
             self.full(out)
+            if self.personality_config.show_infos:
+                self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
         else:
             self.full("Please generate an image first then retry")
 
-    def paint(self,sd_positive_prompt, sd_negative_prompt, output ="", append_infos=False):
+    def paint(self,sd_positive_prompt, sd_negative_prompt, output =""):
         files = []
         infos = {}
         for i in range(self.personality_config.num_images):
@@ -274,12 +276,10 @@ class Processor(APScript):
             file_path = f"![](/{pth})\n"
             output += file_path
             ASCIIColors.yellow(f"Generated file in here : {files[i]}")
-        if append_infos:
-            output += str(infos)
 
         if self.personality_config.continue_from_last_image:
             self.files= [files[-1]]
-        return files, output
+        return files, output, infos
 
     def main_process(self, prompt, full_context):    
         self.prepare()
@@ -333,10 +333,13 @@ Make sure you mension every thing asked by the user's idea. Do not make a very l
         output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
-            files, output = self.paint(sd_positive_prompt, sd_negative_prompt, output, append_infos=self.personality_config.show_infos)
-
+            files, output, infos = self.paint(sd_positive_prompt, sd_negative_prompt, output)
+        else:
+            infos = None
         self.full(output.strip(), callback=self.callback)
-        
+        if self.personality_config.show_infos and infos:
+            self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
+
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
