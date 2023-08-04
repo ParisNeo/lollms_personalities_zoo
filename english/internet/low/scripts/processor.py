@@ -1,6 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
+from lollms.helpers import trace_exception
 from lollms.personality import APScript, AIPersonality
 
 
@@ -28,7 +29,7 @@ class Processor(APScript):
         self.queries=[]
         self.formulations=[]
         self.summaries=[]
-        self.word_callback = None
+        self.callback = None
         self.generate_fn = None
         template = ConfigTemplate([
                 {"name":"craft_search_query","type":"bool","value":False,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
@@ -86,9 +87,7 @@ question>
 {question}
 answer>
 {answer_motivational_text}"""
-            
-        if self.word_callback is not None:
-            self.word_callback(f"Asking AI: "+question, MSG_TYPE.MSG_TYPE_STEP_START)
+        self.step_start(f"Asking AI: "+question)
         answer = format_url_parameter(
             self.generate(
                         search_formulation_prompt,
@@ -96,8 +95,7 @@ answer>
                         temperature = temperature, top_k = top_k, top_p=top_p, repeat_penalty=repeat_penalty 
                         )
             ).strip()
-        if self.word_callback is not None:
-            self.word_callback(f"Asking AI: "+question, MSG_TYPE.MSG_TYPE_STEP_END)
+        self.step_end(f"Asking AI: "+question)
         return answer
     
     def wiki_search(self, query, nb_sentences=3):
@@ -138,7 +136,7 @@ answer>
         """
         try:
             import wikipedia
-            self.word_callback = callback
+            self.callback = callback
             if self.personality_config.craft_search_query:
                 # 1 first ask the model to formulate a query
                 search_formulation_prompt = f"""Instructions>
@@ -186,9 +184,7 @@ query>"""
                             entry=0                
 
 
-                if callback is not None:
-                    callback(f"Entry: {results[entry]}", MSG_TYPE.MSG_TYPE_STEP_START)
-                    callback(f"Entry: {results[entry]}", MSG_TYPE.MSG_TYPE_STEP_END)
+                self.step(f"Entry: {results[entry]}")
                 try:
                     page = wikipedia.page(results[entry])
                     search_result = page.summary
@@ -209,26 +205,21 @@ query>"""
     images>
     {images}
     answer>"""
-                if callback is not None:
-                    callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_START)
+                self.step_start("Generating response")
                 output = self.generate(prompt, self.personality_config.max_summery_size)
                 sources_text = "\n--\n"
                 sources_text += "# Source :\n"
                 sources_text += f"[{page.title}]({page.url})\n\n"
-                if callback is not None:
-                    callback("Generating response", MSG_TYPE.MSG_TYPE_STEP_END)
-
+                self.step_end("Generating response")
                 output = output+sources_text
-                if callback is not None:
-                    callback(output, MSG_TYPE.MSG_TYPE_FULL)
+                self.full(output)
             else:
-                if callback is not None:
-                    callback(search_result, MSG_TYPE.MSG_TYPE_FULL)
+                self.full(search_result)
                 output = search_result
         except Exception as ex:
             output = f"Exception occured while running workflow: {ex}"
-            if callback is not None:
-                callback(output, MSG_TYPE.MSG_TYPE_EXCEPTION)
+            trace_exception(ex)
+            self.exception(ex)
         return output   
 
 
