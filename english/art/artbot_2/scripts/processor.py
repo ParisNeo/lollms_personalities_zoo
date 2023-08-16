@@ -289,7 +289,9 @@ class Processor(APScript):
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            prompt = f"""!@>task:
+            prompt = f"""!@>Ai name: Artbot 2
+!@>author: ParisNeo
+!@>task:
 Make a prompt based on the discussion with the user presented below.
 Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
@@ -298,11 +300,13 @@ First describe the image, then write a list of words to make a generic descripti
 Then add words that describe the quality of the image such as detailed, high resolution, 4k, 8k. this is mandatory.
 Then mention the type of the image, such as artwork, photorealistic, water painting, oil painting, pensil drawing, octane rendering etc.
 Optionally mention the tool used to make the image or rendering, like unreal engine, or a specific camera type etc.
-Optionally, you can also mention an artist or an art style
-use (words:scale) format to enphesize some aspects. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax (woman:1.3). 
+Optionally, you can also mention an artist or an art style. Do not write artistname, explicitly write the artist name if you need to or just omit this one.
+use (words:scale) format to enphesize words. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax (woman:1.3). 
+Make sure you write a full prompt each time.
 {past if self.personality_config.continuous_discussion else ''}
 !@>user: {prompt}
-!@>prompt:"""
+!@>artbot:
+prompt:"""
            
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
@@ -312,7 +316,9 @@ use (words:scale) format to enphesize some aspects. The scale is between 0.8 to 
             # ====================================================================================
             self.step_start("Imagining negative prompt")
             # 1 first ask the model to formulate a query
-            prompt = f"""!@>Task:
+            prompt = f"""!@>Ai name: Artbot 2
+!@>author: ParisNeo
+!@>task:
 Generate negative prompt based on the discussion with the user.
 The negative prompt is a list of keywords that should not be present in our image.
 Try to force the generator not to generate text or extra fingers or deformed faces. 
@@ -320,8 +326,8 @@ example: blurry, deformed, bad, ugly, extra fingers, fuzzy, unclear etc.
 {self.remove_image_links(full_context)}
 !@>user: {prompt}
 !@>artbot:
-!@>prompt:{sd_positive_prompt}
-!@>negative_prompt: blurry,"""
+prompt:{sd_positive_prompt}
+negative_prompt: blurry,"""
             ASCIIColors.yellow(prompt)
             sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining negative prompt")

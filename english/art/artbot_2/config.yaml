@@ -16,7 +16,7 @@ dependencies: []
 disclaimer: ''
 link_text: '\n'
 name: Artbot 2
-personality_conditioning: '!@>Ai name: Artbot 2'
+personality_conditioning: ''
 include_welcome_message_in_disucssion: False
 
 personality_description: |
