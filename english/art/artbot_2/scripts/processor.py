@@ -109,9 +109,9 @@ class Processor(APScript):
 
     def prepare(self):
         if self.sd is None:
-            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", callback=self.callback)
+            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
             self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", callback=self.callback)
+            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
         
     def get_sd(self):
@@ -137,30 +137,30 @@ class Processor(APScript):
 
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help, callback=self.callback)
+        self.full(self.personality.help)
     
     def new_image(self, prompt, full_context):
         self.files=[]
-        self.full("Starting fresh :)", callback=self.callback)
+        self.full("Starting fresh :)")
         
         
     def show_sd(self, prompt, full_context):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
-        self.full("Showing Stable diffusion UI", callback=self.callback)
+        self.full("Showing Stable diffusion UI")
         
         
     def show_settings(self, prompt, full_context):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
-        self.full("Showing Stable diffusion settings UI", callback=self.callback)
+        self.full("Showing Stable diffusion settings UI")
         
     def show_last_image(self, prompt, full_context):
         self.prepare()
         if len(self.files)>0:
-            self.full(f"![]({self.files})", callback=self.callback)        
+            self.full(f"![]({self.files})")        
         else:
-            self.full("Showing Stable diffusion settings UI", callback=self.callback)        
+            self.full("Showing Stable diffusion settings UI")        
         
     def add_file(self, path, callback=None):
         if callback is None and self.callback is not None:
@@ -197,7 +197,7 @@ class Processor(APScript):
         files = []
         infos = {}
         for i in range(self.personality_config.num_images):
-            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", callback=self.callback)
+            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}")
             if len(self.files)>0:
                 try:
                     generated = self.sd.img2img(
@@ -264,9 +264,9 @@ class Processor(APScript):
                 idx = pth.index("outputs")
                 pth = "/".join(pth[idx:])
                 file_path = f"![](/{pth})\n"
-                self.full(file_path, callback=self.callback)
+                self.full(file_path)
             
-            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}", callback=self.callback)
+            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}")
         
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
@@ -286,36 +286,45 @@ class Processor(APScript):
         
         if self.personality_config.imagine:
             # ====================================================================================
-            self.step_start("Imagining positive prompt", callback=self.callback)
+            self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            prompt = f"""{past if self.personality_config.continuous_discussion else ''}
-!@>Task:
-Make a prompt based on the idea presented below.
-Make sure you mension every thing asked by the user's idea. Do not make a very long text. Add style description and if posssible use an artist name.
-!@>idea: {prompt}
+            prompt = f"""!@>task:
+Make a prompt based on the discussion with the user presented below.
+Make sure you mention every thing asked by the user's idea.
+Do not make a very long text.
+Follow this format in a single paragraph:
+First describe the image, then write a list of words to make a generic description of the style and vibe (example: cyberpunk, steampunk, water painting, pensil drawing etc).
+Then add words that describe the quality of the image such as detailed, high resolution, 4k, 8k. this is mandatory.
+Then mention the type of the image, such as artwork, photorealistic, water painting, oil painting, pensil drawing, octane rendering etc.
+Optionally mention the tool used to make the image or rendering, like unreal engine, or a specific camera type etc.
+Optionally, you can also mention an artist or an art style
+use (words:scale) format to enphesize some aspects. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax (woman:1.3). 
+{past if self.personality_config.continuous_discussion else ''}
+!@>user: {prompt}
 !@>prompt:"""
            
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-            self.step_end("Imagining positive prompt", callback=self.callback)
+            self.step_end("Imagining positive prompt")
+            self.full(f"Positive prompt: {sd_positive_prompt}")            
             # ====================================================================================
             # ====================================================================================
-            self.step_start("Imagining negative prompt", callback=self.callback)
+            self.step_start("Imagining negative prompt")
             # 1 first ask the model to formulate a query
-            prompt = f"""{self.remove_image_links(full_context)}
-    !@>Task:
-    Generate negative prompt based on the idea.
-    The negative prompt is a list of keywords that should not be present in our image.
-    Try to force the generator not to generate text or extra fingers or deformed faces. 
-    example: blurry, deformed, bad, ugly etc.
-    !@>idea: {prompt}
-    !@>artbot:
-    prompt:{sd_positive_prompt}
-    negative_prompt:blurry,"""
+            prompt = f"""!@>Task:
+Generate negative prompt based on the discussion with the user.
+The negative prompt is a list of keywords that should not be present in our image.
+Try to force the generator not to generate text or extra fingers or deformed faces. 
+example: blurry, deformed, bad, ugly, extra fingers, fuzzy, unclear etc.
+{self.remove_image_links(full_context)}
+!@>user: {prompt}
+!@>artbot:
+!@>prompt:{sd_positive_prompt}
+!@>negative_prompt: blurry,"""
             ASCIIColors.yellow(prompt)
             sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-            self.step_end("Imagining negative prompt", callback=self.callback)
+            self.step_end("Imagining negative prompt")
             # ====================================================================================            
             
         else:
@@ -336,7 +345,7 @@ Make sure you mension every thing asked by the user's idea. Do not make a very l
             files, output, infos = self.paint(sd_positive_prompt, sd_negative_prompt, output)
         else:
             infos = None
-        self.full(output.strip(), callback=self.callback)
+        self.full(output.strip())
         if self.personality_config.show_infos and infos:
             self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
 
