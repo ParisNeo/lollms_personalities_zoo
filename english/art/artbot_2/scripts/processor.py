@@ -4,6 +4,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.utilities import PromptReshaper
 import re
 import importlib
 import requests
@@ -49,7 +50,10 @@ class Processor(APScript):
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
                 {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
+                {"name":"automatic_resolution_selection","type":"bool","value":True,"help":"If true then artbot chooses the resolution of the image to generate"},
+                {"name":"add_style","type":"bool","value":True,"help":"If true then artbot will choose and add a specific style to the prompt"},
                 
+                {"name":"activate_discussion_mode","type":"bool","value":False,"help":"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make an artwork"},
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
@@ -58,8 +62,11 @@ class Processor(APScript):
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
+
                 {"name":"width","type":"int","value":512, "min":10, "max":2048},
                 {"name":"height","type":"int","value":512, "min":10, "max":2048},
+
+                {"name":"automatic_image_size","type":"bool","value":False,"help":"If true, artbot will select the image resolution"},
                 {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
                 {"name":"batch_size","type":"int","value":1, "min":1, "max":100,"help":"Number of images per batch (requires more memory)"},
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
@@ -92,7 +99,8 @@ class Processor(APScript):
                             ],
                             callback=callback
                         )
-        
+        self.width=self.personality_config.width
+        self.height=self.personality_config.height
     def install(self):
         super().install()
         
@@ -208,8 +216,8 @@ class Processor(APScript):
                                 seed=self.personality_config.seed,
                                 cfg_scale=self.personality_config.scale,
                                 steps=self.personality_config.steps,
-                                width=self.personality_config.width,
-                                height=self.personality_config.height,
+                                width=self.width,
+                                height=self.height,
                                 denoising_strength=self.personality_config.img2img_denoising_strength,
                                 tiling=False,
                                 restore_faces=self.personality_config.restore_faces,
@@ -280,18 +288,117 @@ class Processor(APScript):
         if self.personality_config.continue_from_last_image:
             self.files= [files[-1]]
         return files, output, infos
+    
 
-    def main_process(self, prompt, full_context):    
+    def get_styles(self, prompt, full_context):
+        self.step_start("Selecting style")
+        styles=[
+            "Cinematic",
+            "Art deco",
+            "Enameled",
+            "Etching",
+            "Arabesque",
+            "Cross Hatching",
+            "Callegraphy",
+            "Vector art",
+            "Vexel art",
+            "Cubism",
+            "Surrealism",
+            "Pop art",
+            "Pop surrealism",
+            "Roschach Inkblot"
+        ]
+        stl=", ".join(styles)
+        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this artwork: {stl}\n!@>selected_styles:"
+        stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+        self.step_end("Selecting style")
+        return stl
+
+    def get_resolution(self, prompt, full_context, default_resolution=[512,512]):
+
+        def extract_resolution(text, default_resolution=[512, 512]):
+            # Define a regular expression pattern to match the (w, h) format
+            pattern = r'\((\d+),\s*(\d+)\)'
+            
+            # Search for the pattern in the text
+            match = re.search(pattern, text)
+            
+            if match:
+                width = int(match.group(1))
+                height = int(match.group(2))
+                return width, height
+            else:
+                return default_resolution
+                    
+        self.step_start("Choosing resolution")
+        prompt=f"{full_context}\n!@>user:{prompt}\nSelect a suitable image size (width, height).\nThe default resolution uis ({default_resolution[0]},{default_resolution[1]})\n!@>selected_image_size:"
+        sz = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","").split("\n")[0]
+
+        self.step_end("Choosing resolution")
+
+        return extract_resolution(sz, default_resolution)
+
+    def main_process(self, initial_prompt, full_context):    
         self.prepare()
         
         if self.personality_config.imagine:
+            if self.personality_config.activate_discussion_mode:
+                pr  = PromptReshaper("""!@>discussion:
+{{previous_discussion}}
+!@>user: {{initial_prompt}}
+!@>Question: Is the user's message asking to generate and image? Answer Yes or No.
+!@>artbot:""")
+                prompt = pr.build({
+                        "previous_discussion":full_context,
+                        "initial_prompt":initial_prompt
+                        }, 
+                        self.personality.model.tokenize, 
+                        self.personality.model.detokenize, 
+                        self.personality.model.config.ctx_size,
+                        ["previous_discussion"]
+                        )
+                is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                ASCIIColors.cyan(is_discussion)
+                if "yes" not in is_discussion.lower():
+                    pr  = PromptReshaper("""!@>instructions>Artbot is a friendly art generation AI that discusses ideas with humans about art. 
+!@>discussion:
+{{previous_discussion}}
+!@>user: {{initial_prompt}}
+!@>artbot:""")
+                    prompt = pr.build({
+                            "previous_discussion":full_context,
+                            "initial_prompt":initial_prompt
+                            }, 
+                            self.personality.model.tokenize, 
+                            self.personality.model.detokenize, 
+                            self.personality.model.config.ctx_size,
+                            ["previous_discussion"]
+                            )
+                    ASCIIColors.yellow(prompt)
+
+                    response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                    self.full(response)
+                    return
+
+
+
+            if self.personality_config.automatic_resolution_selection:
+                res = self.get_resolution(initial_prompt, full_context, [self.personality_config.width,self.personality_config.height])
+                self.width=res[0]
+                self.height=res[1]
+            else:
+                self.width=self.personality_config.width
+                self.height=self.personality_config.height
             # ====================================================================================
+            if self.personality_config.add_style:
+                styles = self.get_styles(initial_prompt,full_context)
+            else:
+                styles = "No specific style selected."
+
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            prompt = f"""!@>Ai name: Artbot 2
-!@>author: ParisNeo
-!@>task:
+            pr  = PromptReshaper("""!@>instructions:
 Make a prompt based on the discussion with the user presented below.
 Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
@@ -301,39 +408,64 @@ Then add words that describe the quality of the image such as detailed, high res
 Then mention the type of the image, such as artwork, photorealistic, water painting, oil painting, pensil drawing, octane rendering etc.
 Optionally mention the tool used to make the image or rendering, like unreal engine, or a specific camera type etc.
 Optionally, you can also mention an artist or an art style. Do not write artistname, explicitly write the artist name if you need to or just omit this one.
-use (words:scale) format to enphesize words. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax (woman:1.3). 
+use word:scale format to set words importance. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax woman:1.3. 
 Make sure you write a full prompt each time.
-{past if self.personality_config.continuous_discussion else ''}
-!@>user: {prompt}
+Do not use bullet points
+{{previous_discussion}}
+!@>user: {{initial_prompt}}
 !@>artbot:
-prompt:"""
-           
+!@>style_choice: {{styles}}                                 
+!@>art_generation_prompt:Create""")
+            prompt = pr.build({
+                    "previous_discussion":past if self.personality_config.continuous_discussion else '',
+                    "initial_prompt":initial_prompt,
+                    "styles":styles
+                    }, 
+                    self.personality.model.tokenize, 
+                    self.personality.model.detokenize, 
+                    self.personality.model.config.ctx_size,
+                    ["previous_discussion"]
+                    )
+            
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            self.full(f"Positive prompt: {sd_positive_prompt}")            
+            self.full(f"Positive prompt: {sd_positive_prompt}")         
             # ====================================================================================
             # ====================================================================================
             self.step_start("Imagining negative prompt")
             # 1 first ask the model to formulate a query
-            prompt = f"""!@>Ai name: Artbot 2
-!@>author: ParisNeo
-!@>task:
+            pr  = PromptReshaper("""!@>instructions:
 Generate negative prompt based on the discussion with the user.
 The negative prompt is a list of keywords that should not be present in our image.
-Try to force the generator not to generate text or extra fingers or deformed faces. 
-example: blurry, deformed, bad, ugly, extra fingers, fuzzy, unclear etc.
-{self.remove_image_links(full_context)}
-!@>user: {prompt}
+Try to force the generator not to generate text or extra fingers or deformed faces.
+Use as many words as you need depending on the context.
+example: blurry, deformed, bad, ugly, extra fingers, amputee, text, fuzzy, unclear, bad anatomy, bad proportions, cropped, disfigured, duplicate, cloned face, mutilated, mutation, out of frame, worst quality, watermark 
+!@>discussion:
+{{previous_discussion}}
+!@>user: {{initial_prompt}}
 !@>artbot:
-prompt:{sd_positive_prompt}
-negative_prompt: blurry,"""
+prompt:{{sd_positive_prompt}}{{styles}}
+negative_prompt: blurry,""")
+            prompt = pr.build({
+                    "previous_discussion":self.remove_image_links(full_context),
+                    "initial_prompt":initial_prompt,
+                    "sd_positive_prompt":sd_positive_prompt,
+                    "styles":','+styles if styles!='' else ''
+                    }, 
+                    self.personality.model.tokenize, 
+                    self.personality.model.detokenize, 
+                    self.personality.model.config.ctx_size,
+                    ["previous_discussion"]
+                    )
             ASCIIColors.yellow(prompt)
             sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining negative prompt")
             # ====================================================================================            
             
         else:
+            self.width=self.personality_config.width
+            self.height=self.personality_config.height
             prompt = prompt.split("\n")
             if len(prompt)>1:
                 sd_positive_prompt = prompt[0]
