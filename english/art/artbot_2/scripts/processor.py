@@ -440,7 +440,7 @@ Generate negative prompt based on the discussion with the user.
 The negative prompt is a list of keywords that should not be present in our image.
 Try to force the generator not to generate text or extra fingers or deformed faces.
 Use as many words as you need depending on the context.
-example: blurry, deformed, bad, ugly, extra fingers, amputee, text, fuzzy, unclear, bad anatomy, bad proportions, cropped, disfigured, duplicate, cloned face, mutilated, mutation, out of frame, worst quality, watermark 
+example: 3d, blurry, multiple, deformed, bad, ugly, extra fingers, amputee, text, fuzzy, unclear, bad anatomy, bad proportions, cropped, disfigured, duplicate, cloned face, mutilated, mutation, out of frame, worst quality, watermark 
 !@>discussion:
 {{previous_discussion}}
 !@>user: {{initial_prompt}}
@@ -466,7 +466,7 @@ negative_prompt: blurry,""")
         else:
             self.width=self.personality_config.width
             self.height=self.personality_config.height
-            prompt = prompt.split("\n")
+            prompt = initial_prompt.split("\n")
             if len(prompt)>1:
                 sd_positive_prompt = prompt[0]
                 sd_negative_prompt = prompt[1]
