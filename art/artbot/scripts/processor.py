@@ -53,7 +53,7 @@ class Processor(APScript):
                 {"name":"automatic_resolution_selection","type":"bool","value":True,"help":"If true then artbot chooses the resolution of the image to generate"},
                 {"name":"add_style","type":"bool","value":True,"help":"If true then artbot will choose and add a specific style to the prompt"},
                 
-                {"name":"activate_discussion_mode","type":"bool","value":False,"help":"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make an artwork"},
+                {"name":"activate_discussion_mode","type":"bool","value":True,"help":"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make an artwork"},
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
@@ -360,7 +360,7 @@ class Processor(APScript):
                 is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 ASCIIColors.cyan(is_discussion)
                 if "yes" not in is_discussion.lower():
-                    pr  = PromptReshaper("""!@>instructions>Artbot is a friendly art generation AI that discusses ideas with humans about art. 
+                    pr  = PromptReshaper("""!@>instructions>Artbot est une IA conviviale de génération d'art qui discute des idées avec les humains sur l'art.
 !@>discussion:
 {{previous_discussion}}
 !@>user: {{initial_prompt}}
@@ -410,7 +410,8 @@ Optionally mention the tool used to make the image or rendering, like unreal eng
 Optionally, you can also mention an artist or an art style. Do not write artistname, explicitly write the artist name if you need to or just omit this one.
 use word:scale format to set words importance. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax woman:1.3. 
 Make sure you write a full prompt each time.
-Do not use bullet points
+Do not use bullet points.
+The prompt should be in english.
 {{previous_discussion}}
 !@>user: {{initial_prompt}}
 !@>artbot:
@@ -485,7 +486,7 @@ negative_prompt: blurry,""")
             infos = None
         self.full(output.strip())
         if self.personality_config.show_infos and infos:
-            self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
+            self.json("infos", infos)
 
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
