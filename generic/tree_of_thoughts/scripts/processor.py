@@ -146,7 +146,7 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.word_callback = callback
+        self.callback = callback
         self.bot_says = ""
         # Create an empty graph
         thought_graph = nx.DiGraph()
@@ -159,17 +159,17 @@ class Processor(APScript):
         selections = []
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j} of the tree =====================")
-            self.step_start(f"Starting level {j} of the tree", callback)
+            self.step_start(f"Processing Level {j} of the tree")
             local_ideas=[]
             judgement_prompt = f"!@>prompt: {prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
                     final_ideas_text = "\n".join([f'Idea {n}:{i}' for n,i in enumerate(final_ideas)])
-                    idea_prompt = f""">Instructions: Write the next idea. Please give a single idea. 
->prompt: {prompt}
->previous ideas: {final_ideas_text}
->idea:"""
+                    idea_prompt = f"""!@>Instructions: Write the next idea. Please give a single idea. 
+!@>prompt: {prompt}
+!@>previous ideas: {final_ideas_text}
+!@>idea:"""
                 else:
                     idea_prompt = f"""!@>Instruction: 
 Write the next idea. Please give a single idea. 
@@ -210,10 +210,10 @@ Write the next idea. Please give a single idea.
             self.add_graph_level(thought_graph, local_ideas, prev_number)
             prev_number = number
             
-            self.step_end(f"Starting level {j} of the tree", callback)
+            self.step_end(f"Processing Level {j} of the tree")
 
         self.visualize_thought_graph(thought_graph)
-        self.step_start(f"Starting final summary", callback)
+        self.step_start(f"Building final summary")
         summary_prompt += "!@>Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
         for idea in final_ideas:
             summary_prompt += f">Idea: {idea}\n"
@@ -222,7 +222,7 @@ Write the next idea. Please give a single idea.
         final_summary = self.generate(summary_prompt, self.personality_config.max_summary_size)
 
         ASCIIColors.success("Summary built successfully")
-        self.step_end(f"Starting final summary", callback)
+        self.step_end(f"Building final summary")
         
         self.full(final_summary, callback)
         
@@ -233,7 +233,7 @@ Write the next idea. Please give a single idea.
             "summary":final_summary
         }
         
-        self.json(tree_full_output, callback)
+        self.json("infos", tree_full_output)
 
         return final_summary
 
