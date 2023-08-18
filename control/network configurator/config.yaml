@@ -13,7 +13,7 @@
 author: ParisNeo
 version: 1.0.0
 category: control
-language: english
+
 name: Network Configurator
 personality_description: An AI network configurator and troubleshooter
 disclaimer: 'WARNING: This AI is experimental and provides guidance on network setup and configuration. Please execute it in a sandboxed environment to prevent any potential harm to your system.'

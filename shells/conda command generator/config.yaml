@@ -13,7 +13,7 @@ author: ParisNeo
 category: Shells
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Conda command generator
 personality_conditioning: '!@>instruction: Act as a conda shell commands generator.

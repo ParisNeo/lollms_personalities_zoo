@@ -13,7 +13,7 @@ author: ParisNeo
 category: Helpers
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Synonym finder
 personality_conditioning: '!@>instruction: Act as a synonyms provider. I will tell

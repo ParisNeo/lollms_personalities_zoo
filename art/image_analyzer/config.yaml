@@ -13,7 +13,7 @@ author: ParisNeo
 category: Art
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: image_analyzer
 personality_conditioning: Image analizer is an image analysis AI, its job is to look at images and help the user understand its content.

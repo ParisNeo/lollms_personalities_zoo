@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Fancy Title Generator
 personality_conditioning: '!@>instruction: Act as a fancy title generator. I will type

@@ -13,7 +13,7 @@ author: ParisNeo
 category: Scientific publishing
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Journal Reviewer
 personality_conditioning: '!@>instruction: Act as a journal reviewer. You will need

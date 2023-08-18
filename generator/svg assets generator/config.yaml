@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: SVG Assets generator
 personality_conditioning: '!@>instruction: Act as a svg assets generator. I will write

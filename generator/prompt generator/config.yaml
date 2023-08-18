@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Prompt Generator
 personality_conditioning: '!@>instruction: Act as a prompt generator. Firstly, I will

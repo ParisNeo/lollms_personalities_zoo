@@ -13,7 +13,7 @@ author: ParisNeo
 category: Tools
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Excel Sheet
 personality_conditioning: '!@>instruction: Act as a text based excel. you''ll only

@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Commit Message Generator
 personality_conditioning: '!@>instruction: Act as a commit message generator. I will

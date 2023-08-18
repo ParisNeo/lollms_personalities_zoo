@@ -16,7 +16,7 @@ disclaimer: 'To use BLIP, you need also to install and run the chatgpt_extension
   webserver before using this personality. You can find more details in here: https://github.com/ParisNeo/chatgpt_extensions\nFor
   this personality, please run the service called blip_service.py.\nOnce the server
   is running, select an image and hit apply personality to start.'
-language: english
+
 link_text: '\n'
 name: Image to UI
 personality_conditioning: '!@>instruction: I need to build a website. We play a game

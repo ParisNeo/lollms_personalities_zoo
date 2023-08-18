@@ -13,7 +13,7 @@ author: ParisNeo
 category: Tools
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: SVG designer
 personality_conditioning: '!@>instruction: I would like you to act as an SVG designer.

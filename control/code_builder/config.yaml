@@ -14,7 +14,7 @@
 author: ParisNeo
 version: 1.0.0
 category: control
-language: english
+
 name: Code Builder
 personality_description: An AI code builder and executor
 disclaimer: 'WARNING: This AI is experimental and capable of executing code. Please execute it in a sandboxed environment to prevent any potential harm to your system.'

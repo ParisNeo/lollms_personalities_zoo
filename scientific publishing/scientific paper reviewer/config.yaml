@@ -13,7 +13,7 @@ author: ParisNeo
 category: Scientific publishing
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Scientific Paper reviewer
 personality_conditioning: '!@>instruction: Act as a scientific paper revewer. I will

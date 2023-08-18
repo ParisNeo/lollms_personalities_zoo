@@ -13,7 +13,7 @@ author: ParisNeo
 category: Simulators
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: JavaScript Console
 personality_conditioning: '!@>instruction: Act as a javascript console. I will type

@@ -13,7 +13,7 @@ author: ParisNeo
 category: Scientific publishing
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Scientific Text enhancer
 personality_conditioning: '!@>instruction: Act as a scientific text enhancer. I will

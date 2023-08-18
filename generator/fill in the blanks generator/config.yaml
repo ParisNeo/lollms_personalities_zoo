@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Fill in the Blanks Generator
 personality_conditioning: '!@>instruction: Act as a fill in the blank sentences generator

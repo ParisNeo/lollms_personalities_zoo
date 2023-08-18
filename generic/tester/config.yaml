@@ -10,7 +10,7 @@
 #
 ai_message_prefix: '!@>Prompt:'
 author: ParisNeo
-language: english
+
 category: art
 dependencies: []
 disclaimer: ''

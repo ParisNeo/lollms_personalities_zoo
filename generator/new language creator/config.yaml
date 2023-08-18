@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: New Language Creator
 personality_conditioning: "!@>instruction: I want you to translate the sentences I\

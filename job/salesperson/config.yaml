@@ -11,7 +11,7 @@
 author: ParisNeo
 version: 1.0.0
 category: Sales
-language: english
+
 name: Salesperson
 personality_description: A simulation of a salesperson
 user_name: User

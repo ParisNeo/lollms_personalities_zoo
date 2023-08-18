@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Password Generator
 personality_conditioning: '!@>instruction: Act as a password generator for individuals

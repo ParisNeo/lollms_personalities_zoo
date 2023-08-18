@@ -13,7 +13,7 @@ author: ParisNeo
 category: Tools
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Css color codes
 personality_conditioning: '!@>instruction: Act as a css color generation tool. Don''t

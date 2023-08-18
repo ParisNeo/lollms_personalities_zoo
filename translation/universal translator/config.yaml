@@ -11,7 +11,7 @@
 author: ParisNeo
 version: 1.0.0
 category: Translation
-language: english
+
 name: Universal Text Translator
 personality_description: A text translator that can translate text from one language to another.
 disclaimer: ''

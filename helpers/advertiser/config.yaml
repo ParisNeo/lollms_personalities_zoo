@@ -11,7 +11,7 @@
 author: ParisNeo
 version: 1.0.0
 category: helpers
-language: english
+
 name: Advertiser
 personality_description: An advertiser that can create a campaign to promote a product or service.
 disclaimer: ''

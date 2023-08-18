@@ -11,7 +11,7 @@
 author: ParisNeo
 version: 1.0.0
 category: Language
-language: english
+
 name: Morse Code Decoder
 personality_description: An AI Morse code decoder
 user_name: User

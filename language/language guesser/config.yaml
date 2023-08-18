@@ -11,7 +11,7 @@
 author: ParisNeo
 version: 1.0.0
 category: Language
-language: english
+
 name: Language Guesser
 personality_description: An AI language guesser
 user_name: User

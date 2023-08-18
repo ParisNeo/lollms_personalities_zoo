@@ -13,7 +13,7 @@ author: ParisNeo
 category: Helpers
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: English Translator and Improver
 personality_conditioning: '!@>instruction: Act as an English translator, spelling corrector

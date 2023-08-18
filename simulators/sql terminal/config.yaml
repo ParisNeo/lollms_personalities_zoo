@@ -13,7 +13,7 @@ author: ParisNeo
 category: Simulators
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: SQL terminal
 personality_conditioning: '!@>instruction: Act as a SQL terminal in front of an example

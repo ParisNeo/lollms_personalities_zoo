@@ -13,7 +13,7 @@ author: ParisNeo
 category: Tools
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Scientific Data Visualizer
 personality_conditioning: '!@>instruction: Act as a scientific data visualizer. You

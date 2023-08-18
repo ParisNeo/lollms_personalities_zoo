@@ -13,7 +13,7 @@ author: ParisNeo
 category: Generator
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Pseudonyme Generator
 personality_conditioning: '!@>instruction: Act as a pseudonyme generator. I will type

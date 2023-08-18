@@ -13,7 +13,7 @@ author: ParisNeo
 category: Job
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: 'Tech Reviewer:'
 personality_conditioning: '!@>instruction: Act as a tech reviewer. I will give you

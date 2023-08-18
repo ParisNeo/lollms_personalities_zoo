@@ -13,7 +13,7 @@ author: ParisNeo
 category: Tools
 dependencies: []
 disclaimer: ''
-language: english
+
 link_text: '\n'
 name: Css generator
 personality_conditioning: '!@>instruction: Act as a css generation tool. Don''t try
