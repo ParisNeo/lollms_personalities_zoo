@@ -123,7 +123,6 @@ class Processor(APScript):
         
 
     def chat_with_doc(self, prompt, full_context):
-        self.step_start("Recovering data")
         if self.vector_store.ready:
             self.step_start("Analyzing request", callback=self.callback)
             if self.personality_config.build_keywords:
@@ -151,7 +150,6 @@ keywords:"""
             ASCIIColors.blue(f"Number of tokens :{len(tk)}")
             ASCIIColors.blue("----------------------------------------------------")
             ASCIIColors.blue("Thinking")
-            self.step_end("Recovering data")
             self.step_start("Thinking", callback=self.callback)
             tk = self.personality.model.tokenize(full_text)
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
@@ -245,16 +243,19 @@ keywords:"""
         super().add_file(path)
         self.prepare()
         try:
+            self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
             self.step_start("Vectorizing database", callback = callback)
             if not self.build_db():
                 self.step_end("Vectorizing database",status=False, callback = callback)
             else:
-                self.step_end("Vectorizing database",status=False, callback = callback)
+                self.step_end("Vectorizing database",status=True, callback = callback)
             self.ready = True
+            self.finished_message("File imported successfully")
             return True
         except Exception as ex:
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
             trace_exception(ex)
+            self.finished_message("Error importing message")
             return False        
 
     def prepare(self):
