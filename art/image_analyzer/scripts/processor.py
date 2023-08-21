@@ -4,7 +4,7 @@ import os
 import sys
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
-from lollms.helpers import ASCIIColors
+from lollms.helpers import ASCIIColors, trace_exception
 from lollms.personality import APScript, AIPersonality
 import time
 from pathlib import Path
@@ -15,28 +15,46 @@ import torch
 from torchvision import transforms
 from PIL import Image
 from transformers import Blip2Processor, Blip2ForConditionalGeneration
-   
+
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
 
     Inherits from APScript.
     """
+    def __init__(
+                 self, 
+                 personality: AIPersonality,
+                 callback = None,
+                ) -> None:
+        # Get the current directory
+        root_dir = personality.lollms_paths.personal_path
+        # We put this in the shared folder in order as this can be used by other personalities.
+        shared_folder = root_dir/"shared"
+        self.sd_folder = shared_folder / "auto_sd"
+        
+        self.callback = None
+        self.sd = None
+        self.previous_sd_positive_prompt = None
+        self.sd_negative_prompt = None
 
-    def __init__(self, personality: AIPersonality, callback=None) -> None:
-        super().__init__(
-                            callback=callback
+        personality_config_template = ConfigTemplate(
+            [
+                {"name":"device","type":"str","value":"cuda" if personality.config.enable_gpu else "cpu",'options':['cpu','cuda'],"help":"Imagine the images"},
+            ]
+            )
+        personality_config_vals = BaseConfig.from_template(personality_config_template)
+
+        personality_config = TypedConfig(
+            personality_config_template,
+            personality_config_vals
         )
-        self.personality=personality
-        print("Preparing Image Analyzer. Please Stand by")
-        self.personality = personality
-        self.word_callback = None
-        self.generate_fn = None
-        self.config = self.load_config_file(self.personality.lollms_paths.personal_configuration_path / 'personality_image_analyzer_config.yaml')
-        self.device = self.config["device"]
-
-        self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
-        self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+        super().__init__(
+                            personality,
+                            personality_config,
+                            callback=callback
+                        )
+        self.model = None
 
     def install(self):
         super().install()
@@ -57,14 +75,32 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
         ASCIIColors.success("Installed successfully")
 
+    def prepare(self):
+        if self.model is None:
+            self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+            self.step_start("Loading Blip")
+            self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
+            self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+            self.step_end("Loading Blip")
+            self.finished_message()
+
+
     def add_file(self, path, callback=None):
+        self.prepare()
         if callback is None and self.callback is not None:
             callback = self.callback
         try:
+            self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK)
+            pth = str(path).replace("\\","/").split('/')
+            idx = pth.index("uploads")
+            pth = "/".join(pth[idx:])
+            file_path = f"![](/{pth})\n"
+
+
             # only one path is required
             self.raw_image = Image.open(path).convert('RGB')
             self.files = [path]
-            inputs = self.processor(self.raw_image, return_tensors="pt").to(self.device) #"cuda")
+            inputs = self.processor(self.raw_image, return_tensors="pt").to(self.personality_config.device) #"cuda")
             def local_callback(output):
                 token = output.argmax(dim=-1)
                 token_str = self.processor.decode(token)
@@ -73,9 +109,12 @@ class Processor(APScript):
             print("Processing...")
             output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=local_callback)
             print("Image description: "+output)
+            self.full(f"File added successfully\nImage description :\n{output}\nImage:\n!{file_path}", callback=callback)
+            self.finished_message()
             return True
-        except:
-            print("Couoldn't load file. PLease check the profided path.")
+        except Exception as ex:
+            trace_exception(ex)
+            print("Couldn't load file. PLease check the profided path.")
             return False
 
     def remove_file(self, path):
@@ -139,9 +178,10 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.word_callback = callback
+        self.callback = callback
+        self.prepare()
         try:
-            inputs = self.processor(self.raw_image, f"{previous_discussion_text}{self.personality.link_text}{self.personality.ai_message_prefix}", return_tensors="pt").to(self.device) #"cuda")
+            inputs = self.processor(self.raw_image, f"{previous_discussion_text}{self.personality.link_text}{self.personality.ai_message_prefix}", return_tensors="pt").to(self.personality_config.device) #"cuda")
             def local_callback(output):
                 token = output.argmax(dim=-1)
                 token_str = self.processor.decode(token)
@@ -154,7 +194,10 @@ class Processor(APScript):
             output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=local_callback)
         except Exception as ex:
             print(ex)
+            trace_exception(ex)
             output = "There seems to be a problem with your image, please upload a valid image to talk about"
+        
+        self.full(output)
         return output
 
 

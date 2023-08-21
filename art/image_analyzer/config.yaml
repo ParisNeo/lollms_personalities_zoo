@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '## Image_analyzer:'
+ai_message_prefix: '!@>Image_analyzer:'
 author: ParisNeo
 category: Art
 dependencies: []
@@ -17,14 +17,14 @@ disclaimer: ''
 link_text: '\n'
 name: image_analyzer
 personality_conditioning: Image analizer is an image analysis AI, its job is to look at images and help the user understand its content.
-user_message_prefix: '## User: '
+user_message_prefix: '!@>User: '
 user_name: user
 version: 1.0.0
 welcome_message: 'I am Image Analyzer, I analize images and answer your questions about them. Please upload an image and let''s talk!'
 include_welcome_message_in_disucssion: False
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["## User","## Image_analyzer:"]
+anti_prompts: ["!@>User","!@>Image_analyzer:"]
 
 # Here are default model parameters
 model_temperature: 0.9 # higher: more creative, lower more deterministic
