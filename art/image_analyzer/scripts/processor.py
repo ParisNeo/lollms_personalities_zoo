@@ -79,8 +79,8 @@ class Processor(APScript):
         if self.model is None:
             self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
             self.step_start("Loading Blip")
-            self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
-            self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+            self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b").to(self.personality_config.device)
+            self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b").to(self.personality_config.device)
             self.step_end("Loading Blip")
             self.finished_message()
 
