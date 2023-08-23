@@ -294,6 +294,8 @@ class Processor(APScript):
     def get_styles(self, prompt, full_context):
         self.step_start("Selecting style")
         styles=[
+            "Oil painting",
+            "Octane rendering",
             "Cinematic",
             "Art deco",
             "Enameled",
@@ -303,14 +305,25 @@ class Processor(APScript):
             "Callegraphy",
             "Vector art",
             "Vexel art",
+            "Cartoonish",
             "Cubism",
             "Surrealism",
             "Pop art",
             "Pop surrealism",
-            "Roschach Inkblot"
+            "Roschach Inkblot",
+            "Flat icon",
+            "Material Design Icon",
+            "Skeuomorphic Icon",
+            "Glyph Icon",
+            "Outline Icon",
+            "Gradient Icon",
+            "Neumorphic Icon",
+            "Vintage Icon",
+            "Abstract Icon"
+
         ]
         stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this artwork: {stl}\n!@>selected_styles:"
+        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this artwork: {stl}\n!@>assistant:I select"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
         return stl
@@ -341,14 +354,15 @@ class Processor(APScript):
 
     def main_process(self, initial_prompt, full_context):    
         self.prepare()
+        full_context = full_context[:full_context.index(initial_prompt)]
         
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
                 pr  = PromptReshaper("""!@>discussion:
-{{previous_discussion}}
-!@>user: {{initial_prompt}}
-!@>Question: Is the user's message asking to generate and image? Answer Yes or No.
-!@>artbot:""")
+{{previous_discussion}}{{initial_prompt}}
+!@>question: Is the user's message asking to generate an image? 
+!@>instruction>artbot should answer with Yes or No.
+!@>artbot:The answer to the question is""")
                 prompt = pr.build({
                         "previous_discussion":full_context,
                         "initial_prompt":initial_prompt
@@ -363,8 +377,7 @@ class Processor(APScript):
                 if "yes" not in is_discussion.lower():
                     pr  = PromptReshaper("""!@>instructions>Artbot est une IA conviviale de génération d'art qui discute des idées avec les humains sur l'art.
 !@>discussion:
-{{previous_discussion}}
-!@>user: {{initial_prompt}}
+{{previous_discussion}}{{initial_prompt}}
 !@>artbot:""")
                     prompt = pr.build({
                             "previous_discussion":full_context,
@@ -390,11 +403,13 @@ class Processor(APScript):
             else:
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
+            self.full(f"### Chosen resolution:\n{self.width}x{self.height}")         
             # ====================================================================================
             if self.personality_config.add_style:
                 styles = self.get_styles(initial_prompt,full_context)
             else:
                 styles = "No specific style selected."
+            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}")         
 
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
@@ -413,11 +428,9 @@ use word:scale format to set words importance. The scale is between 0.8 to 1.5. 
 Make sure you write a full prompt each time.
 Do not use bullet points.
 The prompt should be in english.
-{{previous_discussion}}
-!@>user: {{initial_prompt}}
-!@>artbot:
+{{previous_discussion}}{{initial_prompt}}
 !@>style_choice: {{styles}}                                 
-!@>art_generation_prompt:Create""")
+!@>art_generation_prompt: Create""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
@@ -432,7 +445,7 @@ The prompt should be in english.
             ASCIIColors.yellow(prompt)
             sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            self.full(f"Positive prompt: {sd_positive_prompt}")         
+            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
             # ====================================================================================
             # ====================================================================================
             self.step_start("Imagining negative prompt")
@@ -444,8 +457,7 @@ Try to force the generator not to generate text or extra fingers or deformed fac
 Use as many words as you need depending on the context.
 example: 3d, blurry, multiple, deformed, bad, ugly, extra fingers, amputee, text, fuzzy, unclear, bad anatomy, bad proportions, cropped, disfigured, duplicate, cloned face, mutilated, mutation, out of frame, worst quality, watermark 
 !@>discussion:
-{{previous_discussion}}
-!@>user: {{initial_prompt}}
+{{previous_discussion}}{{initial_prompt}}
 !@>artbot:
 prompt:{{sd_positive_prompt}}{{styles}}
 negative_prompt: blurry,""")
@@ -463,6 +475,7 @@ negative_prompt: blurry,""")
             ASCIIColors.yellow(prompt)
             sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining negative prompt")
+            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}\n### Negative prompt:\n{sd_negative_prompt}")         
             # ====================================================================================            
             
         else:
@@ -479,7 +492,7 @@ negative_prompt: blurry,""")
         self.previous_sd_positive_prompt = sd_positive_prompt
         self.previous_sd_negative_prompt = sd_negative_prompt
 
-        output = f"### positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
+        output = f"### Positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
             files, output, infos = self.paint(sd_positive_prompt, sd_negative_prompt, output)

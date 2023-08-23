@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '!@>Prompt:'
+ai_message_prefix: '!@>artbot:'
 author: ParisNeo
 
 category: art
