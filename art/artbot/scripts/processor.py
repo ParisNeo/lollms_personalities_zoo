@@ -479,7 +479,7 @@ negative_prompt: blurry,""")
         self.previous_sd_positive_prompt = sd_positive_prompt
         self.previous_sd_negative_prompt = sd_negative_prompt
 
-        output = f"# positive_prompt :\n{sd_positive_prompt}\n# negative_prompt :\n{sd_negative_prompt}\n"
+        output = f"### positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
             files, output, infos = self.paint(sd_positive_prompt, sd_negative_prompt, output)
