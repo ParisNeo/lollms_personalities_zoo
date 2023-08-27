@@ -3,6 +3,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
+from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 import re
 import importlib
@@ -56,60 +57,29 @@ class Processor(APScript):
         
     def install(self):
         super().install()
-        # Get the current directory
-        root_dir = self.personality.lollms_paths.personal_path
-        # We put this in the shared folder in order as this can be used by other personalities.
-        shared_folder = root_dir/"shared"
-        sd_folder = shared_folder / "sd"
-
-        requirements_file = self.personality.personality_package_path / "requirements.txt"
-        # Step 2: Install dependencies using pip from requirements.txt
-        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
-        try:
-            print("Checking pytorch")
-            import torch
-            import torchvision
-            if torch.cuda.is_available():
-                print("CUDA is supported.")
-            else:
-                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
-                self.reinstall_pytorch_with_cuda()
-        except Exception as ex:
-            self.reinstall_pytorch_with_cuda()
-
-        # Step 1: Clone repository
-        if not sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/CompVis/stable-diffusion.git", str(sd_folder)])
-
-        # Step 2: Install the Python package inside sd folder
-        subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
-
-        # Step 3: Create models/Stable-diffusion folder if it doesn't exist
-        models_folder = shared_folder / "sd_models"
-        models_folder.mkdir(parents=True, exist_ok=True)
-
-        # Step 4: Download model file
-        model_url = "https://huggingface.co/Lykon/DreamShaper/resolve/main/DreamShaper_5_beta2_noVae_half_pruned.ckpt"
-        model_file = models_folder / "DreamShaper_5_beta2_noVae_half_pruned.ckpt"
         
-        # Download with progress using tqdm
-        if not model_file.exists():
-            response = requests.get(model_url, stream=True)
-            total_size = int(response.headers.get("content-length", 0))
-            block_size = 1024  # 1KB
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True)
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Install dependencies using pip from requirements.txt
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
 
-            with open(model_file, "wb") as file:
-                for data in response.iter_content(block_size):
-                    progress_bar.update(len(data))
-                    file.write(data)
-            
-            progress_bar.close()
+        # Clone repository
+        if not self.sd_folder.exists():
+            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
+
+        self.prepare()
         ASCIIColors.success("Installed successfully")
 
+    def prepare(self):
+        if self.sd is None:
+            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Personality maker", max_retries=-1)
+            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
 
     def get_sd(self):
-        sd_script_path = Path(__file__).parent / "sd.py"
+        
+        sd_script_path = self.sd_folder / "lollms_sd.py"
+        git_pull(self.sd_folder)
+        
         if sd_script_path.exists():
             module_name = sd_script_path.stem  # Remove the ".py" extension
             # use importlib to load the module from the file path
@@ -142,6 +112,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        self.callback = callback
+        self.prepare()
         output_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
         output_path.mkdir(parents=True, exist_ok=True)
         # First we create the yaml file
@@ -338,15 +310,7 @@ Avoid text as the generative ai is not good at generating text.
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Loading stable diffusion", callback)
-        if self.sd is None:
-            self.sd  = self.get_sd().SD(self.personality.lollms_paths, self.personality_config)
-        self.step_end("Loading stable diffusion", callback)
-        # ----------------------------------------------------------------
-
-        # ----------------------------------------------------------------
         self.step_start("Painting Icon", callback)
-        self.full("![](/personalities/english/art/artbot/assets/painting_animation.gif)", callback)
         try:
             files = self.sd.generate(sd_prompt.strip(), self.personality_config.num_images, self.personality_config.seed)
         except Exception as ex:

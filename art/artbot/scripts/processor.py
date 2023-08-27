@@ -4,23 +4,12 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper
+from lollms.utilities import PromptReshaper, git_pull
 import re
 import importlib
 import requests
 from tqdm import tqdm
 import webbrowser
-
-def git_pull(folder_path):
-    try:
-        # Change the current working directory to the desired folder
-        subprocess.run(["git", "checkout", folder_path], check=True, cwd=folder_path)
-        # Run 'git pull' in the specified folder
-        subprocess.run(["git", "pull"], check=True, cwd=folder_path)
-        print("Git pull successful in", folder_path)
-    except subprocess.CalledProcessError as e:
-        print("Error occurred while executing Git pull:", e)
-        # Handle any specific error handling here if required
 
 class Processor(APScript):
     """
@@ -48,6 +37,7 @@ class Processor(APScript):
             [
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
+                {"name":"use_fixed_negative_prompts","type":"bool","value":True,"help":"Uses parisNeo's preferred negative prompts"},
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
                 {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
                 {"name":"automatic_resolution_selection","type":"bool","value":True,"help":"If true then artbot chooses the resolution of the image to generate"},
@@ -65,6 +55,9 @@ class Processor(APScript):
 
                 {"name":"width","type":"int","value":512, "min":10, "max":2048},
                 {"name":"height","type":"int","value":512, "min":10, "max":2048},
+
+                {"name":"thumbneil_width","type":"int","value":256, "min":10, "max":2048},
+                {"name":"thumbneil_height","type":"int","value":256, "min":10, "max":2048},
 
                 {"name":"automatic_image_size","type":"bool","value":False,"help":"If true, artbot will select the image resolution"},
                 {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
@@ -99,8 +92,8 @@ class Processor(APScript):
                             ],
                             callback=callback
                         )
-        self.width=self.personality_config.width
-        self.height=self.personality_config.height
+        self.width=int(self.personality_config.width)
+        self.height=int(self.personality_config.height)
         
     def install(self):
         super().install()
@@ -119,7 +112,7 @@ class Processor(APScript):
     def prepare(self):
         if self.sd is None:
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, self.personality_config, max_retries=-1)
+            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Artbot", max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
         
@@ -186,7 +179,12 @@ class Processor(APScript):
             pth = str(path).replace("\\","/").split('/')
             idx = pth.index("uploads")
             pth = "/".join(pth[idx:])
-            file_path = f"![](/{pth})\n"
+
+
+            
+            file_path = f"""<div class="flex justify-center items-center cursor-pointer">
+    <img id="Artbot_912" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:{self.personality_config.thumbneil_width}px;height:{self.personality_config.thumbneil_height}px">
+</div>\n"""
 
             self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!{file_path}", callback=callback)
             self.finished_message()
@@ -195,100 +193,33 @@ class Processor(APScript):
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:
-            files, out, infos = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt)
+            files, out, infos = self.sd.paint(
+                            self.previous_sd_positive_prompt, 
+                            self.previous_sd_negative_prompt,
+                            self.files,
+                            "",
+                            sampler_name = self.personality_config.sampler_name,
+                            num_images = self.personality_config.num_images,
+                            seed = self.personality_config.seed,
+                            scale = self.personality_config.scale,
+                            steps = self.personality_config.steps,
+                            img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                            width = self.personality_config.width,
+                            height = self.personality_config.height,
+                            thumbneil_width = self.personality_config.thumbneil_width,
+                            thumbneil_height = self.personality_config.thumbneil_height,
+                            restore_faces = self.personality_config.restore_faces,
+                            step_start_callback = self.step_start,
+                            step_end_callback = self.step_end,
+                            file_ready_callback = self.full,
+                        )
+
             self.full(out)
             if self.personality_config.show_infos:
                 self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
         else:
             self.full("Please generate an image first then retry")
 
-    def paint(self,sd_positive_prompt, sd_negative_prompt, output =""):
-        files = []
-        infos = {}
-        for i in range(self.personality_config.num_images):
-            self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}")
-            if len(self.files)>0:
-                try:
-                    generated = self.sd.img2img(
-                                sd_positive_prompt,
-                                sd_negative_prompt, 
-                                [self.sd.loadImage(self.files[-1])],
-                                sampler_name="Euler",
-                                seed=self.personality_config.seed,
-                                cfg_scale=self.personality_config.scale,
-                                steps=self.personality_config.steps,
-                                width=self.width,
-                                height=self.height,
-                                denoising_strength=self.personality_config.img2img_denoising_strength,
-                                tiling=False,
-                                restore_faces=self.personality_config.restore_faces,
-                                styles=None, 
-                                script_name="",
-                                )
-                    """
-                        images: list
-                        parameters: dict
-                        info: dict
-                    """
-                    img_paths = []
-                    for img in generated.images:
-                        img_paths.append(self.sd.saveImage(img))
-                    files += img_paths
-                    infos = generated.info
-                except Exception as ex:
-                    ASCIIColors.error("Couldn't generate the image")
-                    trace_exception(ex)  
-            else:
-                try:
-                    generated = self.sd.txt2img(
-                                sd_positive_prompt,
-                                negative_prompt=sd_negative_prompt, 
-                                sampler_name="Euler",
-                                seed=self.personality_config.seed,
-                                cfg_scale=self.personality_config.scale,
-                                steps=self.personality_config.steps,
-                                width=self.personality_config.width,
-                                height=self.personality_config.height,
-                                tiling=False,
-                                restore_faces=self.personality_config.restore_faces,
-                                styles=None, 
-                                script_name="",
-                                )
-                    """
-                        images: list
-                        parameters: dict
-                        info: dict
-                    """
-                    img_paths = []
-                    for img in generated.images:
-                        img_paths.append(self.sd.saveImage(img))
-                    files += img_paths  
-                    infos = generated.info
-                except Exception as ex:
-                    ASCIIColors.error("Couldn't generate the image")
-                    trace_exception(ex)  
-            if len(files)>0:
-                f = str(files[-1]).replace("\\","/")
-                pth = f.split('/')
-                idx = pth.index("outputs")
-                pth = "/".join(pth[idx:])
-                file_path = f"![](/{pth})\n"
-                self.full(file_path)
-            
-            self.step_end(f"Building image number {i+1}/{self.personality_config.num_images}")
-        
-        for i in range(len(files)):
-            files[i] = str(files[i]).replace("\\","/")
-            pth = files[i].split('/')
-            idx = pth.index("outputs")
-            pth = "/".join(pth[idx:])
-            file_path = f"![](/{pth})\n"
-            output += file_path
-            ASCIIColors.yellow(f"Generated file in here : {files[i]}")
-
-        if self.personality_config.continue_from_last_image:
-            self.files= [files[-1]]
-        return files, output, infos
     
 
     def get_styles(self, prompt, full_context):
@@ -424,8 +355,7 @@ Then add words that describe the quality of the image such as detailed, high res
 Then mention the type of the image, such as artwork, photorealistic, water painting, oil painting, pensil drawing, octane rendering etc.
 Optionally mention the tool used to make the image or rendering, like unreal engine, or a specific camera type etc.
 Optionally, you can also mention an artist or an art style. Do not write artistname, explicitly write the artist name if you need to or just omit this one.
-use word:scale format to set words importance. The scale is between 0.8 to 1.5. For example to emphasize the word woman you would use this syntax woman:1.3. 
-Make sure you write a full prompt each time.
+To give more importance to a term put it inside multiple brackets (). More brackets mean more importance, for example ((word)) is more important than (word).
 Do not use bullet points.
 The prompt should be in english.
 {{previous_discussion}}{{initial_prompt}}
@@ -448,33 +378,37 @@ The prompt should be in english.
             self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
             # ====================================================================================
             # ====================================================================================
-            self.step_start("Imagining negative prompt")
-            # 1 first ask the model to formulate a query
-            pr  = PromptReshaper("""!@>instructions:
-Generate negative prompt based on the discussion with the user.
-The negative prompt is a list of keywords that should not be present in our image.
-Try to force the generator not to generate text or extra fingers or deformed faces.
-Use as many words as you need depending on the context.
-example: 3d, blurry, multiple, deformed, bad, ugly, extra fingers, amputee, text, fuzzy, unclear, bad anatomy, bad proportions, cropped, disfigured, duplicate, cloned face, mutilated, mutation, out of frame, worst quality, watermark 
-!@>discussion:
-{{previous_discussion}}{{initial_prompt}}
-!@>artbot:
-prompt:{{sd_positive_prompt}}{{styles}}
-negative_prompt: blurry,""")
-            prompt = pr.build({
-                    "previous_discussion":self.remove_image_links(full_context),
-                    "initial_prompt":initial_prompt,
-                    "sd_positive_prompt":sd_positive_prompt,
-                    "styles":','+styles if styles!='' else ''
-                    }, 
-                    self.personality.model.tokenize, 
-                    self.personality.model.detokenize, 
-                    self.personality.model.config.ctx_size,
-                    ["previous_discussion"]
-                    )
-            ASCIIColors.yellow(prompt)
-            sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-            self.step_end("Imagining negative prompt")
+            if not self.personality_config.use_fixed_negative_prompts:
+                self.step_start("Imagining negative prompt")
+                # 1 first ask the model to formulate a query
+                pr  = PromptReshaper("""!@>instructions:
+    Generate negative prompt based on the discussion with the user.
+    The negative prompt is a list of keywords that should not be present in our image.
+    Try to force the generator not to generate text or extra fingers or deformed faces.
+    Use as many words as you need depending on the context.
+    To give more importance to a term put it ibti multiple brackets ().
+    example: ((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))
+    !@>discussion:
+    {{previous_discussion}}{{initial_prompt}}
+    !@>artbot:
+    prompt:{{sd_positive_prompt}}{{styles}}
+    negative_prompt: ((morbid)),""")
+                prompt = pr.build({
+                        "previous_discussion":self.remove_image_links(full_context),
+                        "initial_prompt":initial_prompt,
+                        "sd_positive_prompt":sd_positive_prompt,
+                        "styles":','+styles if styles!='' else ''
+                        }, 
+                        self.personality.model.tokenize, 
+                        self.personality.model.detokenize, 
+                        self.personality.model.config.ctx_size,
+                        ["previous_discussion"]
+                        )
+                ASCIIColors.yellow(prompt)
+                sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                self.step_end("Imagining negative prompt")
+            else:
+                sd_negative_prompt = "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))"
             self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}\n### Negative prompt:\n{sd_negative_prompt}")         
             # ====================================================================================            
             
@@ -495,7 +429,29 @@ negative_prompt: blurry,""")
         output = f"### Positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
-            files, output, infos = self.paint(sd_positive_prompt, sd_negative_prompt, output)
+            files, output, infos = self.sd.paint(
+                            sd_positive_prompt, 
+                            sd_negative_prompt,
+                            self.files,
+                            output,
+                            sampler_name = self.personality_config.sampler_name,
+                            num_images = self.personality_config.num_images,
+                            seed = self.personality_config.seed,
+                            scale = self.personality_config.scale,
+                            steps = self.personality_config.steps,
+                            img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                            width = self.personality_config.width,
+                            height = self.personality_config.height,
+                            thumbneil_width = self.personality_config.thumbneil_width,
+                            thumbneil_height = self.personality_config.thumbneil_height,
+                            restore_faces = self.personality_config.restore_faces,
+                            step_start_callback = self.step_start,
+                            step_end_callback = self.step_end,
+                            file_ready_callback = self.full,
+                        )
+
+            if self.personality_config.continue_from_last_image:
+                self.files= [files[-1]]            
         else:
             infos = None
         self.full(output.strip())
