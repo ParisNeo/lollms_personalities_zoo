@@ -24,8 +24,13 @@ class Processor(APScript):
                  personality: AIPersonality,
                  callback = None,
                 ) -> None:
-        
+        # Get the current directory
+        root_dir = personality.lollms_paths.personal_path
+        # We put this in the shared folder in order as this can be used by other personalities.
+        shared_folder = root_dir/"shared"
+        self.sd_folder = shared_folder / "auto_sd"
         self.word_callback = None
+        self.sd = None
         personality_config_template = ConfigTemplate(
             [
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
