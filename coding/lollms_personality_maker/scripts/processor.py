@@ -137,27 +137,14 @@ name:""",50,0.1,10,0.98).strip().split("\n")[0]
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the author name")
-        author = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
-!@>task: Write the name of the author infered from the request?
-If no author mensioned then respond with ParisNeo.
-{self.personality.ai_message_prefix}
-author name:""",50,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the author name")
-        ASCIIColors.yellow(f"Author:{author}")
+        try:
+            author = "lollms_personality_maker prompted by "+self.personality.config.user_name
+        except:
+            author = "lollms_personality_maker"
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the version")
-        version = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
-!@>task: Write the version of the personality infered from the request?
-If no version mensioned then version is 1.0
-{self.personality.ai_message_prefix}
-version:""",25,0.1,10,0.98).strip().split("\n")[0]
-        self.step_end("Coming up with the version")
-        ASCIIColors.yellow(f"Version:{version}")
+        version = "1.0" 
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -365,7 +352,8 @@ Avoid text as the generative ai is not good at generating text.
         path = self.personality.lollms_paths.personalities_zoo_path/"personal"/name.replace(" ","_")
         path.mkdir(parents=True, exist_ok=True)
         with open (path/"config.yaml","w") as f:
-            yaml.dump(yaml_data,f)
+            config = yaml.safe_load(yaml_data)
+            yaml.safe_dump(config,f)
         assets_path= path/"assets"
         assets_path.mkdir(parents=True, exist_ok=True)
         shutil.copy(files[-1], assets_path/"logo.png")
