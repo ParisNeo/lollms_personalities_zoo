@@ -12,6 +12,9 @@ from tqdm import tqdm
 import shutil
 import yaml
 
+# Flask is needed for ui functionalities
+from flask import request, jsonify
+
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -61,7 +64,7 @@ class Processor(APScript):
                             callback=callback
                         )
         self.sd = None
-        
+
     def install(self):
         super().install()
         
@@ -75,6 +78,15 @@ class Processor(APScript):
 
         self.prepare()
         ASCIIColors.success("Installed successfully")
+
+    def handle_request(self, data): # selects the image for the personality
+        personality_subpath = data['personality_subpath']
+        logo_path = data['logo_path']
+        assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
+
+        shutil.copy(logo_path, assets_path/"logo.png")
+        return jsonify({"status":True})
+
 
     def prepare(self):
         if self.sd is None:
@@ -304,6 +316,10 @@ Avoid text as the generative ai is not good at generating text.
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
+
+        path = self.personality.lollms_paths.personalities_zoo_path/"personal"/name.replace(" ","_")
+        assets_path= path/"assets"
+        personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
         self.step_start("Painting Icon")
         try:
             files, out, infos = self.sd.paint(
@@ -329,19 +345,40 @@ Avoid text as the generative ai is not good at generating text.
             ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
             trace_exception(ex)
             files=[]
+
         output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
+            file_id = files[i].split(".")[0].split('_')[1]
             shutil.copy(files[i],str(personality_assets_path))
             pth = files[i].split('/')
             idx = pth.index("outputs")
             pth = "/".join(pth[idx:])
-            file_path = f"""<div class="flex justify-center items-center cursor-pointer">
-    <img id="Artbot_912" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:300px;height:300px">
-</div>\n"""
+            file_path = f"""<script>
+function select_{file_id}() """+ """{ 
+
+</script defer>"""+f"""
+<div class="flex justify-center items-center cursor-pointer">
+    <img id="Artbot_{file_id}" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:300px;height:300px">
+</div>
+<div class="flex justify-center items-center cursor-pointer">
+    <button class="bg-green-600 rounded m-2 p-2 hover:bg-green-200" id="button_{file_id}" onclick="console.log('Selected');"""+"""
+    fetch('/post_to_personality', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"""+f"""
+            personality_subpath: '{personality_path.split("/")[1]}',
+            logo_path: '{files[i]}'"""+"""
+        })
+    })">Select</button>
+</div>
+
+"""
             output += file_path
             print(f"Generated file in here : {files[i]}")
-        server_path = "/outputs/"+"/".join(str(personality_path).replace('\\','/').split('/')[-2:])
+        server_path = "/outputs/"+personality_path
         output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
@@ -349,12 +386,11 @@ Avoid text as the generative ai is not good at generating text.
         self.full(output, callback)
         
 
-        path = self.personality.lollms_paths.personalities_zoo_path/"personal"/name.replace(" ","_")
         path.mkdir(parents=True, exist_ok=True)
         with open (path/"config.yaml","w") as f:
             config = yaml.safe_load(yaml_data)
             yaml.safe_dump(config,f)
-        assets_path= path/"assets"
+        
         assets_path.mkdir(parents=True, exist_ok=True)
         shutil.copy(files[-1], assets_path/"logo.png")
         return output

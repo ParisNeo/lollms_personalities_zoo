@@ -94,7 +94,8 @@ class Processor(APScript):
                         )
         self.width=int(self.personality_config.width)
         self.height=int(self.personality_config.height)
-        
+
+
     def install(self):
         super().install()
         
