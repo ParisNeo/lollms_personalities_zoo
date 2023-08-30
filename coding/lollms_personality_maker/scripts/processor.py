@@ -286,7 +286,7 @@ dependencies: []
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
         """
-        personality_path:Path = output_path/(name.lower().replace(" ","_").replace("\n",""))
+        personality_path:Path = output_path/(name.lower().replace(" ","_").replace("\n","").replace('"',''))
         personality_path.mkdir(parents=True, exist_ok=True)
         with open(personality_path/"config.yaml","w", encoding="utf8") as f:
             f.write(yaml_data)
@@ -347,6 +347,8 @@ Avoid text as the generative ai is not good at generating text.
             files=[]
 
         output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
+
+        ui = ""
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
             file_id = files[i].split(".")[0].split('_')[1]
@@ -354,15 +356,12 @@ Avoid text as the generative ai is not good at generating text.
             pth = files[i].split('/')
             idx = pth.index("outputs")
             pth = "/".join(pth[idx:])
-            file_path = f"""<script>
-function select_{file_id}() """+ """{ 
-
-</script defer>"""+f"""
-<div class="flex justify-center items-center cursor-pointer">
+            file_path = f"""
+<div class="flex items-center cursor-pointer">
     <img id="Artbot_{file_id}" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:300px;height:300px">
 </div>
 <div class="flex justify-center items-center cursor-pointer">
-    <button class="bg-green-600 rounded m-2 p-2 hover:bg-green-200" id="button_{file_id}" onclick="console.log('Selected');"""+"""
+    <button class="w-full bg-green-600 rounded m-2 p-2 hover:bg-green-200" id="button_{file_id}" onclick="console.log('Selected');"""+"""
     fetch('/post_to_personality', {
         method: 'POST',
         headers: {
@@ -374,9 +373,8 @@ function select_{file_id}() """+ """{
         })
     })">Select</button>
 </div>
-
 """
-            output += file_path
+            ui += file_path
             print(f"Generated file in here : {files[i]}")
         server_path = "/outputs/"+personality_path
         output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
@@ -384,7 +382,7 @@ function select_{file_id}() """+ """{
         self.step_end("Painting Icon")
         
         self.full(output, callback)
-        
+        self.ui(ui)
 
         path.mkdir(parents=True, exist_ok=True)
         with open (path/"config.yaml","w") as f:
