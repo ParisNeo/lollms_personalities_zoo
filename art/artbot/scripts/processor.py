@@ -258,7 +258,9 @@ class Processor(APScript):
         prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this artwork: {stl}\n!@>assistant:I select"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
-        return stl
+
+        selected_style = ",".join([s for s in styles if s.lower() in stl])
+        return selected_style
 
     def get_resolution(self, prompt, full_context, default_resolution=[512,512]):
 
@@ -307,7 +309,7 @@ class Processor(APScript):
                 is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 ASCIIColors.cyan(is_discussion)
                 if "yes" not in is_discussion.lower():
-                    pr  = PromptReshaper("""!@>instructions>Artbot est une IA conviviale de génération d'art qui discute des idées avec les humains sur l'art.
+                    pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
 !@>artbot:""")
