@@ -25,13 +25,10 @@ class Processor(APScript):
         # Get the current directory
         root_dir = personality.lollms_paths.personal_path
         # We put this in the shared folder in order as this can be used by other personalities.
-        shared_folder = root_dir/"shared"
-        self.sd_folder = shared_folder / "auto_sd"
         
         self.callback = None
-        self.sd = None
-        self.previous_sd_positive_prompt = None
-        self.sd_negative_prompt = None
+        self.music_model = None
+        self.previous_sd_prompt = None
 
         personality_config_template = ConfigTemplate(
             [
