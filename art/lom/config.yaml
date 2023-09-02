@@ -37,18 +37,14 @@ help: |
 commands:
   - name: Send File
     value: send_file
-    icon: personalities/art/artbot_2/assets/send_file.svg
+    icon: 'feather:file-plus'
     is_file: true
     file_types: .wav,.mp3
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: New Music
     value: new_music
-    icon: personalities/art/lom/assets/file.svg
+    icon: 'feather:file'
     help: start 
-  - name: Show Stable diffusion UI
-    value: show_sd
-    icon: personalities/art/lom/assets/open_sd.svg
-    help: shows the full stable diffusion ui for more options.
   - name: Regenerate with last prompt
     value: regenerate
     help: shows the stable diffusion settings

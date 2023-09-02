@@ -37,13 +37,13 @@ help: |
 commands:
   - name: Send File
     value: send_file
-    icon: personalities/art/artbot_2/assets/send_file.svg
+    icon: 'feather:file-plus'
     is_file: true
     file_types: .png,.jpg,.bmp
     help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: New Image
     value: new_image
-    icon: personalities/art/artbot/assets/file.svg
+    icon: 'feather:file'
     help: start 
   - name: Show Stable diffusion UI
     value: show_sd
