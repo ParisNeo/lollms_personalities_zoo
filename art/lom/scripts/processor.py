@@ -193,14 +193,16 @@ class Processor(APScript):
             self.step_stmusic("Imagining prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(full_context.split("!@>")[:-2])
-            pr  = PromptReshaper("""!@>instructions:
+            pr  = PromptReshaper("""!@>discussion:                                 
+{{previous_discussion}}
+!@>instructions:
 Make a prompt based on the discussion with the user presented below to generate some music in the right style.
 Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
 Do not use bullet points.
 The prompt should be in english.
-!@>discussion:                                 
-{{previous_discussion}}{{initial_prompt}}
+The generation ai has no access to the previous text so do not do references and justwrite the prompt 
+{{initial_prompt}}
 !@>style_choice: {{styles}}                                 
 !@>music_generation_prompt: Create""")
             prompt = pr.build({

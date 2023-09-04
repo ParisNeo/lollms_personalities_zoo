@@ -217,7 +217,7 @@ class Processor(APScript):
 
             self.full(out)
             if self.personality_config.show_infos:
-                self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,infos)
+                self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
         else:
             self.full("Please generate an image first then retry")
 
@@ -293,9 +293,17 @@ class Processor(APScript):
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
                 pr  = PromptReshaper("""!@>discussion:
-{{previous_discussion}}{{initial_prompt}}
+{{previous_discussion}}
+!@>instruction>artbot should answer with Yes or No. Do not write explanation
+Here is an example:
+!@>user: Make an artwork about love
 !@>question: Is the user's message asking to generate an image? 
-!@>instruction>artbot should answer with Yes or No.
+!@>artbot:The answer to the question is YES.
+!@>user: What is the best way to draw a face?
+!@>question: Is the user's message asking to generate an image? 
+!@>artbot:The answer to the question is No.                                    
+{{initial_prompt}}
+!@>question: Is the user's message asking to generate an image? 
 !@>artbot:The answer to the question is""")
                 prompt = pr.build({
                         "previous_discussion":full_context,
@@ -348,7 +356,9 @@ class Processor(APScript):
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            pr  = PromptReshaper("""!@>instructions:
+            pr  = PromptReshaper("""!@>discussion:                                 
+{{previous_discussion}}
+!@>instructions:
 Make a prompt based on the discussion with the user presented below.
 Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
@@ -361,9 +371,10 @@ Optionally, you can also mention an artist or an art style. Do not write artistn
 To give more importance to a term put it inside multiple brackets (). More brackets mean more importance, for example ((word)) is more important than (word).
 Do not use bullet points.
 The prompt should be in english.
-{{previous_discussion}}{{initial_prompt}}
+The AI has no access to the instructions or the discussion. Do not make any references to them. Just build a comprehensive detailed prompt.
+{{initial_prompt}}
 !@>style_choice: {{styles}}                                 
-!@>art_generation_prompt: Create""")
+!@>art_generation_prompt: Create an artwork""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
@@ -376,7 +387,7 @@ The prompt should be in english.
                     )
             
             ASCIIColors.yellow(prompt)
-            sd_positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            sd_positive_prompt = "An artwork "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
             # ====================================================================================

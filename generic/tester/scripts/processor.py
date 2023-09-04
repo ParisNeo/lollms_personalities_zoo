@@ -6,6 +6,11 @@ from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 import json
 
+import shutil
+import yaml
+
+# Flask is needed for ui functionalities
+from flask import request, jsonify
 
 class Processor(APScript):
     """
@@ -92,10 +97,40 @@ class Processor(APScript):
         super().add_file(path)
 
 
+
+    def handle_request(self, data): # selects the image for the personality
+        personality_subpath = data['personality_subpath']
+        logo_path = data['logo_path']
+        assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
+
+        shutil.copy(logo_path, assets_path/"logo.png")
+        return jsonify({"status":True})
+
+    def make_selectable_photo(self, image_id, image_source, params=""):
+        return f"""
+        <div class="flex items-center cursor-pointer justify-content: space-around">
+            <img id="{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="console.log('Selected');"""+"""
+            fetch('/post_to_personality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({"""+f"""
+                {params}"""+"""})
+            })">
+        </div>
+        """
+
     # States ================================================
     def idle(self, prompt, full_context):    
          self.full("testing responses and creating new json message")
          self.new_message("json data", MSG_TYPE.MSG_TYPE_JSON_INFOS,{'test':{'value':1,'value2':2},'test2':['v1','v2']})
+         file_id = 721
+         personality_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
+         personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
+         pth = "outputs/sd/Artbot_721.png"
+         self.new_message('<img src="outputs/sd/Artbot_721.png">', MSG_TYPE.MSG_TYPE_UI)
+         self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_TYPE.MSG_TYPE_UI)
         
     def state1(self, prompt, full_context):    
          self.full("testing responses from state 1", callback=self.callback)
