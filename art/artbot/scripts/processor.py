@@ -239,7 +239,7 @@ class Processor(APScript):
                                 height = self.personality_config.height,
                                 restore_faces = self.personality_config.restore_faces,
                             )            
-                ui += self.make_selectable_photo("Photo", file)
+                ui += self.make_selectable_photo(img, file)
             self.ui(ui)
             if self.personality_config.show_infos:
                 self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
@@ -491,7 +491,7 @@ The AI has no access to the instructions or the discussion. Do not make any refe
         else:
             infos = None
         self.full(output.strip())
-        self.ui(ui)
+        self.new_message(ui, MSG_TYPE.MSG_TYPE_UI)
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 

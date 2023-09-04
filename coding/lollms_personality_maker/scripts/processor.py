@@ -335,24 +335,23 @@ Avoid text as the generative ai is not good at generating text.
         personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
         self.step_start("Painting Icon")
         try:
-            files, out, infos = self.sd.paint(
-                            sd_prompt, 
-                            "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))",
-                            self.files,
-                            "",
-                            sampler_name = self.personality_config.sampler_name,
-                            num_images = self.personality_config.num_images,
-                            seed = self.personality_config.seed,
-                            scale = self.personality_config.scale,
-                            steps = self.personality_config.steps,
-                            width = self.personality_config.W,
-                            height = self.personality_config.H,
-                            restore_faces = True,
-                            step_start_callback = self.step_start,
-                            step_end_callback = self.step_end,
-                            file_ready_callback = self.full,
-                        )            
-            
+            files = []
+            for img in range(self.personality_config.num_images):
+                file, infos = self.sd.paint(
+                                sd_prompt, 
+                                "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))",
+                                self.files,
+                                sampler_name = self.personality_config.sampler_name,
+                                seed = self.personality_config.seed,
+                                scale = self.personality_config.scale,
+                                steps = self.personality_config.steps,
+                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                width = self.personality_config.W,
+                                height = self.personality_config.H,
+                                restore_faces = self.personality_config.restore_faces,
+                            )   
+                files.append(file)
+
         except Exception as ex:
             self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
             ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
