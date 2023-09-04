@@ -96,7 +96,7 @@ class Processor(APScript):
         if self.music_model is None:
             from audiocraft.models import musicgen
             import torch
-            self.step_stmusic("Loading Meta's musicgen")
+            self.step_start("Loading Meta's musicgen")
             self.music_model = musicgen.MusicGen.get_pretrained(self.personality_config.model_name, device='cuda')
             self.step_end("Loading Meta's musicgen")
         
@@ -121,7 +121,7 @@ class Processor(APScript):
     
 
     def get_styles(self, prompt, full_context):
-        self.step_stmusic("Selecting style")
+        self.step_start("Selecting style")
         styles=[
             "hard rock",
             "Pop",
@@ -190,7 +190,7 @@ class Processor(APScript):
                 styles = "No specific style selected."
             self.full(f"### Chosen style:\n{styles}")         
 
-            self.step_stmusic("Imagining prompt")
+            self.step_start("Imagining prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(full_context.split("!@>")[:-2])
             pr  = PromptReshaper("""!@>discussion:                                 

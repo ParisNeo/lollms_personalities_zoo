@@ -95,6 +95,12 @@ class Processor(APScript):
         self.width=int(self.personality_config.width)
         self.height=int(self.personality_config.height)
 
+    def print_prompt(self, title, prompt):
+        ASCIIColors.red("*-*-*-*-*-*-*-* ", end="")
+        ASCIIColors.red(prompt, end="")
+        ASCIIColors.red(" *-*-*-*-*-*-*-*")
+        ASCIIColors.yellow(prompt)
+        ASCIIColors.red(" *-*-*-*-*-*-*-*")
 
     def install(self):
         super().install()
@@ -175,7 +181,7 @@ class Processor(APScript):
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
             description = self.sd.interrogate(str(path)).info
-            ASCIIColors.yellow(description)
+            self.print_prompt("Blip description",description)
             self.step_end("Understanding the image", callback=callback)
             pth = str(path).replace("\\","/").split('/')
             idx = pth.index("uploads")
@@ -330,7 +336,7 @@ Here is an example:
                             self.personality.model.config.ctx_size,
                             ["previous_discussion"]
                             )
-                    ASCIIColors.yellow(prompt)
+                    self.print_prompt("Discussion",prompt)
 
                     response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                     self.full(response)
@@ -385,8 +391,8 @@ The AI has no access to the instructions or the discussion. Do not make any refe
                     self.personality.model.config.ctx_size,
                     ["previous_discussion"]
                     )
-            
-            ASCIIColors.yellow(prompt)
+            self.print_prompt("Positive prompt",prompt)
+
             sd_positive_prompt = "An artwork "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
@@ -418,7 +424,7 @@ The AI has no access to the instructions or the discussion. Do not make any refe
                         self.personality.model.config.ctx_size,
                         ["previous_discussion"]
                         )
-                ASCIIColors.yellow(prompt)
+                self.print_prompt("Generate negative prompt", prompt)
                 sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Imagining negative prompt")
             else:
