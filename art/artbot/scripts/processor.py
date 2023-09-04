@@ -95,6 +95,26 @@ class Processor(APScript):
         self.width=int(self.personality_config.width)
         self.height=int(self.personality_config.height)
 
+    def get_css(self):
+        return '<link rel="stylesheet" href="/personalities/art/artbot/assets/tailwind.css">'
+
+
+    def make_selectable_photo(self, image_id, image_source, params=""):
+        return f"""
+        <link rel="stylesheet" href="/assets/index-a4ed7438.css">
+        <div class="flex items-center cursor-pointer justify-content: space-around">
+            <img id="{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="console.log('Selected');"""+"""
+            fetch('/post_to_personality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({"""+f"""
+                {params}"""+"""})
+            })">
+        </div>
+        """
+
     def print_prompt(self, title, prompt):
         ASCIIColors.red("*-*-*-*-*-*-*-* ", end="")
         ASCIIColors.red(title, end="")
@@ -194,39 +214,33 @@ class Processor(APScript):
 
 
             
-            file_path = f"""<div class="flex justify-center items-center cursor-pointer">
-    <img id="Artbot_912" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:{self.personality_config.thumbneil_width}px;height:{self.personality_config.thumbneil_height}px">
-</div>\n"""
-
-            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!{file_path}", callback=callback)
+            file_path = self.make_selectable_photo("Image",f"/{pth}")
+            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!", callback=callback)
+            self.ui(file_path)
             self.finished_message()
         else:    
             self.full(f"File added successfully\n", callback=callback)
         
     def regenerate(self, prompt, full_context):
         if self.previous_sd_positive_prompt:
-            files, out, infos = self.sd.paint(
-                            self.previous_sd_positive_prompt, 
-                            self.previous_sd_negative_prompt,
-                            self.files,
-                            "",
-                            sampler_name = self.personality_config.sampler_name,
-                            num_images = self.personality_config.num_images,
-                            seed = self.personality_config.seed,
-                            scale = self.personality_config.scale,
-                            steps = self.personality_config.steps,
-                            img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                            width = self.personality_config.width,
-                            height = self.personality_config.height,
-                            thumbneil_width = self.personality_config.thumbneil_width,
-                            thumbneil_height = self.personality_config.thumbneil_height,
-                            restore_faces = self.personality_config.restore_faces,
-                            step_start_callback = self.step_start,
-                            step_end_callback = self.step_end,
-                            file_ready_callback = self.full,
-                        )
-
-            self.full(out)
+            files = []
+            ui=""
+            for img in range(self.personality_config.num_images):
+                file, infos = self.sd.paint(
+                                self.previous_sd_positive_prompt, 
+                                self.previous_sd_negative_prompt,
+                                self.files,
+                                sampler_name = self.personality_config.sampler_name,
+                                seed = self.personality_config.seed,
+                                scale = self.personality_config.scale,
+                                steps = self.personality_config.steps,
+                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                width = self.personality_config.width,
+                                height = self.personality_config.height,
+                                restore_faces = self.personality_config.restore_faces,
+                            )            
+                ui += self.make_selectable_photo("Photo", file)
+            self.ui(ui)
             if self.personality_config.show_infos:
                 self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
         else:
@@ -454,32 +468,30 @@ The AI has no access to the instructions or the discussion. Do not make any refe
         output = f"### Positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
 
         if self.personality_config.paint:
-            files, output, infos = self.sd.paint(
-                            sd_positive_prompt, 
-                            sd_negative_prompt,
-                            self.files,
-                            output,
-                            sampler_name = self.personality_config.sampler_name,
-                            num_images = self.personality_config.num_images,
-                            seed = self.personality_config.seed,
-                            scale = self.personality_config.scale,
-                            steps = self.personality_config.steps,
-                            img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                            width = self.personality_config.width,
-                            height = self.personality_config.height,
-                            thumbneil_width = self.personality_config.thumbneil_width,
-                            thumbneil_height = self.personality_config.thumbneil_height,
-                            restore_faces = self.personality_config.restore_faces,
-                            step_start_callback = self.step_start,
-                            step_end_callback = self.step_end,
-                            file_ready_callback = self.full,
-                        )
-
+            files = []
+            ui=""
+            for img in range(self.personality_config.num_images):
+                file, infos = self.sd.paint(
+                                sd_positive_prompt, 
+                                sd_negative_prompt,
+                                self.files,
+                                sampler_name = self.personality_config.sampler_name,
+                                seed = self.personality_config.seed,
+                                scale = self.personality_config.scale,
+                                steps = self.personality_config.steps,
+                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                width = self.personality_config.width,
+                                height = self.personality_config.height,
+                                restore_faces = self.personality_config.restore_faces,
+                            )
+                files.append(file)
+                ui += self.make_selectable_photo(img, file)
             if self.personality_config.continue_from_last_image:
-                self.files= [files[-1]]            
+                self.files= [file]            
         else:
             infos = None
         self.full(output.strip())
+        self.ui(ui)
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 

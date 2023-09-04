@@ -130,8 +130,7 @@ class Processor(APScript):
                 {params}"""+"""})
             })">
         </div>
-        """
-    
+        """ 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
