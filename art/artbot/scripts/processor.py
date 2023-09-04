@@ -97,7 +97,7 @@ class Processor(APScript):
 
     def print_prompt(self, title, prompt):
         ASCIIColors.red("*-*-*-*-*-*-*-* ", end="")
-        ASCIIColors.red(prompt, end="")
+        ASCIIColors.red(title, end="")
         ASCIIColors.red(" *-*-*-*-*-*-*-*")
         ASCIIColors.yellow(prompt)
         ASCIIColors.red(" *-*-*-*-*-*-*-*")
