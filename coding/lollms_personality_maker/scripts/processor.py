@@ -117,7 +117,21 @@ class Processor(APScript):
 
 
     
-
+    def make_selectable_photo(self, image_id, image_source, params=""):
+        return f"""
+        <div class="flex items-center cursor-pointer justify-content: space-around">
+            <img id="{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="console.log('Selected');"""+"""
+            fetch('/post_to_personality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({"""+f"""
+                {params}"""+"""})
+            })">
+        </div>
+        """
+    
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -356,24 +370,7 @@ Avoid text as the generative ai is not good at generating text.
             pth = files[i].split('/')
             idx = pth.index("outputs")
             pth = "/".join(pth[idx:])
-            file_path = f"""
-<div class="flex items-center cursor-pointer">
-    <img id="Artbot_{file_id}" src="/{pth}" alt="Artbot generated image" class="object-cover" style="width:300px;height:300px">
-</div>
-<div class="flex justify-center items-center cursor-pointer">
-    <button class="w-full bg-green-600 rounded m-2 p-2 hover:bg-green-200" id="button_{file_id}" onclick="console.log('Selected');"""+"""
-    fetch('/post_to_personality', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({"""+f"""
-            personality_subpath: '{personality_path.split("/")[1]}',
-            logo_path: '{files[i]}'"""+"""
-        })
-    })">Select</button>
-</div>
-"""
+            file_path = self.make_selectable_photo(f"Artbot_{file_id}", "pth", params="")
             ui += file_path
             print(f"Generated file in here : {files[i]}")
         server_path = "/outputs/"+personality_path
