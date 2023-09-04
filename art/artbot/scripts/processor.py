@@ -487,7 +487,7 @@ The AI has no access to the instructions or the discussion. Do not make any refe
                             )
                 file = str(file)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
-                ui += self.make_selectable_photo(img, file)
+                ui += self.make_selectable_photo(img, "/"+file[file.index("outputs"):].replace("\\","/"))
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
