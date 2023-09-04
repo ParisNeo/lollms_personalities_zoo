@@ -238,7 +238,8 @@ class Processor(APScript):
                                 width = self.personality_config.width,
                                 height = self.personality_config.height,
                                 restore_faces = self.personality_config.restore_faces,
-                            )            
+                            )
+                file = str(file)
                 ui += self.make_selectable_photo(img, "/"+file[file.index("outputs"):].replace("\\","/"))
             self.ui(ui)
             if self.personality_config.show_infos:
@@ -484,8 +485,10 @@ The AI has no access to the instructions or the discussion. Do not make any refe
                                 height = self.personality_config.height,
                                 restore_faces = self.personality_config.restore_faces,
                             )
+                file = str(file)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                 ui += self.make_selectable_photo(img, file)
+
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
         else:
