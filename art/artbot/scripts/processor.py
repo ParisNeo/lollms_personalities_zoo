@@ -129,10 +129,15 @@ class Processor(APScript):
         git_pull(self.sd_folder)
         
         if sd_script_path.exists():
+            ASCIIColors.success("lollms_sd found.")
+            ASCIIColors.success("Loading source file...",end="")
             module_name = sd_script_path.stem  # Remove the ".py" extension
             # use importlib to load the module from the file path
             loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
+            ASCIIColors.success("ok")
+            ASCIIColors.success("Loading module...",end="")
             sd_module = loader.load_module()
+            ASCIIColors.success("ok")
             return sd_module
 
     def remove_image_links(self, markdown_text):
