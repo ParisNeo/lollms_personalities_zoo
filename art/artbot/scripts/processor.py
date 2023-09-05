@@ -4,7 +4,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull
+from lollms.utilities import PromptReshaper, git_pull, PromptReshaper
 import re
 import importlib
 import requests
@@ -27,6 +27,7 @@ class Processor(APScript):
         # We put this in the shared folder in order as this can be used by other personalities.
         shared_folder = root_dir/"shared"
         self.sd_folder = shared_folder / "auto_sd"
+        
         
         self.callback = None
         self.sd = None
@@ -99,22 +100,25 @@ class Processor(APScript):
         return '<link rel="stylesheet" href="/personalities/art/artbot/assets/tailwind.css">'
 
 
-    def make_selectable_photo(self, image_id, image_source, params=""):
-        return f"""
-        <link rel="stylesheet" href="/assets/index-a4ed7438.css">
-        <div class="flex items-center cursor-pointer justify-content: space-around">
-            <img id="{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="console.log('Selected');"""+"""
-            fetch('/post_to_personality', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({"""+f"""
-                {params}"""+"""})
-            })">
-        </div>
-        """
-
+    def make_selectable_photo(self, image_id, image_source):
+        with(open(Path(__file__).parent.parent/"assets/photo.html","r") as f):
+            str_data = f.read()
+        
+        reshaper = PromptReshaper(str_data)
+        str_data = reshaper.replace({
+            "{image_id}":f"{image_id}",
+            "{image_source}":image_source
+        })
+        return str_data
+    def make_selectable_photos(self, html:str):
+        with(open(Path(__file__).parent.parent/"assets/photos_galery.html","r") as f):
+            str_data = f.read()
+        
+        reshaper = PromptReshaper(str_data)
+        str_data = reshaper.replace({
+            "{{photos}}":html
+        })
+        return str_data
     def print_prompt(self, title, prompt):
         ASCIIColors.red("*-*-*-*-*-*-*-* ", end="")
         ASCIIColors.red(title, end="")
@@ -214,9 +218,9 @@ class Processor(APScript):
 
 
             
-            file_path = self.make_selectable_photo("Image",f"/{pth}")
+            file_html = self.make_selectable_photo("0",f"/{pth}")
             self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!", callback=callback)
-            self.ui(file_path)
+            self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
             self.full(f"File added successfully\n", callback=callback)
@@ -226,6 +230,7 @@ class Processor(APScript):
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
+                self.step_start(f"Building image {img}")
                 file, infos = self.sd.paint(
                                 self.previous_sd_positive_prompt, 
                                 self.previous_sd_negative_prompt,
@@ -240,8 +245,11 @@ class Processor(APScript):
                                 restore_faces = self.personality_config.restore_faces,
                             )
                 file = str(file)
-                ui += self.make_selectable_photo(img, "/"+file[file.index("outputs"):].replace("\\","/"))
-            self.ui(ui)
+                file_html = self.make_selectable_photo(img,"/"+file[file.index("outputs"):].replace("\\","/"))
+
+                ui += file_html
+                self.step_end(f"Building image {img}")
+            self.ui(self.make_selectable_photos(ui))
             if self.personality_config.show_infos:
                 self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
         else:
@@ -318,19 +326,14 @@ class Processor(APScript):
         
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                pr  = PromptReshaper("""!@>discussion:
-{{previous_discussion}}
-!@>instruction>artbot should answer with Yes or No. Do not write explanation
-Here is an example:
-!@>user: Make an artwork about love
-!@>question: Is the user's message asking to generate an image? 
-!@>artbot:The answer to the question is YES.
-!@>user: What is the best way to draw a face?
-!@>question: Is the user's message asking to generate an image? 
-!@>artbot:The answer to the question is No.                                    
+                pr  = PromptReshaper("""!@>Instructions:
+Act as  prompt analyzer, a tool capable of analyzing the user prompt and answering yes or no this prompt asking to generate an image.
+
+!@>User prompt:                               
 {{initial_prompt}}
-!@>question: Is the user's message asking to generate an image? 
-!@>artbot:The answer to the question is""")
+!@>question: Is the user's message asking to generate an image?
+Yes or No?
+!@>prompt analyzer: After analyzing the user prompt, the answer is""")
                 prompt = pr.build({
                         "previous_discussion":full_context,
                         "initial_prompt":initial_prompt
@@ -340,6 +343,7 @@ Here is an example:
                         self.personality.model.config.ctx_size,
                         ["previous_discussion"]
                         )
+                self.print_prompt("Ask yes or no, this is a generation request",prompt)
                 is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 ASCIIColors.cyan(is_discussion)
                 if "yes" not in is_discussion.lower():
@@ -385,19 +389,7 @@ Here is an example:
             pr  = PromptReshaper("""!@>discussion:                                 
 {{previous_discussion}}
 !@>instructions:
-Make a prompt based on the discussion with the user presented below.
-Make sure you mention every thing asked by the user's idea.
-Do not make a very long text.
-Follow this format in a single paragraph:
-First describe the image, then write a list of words to make a generic description of the style and vibe (example: cyberpunk, steampunk, water painting, pensil drawing etc).
-Then add words that describe the quality of the image such as detailed, high resolution, 4k, 8k. this is mandatory.
-Then mention the type of the image, such as artwork, photorealistic, water painting, oil painting, pensil drawing, octane rendering etc.
-Optionally mention the tool used to make the image or rendering, like unreal engine, or a specific camera type etc.
-Optionally, you can also mention an artist or an art style. Do not write artistname, explicitly write the artist name if you need to or just omit this one.
-To give more importance to a term put it inside multiple brackets (). More brackets mean more importance, for example ((word)) is more important than (word).
-Do not use bullet points.
-The prompt should be in english.
-The AI has no access to the instructions or the discussion. Do not make any references to them. Just build a comprehensive detailed prompt.
+Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the artwork description details. 
 {{initial_prompt}}
 !@>style_choice: {{styles}}                                 
 !@>art_generation_prompt: Create an artwork""")
@@ -486,15 +478,18 @@ The AI has no access to the instructions or the discussion. Do not make any refe
                                 restore_faces = self.personality_config.restore_faces,
                             )
                 file = str(file)
+
+                file_html = self.make_selectable_photo(img,"/"+file[file.index("outputs"):].replace("\\","/"))
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
-                ui += self.make_selectable_photo(img, "/"+file[file.index("outputs"):].replace("\\","/"))
+                ui += file_html
+                self.ui(self.make_selectable_photos(file_html))
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
         else:
             infos = None
         self.full(output.strip())
-        self.new_message(ui, MSG_TYPE.MSG_TYPE_UI)
+        self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 
