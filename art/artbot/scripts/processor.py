@@ -218,7 +218,7 @@ class Processor(APScript):
 
 
             
-            file_html = self.make_selectable_photo("0",f"/{pth}")
+            file_html = self.make_selectable_photo(path.stem,f"/{pth}")
             self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!", callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
@@ -245,7 +245,7 @@ class Processor(APScript):
                                 restore_faces = self.personality_config.restore_faces,
                             )
                 file = str(file)
-                file_html = self.make_selectable_photo(img,"/"+file[file.index("outputs"):].replace("\\","/"))
+                file_html = self.make_selectable_photo(Path(file).stem,"/"+file[file.index("outputs"):].replace("\\","/"))
 
                 ui += file_html
                 self.step_end(f"Building image {img}")
@@ -464,6 +464,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
+                self.step_start(f"Generating image {img}")
                 file, infos = self.sd.paint(
                                 sd_positive_prompt, 
                                 sd_negative_prompt,
@@ -477,12 +478,14 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                                 height = self.personality_config.height,
                                 restore_faces = self.personality_config.restore_faces,
                             )
+                self.step_end(f"Generating image {img}")
                 file = str(file)
 
-                file_html = self.make_selectable_photo(img,"/"+file[file.index("outputs"):].replace("\\","/"))
+                url = "/"+file[file.index("outputs"):].replace("\\","/")
+                file_html = self.make_selectable_photo(Path(file).stem,url)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                 ui += file_html
-                self.ui(self.make_selectable_photos(file_html))
+                self.full(f'![]({url})')
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
