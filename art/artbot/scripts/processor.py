@@ -4,7 +4,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, PromptReshaper
+from lollms.utilities import PromptReshaper, git_pull
 import re
 import importlib
 import requests
@@ -484,7 +484,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                 file = str(file)
 
                 url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem,url)
+                file_html = self.make_selectable_photo(Path(file).stem, url)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                 ui += file_html
                 self.full(output+f'\n![]({url})')

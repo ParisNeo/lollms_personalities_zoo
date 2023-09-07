@@ -106,6 +106,7 @@ class Processor(APScript):
         shutil.copy(logo_path, assets_path/"logo.png")
         return jsonify({"status":True})
 
+
     def make_selectable_photo(self, image_id, image_source, params=""):
         return f"""
         <div class="flex items-center cursor-pointer justify-content: space-around">
@@ -120,7 +121,6 @@ class Processor(APScript):
             })">
         </div>
         """
-
     # States ================================================
     def idle(self, prompt, full_context):    
          self.full("testing responses and creating new json message")
@@ -129,8 +129,11 @@ class Processor(APScript):
          personality_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
          personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
          pth = "outputs/sd/Artbot_721.png"
-         self.new_message('<img src="outputs/sd/Artbot_721.png">', MSG_TYPE.MSG_TYPE_UI)
+         self.ui('<img src="outputs/sd/Artbot_721.png">')
          self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_TYPE.MSG_TYPE_UI)
+         self.new_message("Testing generation", MSG_TYPE.MSG_TYPE_FULL)
+         out = self.generate("explain what is to be human",50,callback = self.callback)
+         self.full(out)
         
     def state1(self, prompt, full_context):    
          self.full("testing responses from state 1", callback=self.callback)

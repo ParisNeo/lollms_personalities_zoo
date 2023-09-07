@@ -5,13 +5,14 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
+from lollms.utilities import PromptReshaper, git_pull
 import re
 import importlib
 import requests
 from tqdm import tqdm
 import shutil
 import yaml
-
+import urllib.parse
 # Flask is needed for ui functionalities
 from flask import request, jsonify
 
@@ -45,6 +46,7 @@ class Processor(APScript):
                 {"name":"W","type":"int","value":512, "min":10, "max":2048},
                 {"name":"H","type":"int","value":512, "min":10, "max":2048},
                 {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
+                {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
                 {"name":"batch_size","type":"int","value":1, "min":1, "max":100,"help":"Number of images per batch (requires more memory)"},
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
@@ -64,6 +66,7 @@ class Processor(APScript):
                             callback=callback
                         )
         self.sd = None
+        self.assets_path = None
 
     def install(self):
         super().install()
@@ -80,11 +83,10 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")
 
     def handle_request(self, data): # selects the image for the personality
-        personality_subpath = data['personality_subpath']
-        logo_path = data['logo_path']
-        assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
+        imageSource = data['imageSource']
+        assets_path= data['assets_path']
 
-        shutil.copy(logo_path, assets_path/"logo.png")
+        shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , assets_path/"logo.png")
         return jsonify({"status":True})
 
 
@@ -117,20 +119,35 @@ class Processor(APScript):
 
 
     
-    def make_selectable_photo(self, image_id, image_source, params=""):
-        return f"""
-        <div class="flex items-center cursor-pointer justify-content: space-around">
-            <img id="{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="console.log('Selected');"""+"""
-            fetch('/post_to_personality', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({"""+f"""
-                {params}"""+"""})
-            })">
-        </div>
-        """ 
+    def make_selectable_photo(self, image_id, image_source, assets_path=None):
+        pth = image_source.split('/')
+        idx = pth.index("outputs")
+        pth = "/".join(pth[idx:])
+
+        with(open(Path(__file__).parent.parent/"assets/photo.html","r") as f):
+            str_data = f.read()
+        
+        reshaper = PromptReshaper(str_data)
+        str_data = reshaper.replace({
+            "{image_id}":f"{image_id}",
+            "{thumbneil_width}":f"256",
+            "{thumbneil_height}":f"256",
+            "{image_source}":pth,
+            "{assets_path}":assets_path if assets_path else self.assets_path
+        })
+        return str_data
+    
+    def make_selectable_photos(self, html:str):
+        with(open(Path(__file__).parent.parent/"assets/photos_galery.html","r") as f):
+            str_data = f.read()
+        
+        reshaper = PromptReshaper(str_data)
+        str_data = reshaper.replace({
+            "{{photos}}":html
+        })
+        return str_data
+
+
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -310,6 +327,7 @@ anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
         # Now we generate icon        
         personality_assets_path = personality_path/"assets"
         personality_assets_path.mkdir(parents=True, exist_ok=True)
+        self.personality_assets_path = personality_assets_path
         
         self.word_callback = callback
         
@@ -332,11 +350,14 @@ Avoid text as the generative ai is not good at generating text.
 
         path = self.personality.lollms_paths.personalities_zoo_path/"personal"/name.replace(" ","_")
         assets_path= path/"assets"
+        self.assets_path = assets_path
         personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
         self.step_start("Painting Icon")
         try:
             files = []
+            ui=""
             for img in range(self.personality_config.num_images):
+                self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file, infos = self.sd.paint(
                                 sd_prompt, 
                                 "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))",
@@ -346,17 +367,25 @@ Avoid text as the generative ai is not good at generating text.
                                 scale = self.personality_config.scale,
                                 steps = self.personality_config.steps,
                                 img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                                width = self.personality_config.W,
-                                height = self.personality_config.H,
-                                restore_faces = self.personality_config.restore_faces,
-                            )   
+                                width = 512,
+                                height = 512,
+                                restore_faces = True,
+                            )
+                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
+                file = str(file)
+
+                url = "/"+file[file.index("outputs"):].replace("\\","/")
+                file_html = self.make_selectable_photo(Path(file).stem, url, assets_path)
                 files.append(file)
+                ui += file_html
+                self.full(f'\n![]({urllib.parse.quote(url, safe="")})')
 
         except Exception as ex:
             self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
             ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
             trace_exception(ex)
             files=[]
+        self.step_end("Painting Icon")
 
         output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
 
@@ -365,10 +394,7 @@ Avoid text as the generative ai is not good at generating text.
             files[i] = str(files[i]).replace("\\","/")
             file_id = files[i].split(".")[0].split('_')[1]
             shutil.copy(files[i],str(personality_assets_path))
-            pth = files[i].split('/')
-            idx = pth.index("outputs")
-            pth = "/".join(pth[idx:])
-            file_path = self.make_selectable_photo(f"Artbot_{file_id}", "pth", params="")
+            file_path = self., (f"Artbot_{file_id}", files[i])
             ui += file_path
             print(f"Generated file in here : {files[i]}")
         server_path = "/outputs/"+personality_path
@@ -377,7 +403,7 @@ Avoid text as the generative ai is not good at generating text.
         self.step_end("Painting Icon")
         
         self.full(output, callback)
-        self.ui(ui)
+        self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
         path.mkdir(parents=True, exist_ok=True)
         with open (path/"config.yaml","w") as f:
