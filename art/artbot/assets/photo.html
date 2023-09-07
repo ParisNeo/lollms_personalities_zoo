@@ -1,3 +1,41 @@
-<div class="flex items-center cursor-pointer justify-content: space-around">
-    <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="object-cover cursor-pointer" style="width:300px;height:300px" onclick="image_clicked('{image_id}')">
-</div>
+
+<style>
+.hidden {
+    display: none;
+}
+</style>
+    <div class="flex items-center justify-content: space-around">
+        <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="cursor-pointer" style="width:300px;height:300px" onclick="openFloatingImage('{image_id}')">
+    </div>
+    <script>
+        function openFloatingImage(imageId) {
+            const imageElement = document.getElementById(`img_${imageId}`);
+            const imageSource = imageElement.src;
+
+            // Create a new div for the floating image container
+            const floatingImageContainer = document.createElement('div');
+            floatingImageContainer.id = 'floatingImageContainer';
+            floatingImageContainer.className = 'hidden';
+
+            // Create a new image element for the floating image
+            const floatingImage = new Image();
+            floatingImage.src = imageSource;
+            floatingImage.id = 'floatingImage';
+            floatingImage.className = 'cursor-pointer';
+            floatingImage.onclick = closeFloatingImage;
+
+            // Append the floating image to the container
+            floatingImageContainer.appendChild(floatingImage);
+
+            // Add the container to the body
+            document.body.appendChild(floatingImageContainer);
+
+            // Show the floating image container
+            floatingImageContainer.classList.remove('hidden');
+        }
+
+        function closeFloatingImage() {
+            const floatingImageContainer = document.getElementById('floatingImageContainer');
+            floatingImageContainer.remove(); // Remove the floating image container
+        }
+    </script>
