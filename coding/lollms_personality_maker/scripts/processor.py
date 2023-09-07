@@ -133,7 +133,7 @@ class Processor(APScript):
             "{thumbneil_width}":f"256",
             "{thumbneil_height}":f"256",
             "{image_source}":pth,
-            "{assets_path}":assets_path if assets_path else self.assets_path
+            "{assets_path}":str(assets_path) if assets_path else str(self.assets_path)
         })
         return str_data
     
