@@ -55,6 +55,15 @@
 
         function select_image(id_, image_source, assets_path) {
             console.log("Selected image"+image_source);
+            // Find the element by its ID
+            const imgElement = document.getElementById(`img_${id_}`);
+
+            // Check if the element exists
+            if (imgElement) {
+            // Apply a green tick border using inline style
+            imgElement.style.border = "2px solid green";
+            imgElement.style.padding = "5px"; // Optional: Add padding for space around the border
+            }
             // Create a new XMLHttpRequest object
             const xhr = new XMLHttpRequest();
 

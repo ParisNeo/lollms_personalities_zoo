@@ -87,6 +87,7 @@ class Processor(APScript):
         assets_path= data['assets_path']
 
         shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , assets_path/"logo.png")
+        ASCIIColors.success("image Selected successfully")
         return jsonify({"status":True})
 
 
@@ -133,7 +134,7 @@ class Processor(APScript):
             "{thumbneil_width}":f"256",
             "{thumbneil_height}":f"256",
             "{image_source}":pth,
-            "{assets_path}":str(assets_path) if assets_path else str(self.assets_path)
+            "{assets_path}":str(assets_path).replace("\\","/") if assets_path else str(self.assets_path).replace("\\","/")
         })
         return str_data
     
@@ -403,7 +404,7 @@ Avoid text as the generative ai is not good at generating text.
         self.step_end("Painting Icon")
         
         self.full(output, callback)
-        self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
+        self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
         path.mkdir(parents=True, exist_ok=True)
         with open (path/"config.yaml","w") as f:
