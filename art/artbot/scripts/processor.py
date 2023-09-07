@@ -464,7 +464,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
-                self.step_start(f"Generating image {img}")
+                self.step_start(f"Generating image {img+1}")
                 file, infos = self.sd.paint(
                                 sd_positive_prompt, 
                                 sd_negative_prompt,
