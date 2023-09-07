@@ -83,8 +83,8 @@ class Processor(APScript):
                     text = pytesseract.image_to_string(image)
                     self.full("<h3>Extracted text:</h3>")
                     self.chunk(text)
-                except:
-                    self.full("<h3>Looks like you didn't install tesseract correctly</h3><br>Please install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.")
+                except Exception as ex:
+                    self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
