@@ -75,13 +75,16 @@ class Processor(APScript):
             if self.files[-1].suffix not in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
                 self.full("<h3>The file must be an image</h3>")
             else:
-                # Load an image using PIL (Python Imaging Library)
-                image = Image.open(self.files[-1])
+                try:
+                    # Load an image using PIL (Python Imaging Library)
+                    image = Image.open(self.files[-1])
 
-                # Use pytesseract to extract text from the image
-                text = pytesseract.image_to_string(image)
-                self.full("<h3>Extracted text:</h3>")
-                self.chunk(text)
+                    # Use pytesseract to extract text from the image
+                    text = pytesseract.image_to_string(image)
+                    self.full("<h3>Extracted text:</h3>")
+                    self.chunk(text)
+                except:
+                    self.full("<h3>Looks like you didn't install tesseract correctly</h3><br>Please install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.")
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
