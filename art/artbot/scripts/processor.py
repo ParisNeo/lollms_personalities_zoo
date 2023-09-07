@@ -107,6 +107,8 @@ class Processor(APScript):
         reshaper = PromptReshaper(str_data)
         str_data = reshaper.replace({
             "{image_id}":f"{image_id}",
+            "{thumbneil_width}":f"{self.personality_config.thumbneil_width}",
+            "{thumbneil_height}":f"{self.personality_config.thumbneil_height}",
             "{image_source}":image_source
         })
         return str_data
@@ -464,7 +466,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
-                self.step_start(f"Generating image {img+1}")
+                self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file, infos = self.sd.paint(
                                 sd_positive_prompt, 
                                 sd_negative_prompt,
@@ -478,14 +480,14 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                                 height = self.personality_config.height,
                                 restore_faces = self.personality_config.restore_faces,
                             )
-                self.step_end(f"Generating image {img}")
+                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file = str(file)
 
                 url = "/"+file[file.index("outputs"):].replace("\\","/")
                 file_html = self.make_selectable_photo(Path(file).stem,url)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                 ui += file_html
-                self.full(f'![]({url})')
+                self.full(output+f'\n![]({url})')
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
