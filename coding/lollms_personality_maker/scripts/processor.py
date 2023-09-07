@@ -394,7 +394,7 @@ Avoid text as the generative ai is not good at generating text.
             files[i] = str(files[i]).replace("\\","/")
             file_id = files[i].split(".")[0].split('_')[1]
             shutil.copy(files[i],str(personality_assets_path))
-            file_path = self., (f"Artbot_{file_id}", files[i])
+            file_path = self.make_selectable_photo(f"Artbot_{file_id}", files[i])
             ui += file_path
             print(f"Generated file in here : {files[i]}")
         server_path = "/outputs/"+personality_path
