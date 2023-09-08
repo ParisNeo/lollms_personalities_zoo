@@ -95,8 +95,9 @@ class Processor(APScript):
         if len(self.files)==0:
             self.full("<h3>Please send an image file first</h3>")
         else:
-            self.generate(full_context+initial_prompt,1024, callback=self.callback)
-
+            text = self.generate(full_context+initial_prompt,1024, callback=self.callback)
+            self.full(text)
+            
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
