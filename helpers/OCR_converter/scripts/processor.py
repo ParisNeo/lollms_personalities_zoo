@@ -65,6 +65,7 @@ class Processor(APScript):
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
         try:
+            ASCIIColors.info("Loading pytesseract and PIL")
             import pytesseract
             from PIL import Image
         except:
