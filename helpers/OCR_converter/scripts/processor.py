@@ -31,7 +31,7 @@ class Processor(APScript):
         # We put this in the shared folder in order as this can be used by other personalities.
         
         
-        self.callback = None
+        self.callback = callback
 
         personality_config_template = ConfigTemplate(
             [
@@ -60,6 +60,7 @@ class Processor(APScript):
 
     def install(self):
         super().install()
+        self.info("Please install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.")
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
@@ -77,6 +78,15 @@ class Processor(APScript):
         image = Image.open(self.files[-1])
         url = str(self.files[-1]).replace("\\","/").split("uploads")[-1]
         self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)
+        try:
+            # Load an image using PIL (Python Imaging Library)
+            image = Image.open(self.files[-1])
+
+            # Use pytesseract to extract text from the image
+            text = pytesseract.image_to_string(image)
+            self.full("<h3>Extracted text:</h3>\n\n"+text)
+        except Exception as ex:
+            self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
         return True
     
     
@@ -84,18 +94,7 @@ class Processor(APScript):
         if len(self.files)==0:
             self.full("<h3>Please send an image file first</h3>")
         else:
-            if self.files[-1].suffix not in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
-                self.full("<h3>The file must be an image</h3>")
-            else:
-                try:
-                    # Load an image using PIL (Python Imaging Library)
-                    image = Image.open(self.files[-1])
-
-                    # Use pytesseract to extract text from the image
-                    text = pytesseract.image_to_string(image)
-                    self.full("<h3>Extracted text:</h3>\n\n"+text)
-                except Exception as ex:
-                    self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
+            self.generate(full_context+initial_prompt,1024, callback=self.callback)
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
