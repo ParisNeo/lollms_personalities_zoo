@@ -362,7 +362,7 @@ Avoid text as the generative ai is not good at generating text.
                 file, infos = self.sd.paint(
                                 sd_prompt, 
                                 "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))",
-                                self.files,
+                                [],
                                 sampler_name = self.personality_config.sampler_name,
                                 seed = self.personality_config.seed,
                                 scale = self.personality_config.scale,
