@@ -1,9 +1,6 @@
 ai_message_prefix: '!@>documents_analyzer:'
 anti_prompts:
 - '!@>'
-- <|end|>
-- <|user|>
-- <|system|>
 author: lollms_personality_maker prompted by ParisNeo
 category: Lollms
 dependencies: []
