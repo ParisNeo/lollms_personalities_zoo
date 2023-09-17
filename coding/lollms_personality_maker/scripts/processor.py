@@ -176,6 +176,7 @@ If the request contains already the name, then use that.
 {self.personality.ai_message_prefix}
 name:""",50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
+        name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
         # ----------------------------------------------------------------
         
