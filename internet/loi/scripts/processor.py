@@ -23,7 +23,6 @@ def get_relevant_text_block(
                                 overlap_size=50,
                                 callback=None):
     from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
     from bs4 import BeautifulSoup    
     # Load the webpage
     driver.get(url)
@@ -225,13 +224,6 @@ class Processor(APScript):
                             callback=callback
                         )
         
-        #Now try to import stuff to verify that installation succeeded
-        import requests
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from bs4 import BeautifulSoup
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
         
     def install(self):
         super().install()

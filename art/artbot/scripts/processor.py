@@ -324,8 +324,10 @@ class Processor(APScript):
 
     def main_process(self, initial_prompt, full_context):    
         self.prepare()
-        full_context = full_context[:full_context.index(initial_prompt)]
-        
+        try:
+            full_context = full_context[:full_context.index(initial_prompt)]
+        except:
+            ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
                 pr  = PromptReshaper("""!@>Instructions:
