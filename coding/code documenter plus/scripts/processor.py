@@ -71,6 +71,7 @@ class Processor(APScript):
         
         
     def idle(self, prompt, full_context):
+        if 
         structure = self.parse_python_code(prompt)
         text=f"""Json structure of the code:
 {json.dumps(structure)}

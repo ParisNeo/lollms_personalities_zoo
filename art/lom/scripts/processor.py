@@ -37,6 +37,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"model_name","type":"str","value":"facebook/musicgen-small","options":["facebook/musicgen-small","facebook/musicgen-medium","facebook/musicgen-large"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
+                {"name":"number_of_samples","type":"int","value":1,"help":"The number of samples to generate"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"generate","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
@@ -124,14 +125,14 @@ class Processor(APScript):
         self.step_start("Selecting style")
         styles=[
             "hard rock",
-            "Pop",
-            "HipHop",
-            "Riggay",
-            "Techno",
-
+            "pop",
+            "hiphop",
+            "riggay",
+            "techno",
+            "classic"
         ]
         stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this musicwork: {stl}\n!@>assistant:I select"
+        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this musicwork: {stl}\n!@>assistant:The most suitable style among the proposed is"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
 
@@ -147,9 +148,8 @@ class Processor(APScript):
             if self.personality_config.activate_discussion_mode:
                 pr  = PromptReshaper("""!@>discussion:
 {{previous_discussion}}{{initial_prompt}}
-!@>question: Is the user's message asking to generate a music sequence? 
-!@>instruction>musicbot should answer with Yes or No.
-!@>musicbot:The answer to the question is""")
+!@>question: Is the user's message asking to generate a music sequence? Make a very short answer.
+!@>musicbot:Request answer:<answer>""")
                 prompt = pr.build({
                         "previous_discussion":full_context,
                         "initial_prompt":initial_prompt
@@ -159,10 +159,11 @@ class Processor(APScript):
                         self.personality.model.config.ctx_size,
                         ["previous_discussion"]
                         )
+                ASCIIColors.yellow(prompt)
                 is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 ASCIIColors.cyan(is_discussion)
                 if "yes" not in is_discussion.lower():
-                    pr  = PromptReshaper("""!@>instructions>Lord of Music is a music geneation IA taht discusses with humans about music.
+                    pr  = PromptReshaper("""!@>instructions>Lord of Music is a music geneation IA that discusses about making music with the user.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
 !@>musicbot:""")
@@ -201,7 +202,7 @@ Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
 Do not use bullet points.
 The prompt should be in english.
-The generation ai has no access to the previous text so do not do references and justwrite the prompt 
+The generation ai has no access to the previous text so do not do references and just write the prompt.
 {{initial_prompt}}
 !@>style_choice: {{styles}}                                 
 !@>music_generation_prompt: Create""")
@@ -229,21 +230,24 @@ The generation ai has no access to the previous text so do not do references and
             
         self.previous_mg_prompt = generation_prompt
 
+        self.step_start("Making some music")
         output = f"### Prompt :\n{generation_prompt}"
-        res = self.music_model.generate([generation_prompt])
-        output_folder = self.personality.lollms_paths.personal_outputs_path / "lom"
-        output_folder.mkdir(parents=True, exist_ok=True)
-        output_file = File_Path_Generator.generate_unique_file_path(output_folder, "generation","wav")
-        torchaudio.save(output_file, res.reshape(1, -1).cpu(), 32000)
-
-        url = "/outputs"+str(output_file).split("outputs")[1].replace("\\","/")
-        output += f"""
+        self.music_model.set_generation_params(duration=self.personality_config.duration)
+        for sample in range(self.personality_config.number_of_samples):
+            res = self.music_model.generate([generation_prompt])
+            output_folder = self.personality.lollms_paths.personal_outputs_path / "lom"
+            output_folder.mkdir(parents=True, exist_ok=True)
+            output_file = File_Path_Generator.generate_unique_file_path(output_folder, "generation","wav")
+            torchaudio.save(output_file, res.reshape(1, -1).cpu(), 32000)
+            url = "/outputs"+str(output_file).split("outputs")[1].replace("\\","/")
+            output += f"""
 <audio controls>
     <source src="{url}" type="audio/wav">
     Your browser does not support the audio element.
 </audio>
 """
-        self.full(output.strip())
+            self.full(output.strip())
+        self.step_end("Making some music")
 
         ASCIIColors.success("Generation succeeded")
 
