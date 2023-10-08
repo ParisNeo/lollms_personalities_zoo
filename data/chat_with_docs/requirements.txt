@@ -9,3 +9,5 @@ python-pptx
 plotly
 seaborn
 scikit-learn
+ascii_colors
+safe_store

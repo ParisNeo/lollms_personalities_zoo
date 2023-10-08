@@ -2,8 +2,8 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
-from lollms.helpers import ASCIIColors, trace_exception
-from lollms.utilities import TextVectorizer, GenericDataLoader
+from ascii_colors import ASCIIColors, trace_exception
+from safe_store import TextVectorizer, VectorizationMethod, GenericDataLoader
 
 import numpy as np
 import json
@@ -34,7 +34,7 @@ class Processor(APScript):
                 {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
                 {"name":"load_db","type":"bool","value":False, "help":"If true, the vectorized database will be loaded at startup"},
                 {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
-                {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "ftidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
+                {"name":"vectorization_method","type":"str","value":f"model_embedding", "options":["model_embedding", "tfidf_vectorizer"], "help":"Vectoriazation method to be used (changing this should reset database)"},
                 {"name":"show_interactive_form","type":"bool","value":False, "help":"If true, a window wil be shown with the data plot in an interactive form"},
                 
                 {"name":"nb_chunks","type":"int","value":2, "min":1, "max":50,"help":"Number of data chunks to use for its vector (at most nb_chunks*max_chunk_size must not exeed two thirds the context size)"},
@@ -124,15 +124,19 @@ class Processor(APScript):
 
     def chat_with_doc(self, prompt, full_context):
         if self.vector_store.ready:
+            if prompt == "":
+                self.exception("Please send a prompt to process")
             self.step_start("Analyzing request", callback=self.callback)
             if self.personality_config.build_keywords:
                 full_text =f"""!@>instructor:Extract keywords from this prompt. The keywords output format is comma separated values.
 !@>prompt: {prompt}
-keywords:"""
+!@>assistant: The keywords are """
                 preprocessed_prompt = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
             else:
                 preprocessed_prompt = prompt
             self.step_end("Analyzing request", callback=self.callback)
+            if preprocessed_prompt=="":
+                preprocessed_prompt = prompt
             self.full(f"Query : {preprocessed_prompt}")
 
             docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(preprocessed_prompt), top_k=self.personality_config.nb_chunks)
@@ -178,7 +182,7 @@ keywords:"""
             root_db_folder = self.personality.lollms_paths.self.personal_databases_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
-                    self.personality_config.vectorization_method, # supported "model_embedding" or "ftidf_vectorizer"
+                    self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
                     database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
                     save_db=self.personality_config.save_db,
@@ -186,7 +190,7 @@ keywords:"""
                     visualize_data_at_add_file=self.personality_config.visualize_data_at_add_file,
                     visualize_data_at_generate=self.personality_config.visualize_data_at_generate
                     )        
-        if len(self.vector_store.embeddings)>0:
+        if len(self.vector_store.chunks)>0:
             self.ready = True
 
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
@@ -263,24 +267,21 @@ keywords:"""
             root_db_folder = self.personality.lollms_paths.personal_databases_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
-                    self.personality_config.vectorization_method, # supported "model_embedding" or "ftidf_vectorizer"
+                    self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
                     database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
-                    save_db=self.personality_config.save_db,
-                    visualize_data_at_startup=self.personality_config.visualize_data_at_startup,
-                    visualize_data_at_add_file=self.personality_config.visualize_data_at_add_file,
-                    visualize_data_at_generate=self.personality_config.visualize_data_at_generate
+                    save_db=self.personality_config.save_db
             )        
 
 
-        if self.vector_store and self.personality_config.vectorization_method=="ftidf_vectorizer":
+        if self.vector_store and self.personality_config.vectorization_method==VectorizationMethod.TFIDF_VECTORIZER:
             from sklearn.feature_extraction.text import TfidfVectorizer
             data = list(self.vector_store.texts.values())
             if len(data)>0:
                 self.vectorizer = TfidfVectorizer()
                 self.vectorizer.fit(data)
 
-        if len(self.vector_store.embeddings)>0:
+        if len(self.vector_store.chunks)>0:
             self.ready = True
 
     def run_workflow(self, prompt, full_context="", callback=None):
