@@ -11,6 +11,24 @@ import requests
 from tqdm import tqdm
 import webbrowser
 
+from pathlib import Path
+
+# Helper functions
+def find_next_available_filename(folder_path, prefix):
+    folder = Path(folder_path)
+
+    if not folder.exists():
+        raise FileNotFoundError(f"The folder '{folder}' does not exist.")
+
+    index = 1
+    while True:
+        next_filename = f"{prefix}_{index}.png"
+        potential_file = folder / next_filename
+        if not potential_file.exists():
+            return potential_file
+        index += 1
+
+
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -66,7 +84,9 @@ class Processor(APScript):
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
-                
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
+   
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -143,14 +163,13 @@ class Processor(APScript):
 
 
     def prepare(self):
-        if self.sd is None:
+        if self.sd is None and self.personality_config.generation_engine=="stable_diffusion":
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
             self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Artbot", max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
         
     def get_sd(self):
-        
         sd_script_path = self.sd_folder / "lollms_sd.py"
         git_pull(self.sd_folder)
         
@@ -469,27 +488,64 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             ui=""
             for img in range(self.personality_config.num_images):
                 self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file, infos = self.sd.paint(
-                                sd_positive_prompt, 
-                                sd_negative_prompt,
-                                self.files,
-                                sampler_name = self.personality_config.sampler_name,
-                                seed = self.personality_config.seed,
-                                scale = self.personality_config.scale,
-                                steps = self.personality_config.steps,
-                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                                width = self.personality_config.width,
-                                height = self.personality_config.height,
-                                restore_faces = self.personality_config.restore_faces,
-                            )
-                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file = str(file)
+                if self.personality_config.generation_engine=="stable_diffusion":
+                    file, infos = self.sd.paint(
+                                    sd_positive_prompt, 
+                                    sd_negative_prompt,
+                                    self.files,
+                                    sampler_name = self.personality_config.sampler_name,
+                                    seed = self.personality_config.seed,
+                                    scale = self.personality_config.scale,
+                                    steps = self.personality_config.steps,
+                                    img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                    width = self.personality_config.width,
+                                    height = self.personality_config.height,
+                                    restore_faces = self.personality_config.restore_faces,
+                                )
+                    file = str(file)
 
-                url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem, url)
-                files.append("/"+file[file.index("outputs"):].replace("\\","/"))
-                ui += file_html
-                self.full(output+f'\n![]({url})')
+                    url = "/"+file[file.index("outputs"):].replace("\\","/")
+                    file_html = self.make_selectable_photo(Path(file).stem, url)
+                    files.append("/"+file[file.index("outputs"):].replace("\\","/"))
+                    ui += file_html
+                    self.full(output+f'\n![]({url})')
+                    
+                elif self.personality_config.generation_engine=="dalle-2":
+                    import openai
+                    openai.api_key = self.personality_config.config["openai_key"]
+                    response = openai.Image.create(
+                        prompt=sd_positive_prompt,
+                        n=1,
+                        size=f"{self.personality_config.width}x{self.personality_config.height}"
+                        )
+                    infos = {}
+                    # download image to outputs
+                    output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    image_url = response['data'][0]['url']
+
+                    # Get the image data from the URL
+                    response = requests.get(image_url)
+
+                    if response.status_code == 200:
+                        # Generate the full path for the image file
+                        file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
+
+                        # Save the image to the specified folder
+                        with open(file_name, "wb") as file:
+                            file.write(response.content)
+                        ASCIIColors.yellow(f"Image saved to {file_name}")
+                    else:
+                        ASCIIColors.red("Failed to download the image")
+                    file = str(file_name)
+
+                    url = "/"+file[file.index("outputs"):].replace("\\","/")
+                    file_html = self.make_selectable_photo(Path(file).stem, url)
+                    files.append("/"+file[file.index("outputs"):].replace("\\","/"))
+                    ui += file_html
+                    self.full(output+f'\n![]({url})')
+
+                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
@@ -499,6 +555,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
         self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
+
 
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
