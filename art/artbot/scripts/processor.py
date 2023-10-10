@@ -54,6 +54,8 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"use_fixed_negative_prompts","type":"bool","value":True,"help":"Uses parisNeo's preferred negative prompts"},
@@ -84,8 +86,6 @@ class Processor(APScript):
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
-                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
    
             ]
             )
