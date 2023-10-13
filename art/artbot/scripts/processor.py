@@ -54,6 +54,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"production_type","type":"str","value":"an artwork", "options":["an artwork", "a design", "a presentation background", "a game asset", "a game background", "an icon"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
@@ -64,7 +65,7 @@ class Processor(APScript):
                 {"name":"automatic_resolution_selection","type":"bool","value":True,"help":"If true then artbot chooses the resolution of the image to generate"},
                 {"name":"add_style","type":"bool","value":True,"help":"If true then artbot will choose and add a specific style to the prompt"},
                 
-                {"name":"activate_discussion_mode","type":"bool","value":True,"help":"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make an artwork"},
+                {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make {self.personality_config.production_type}"},
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
@@ -310,7 +311,7 @@ class Processor(APScript):
 
         ]
         stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this artwork: {stl}\n!@>assistant:I select"
+        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this {self.personality_config.production_type.split()[-1]}: {stl}\n!@>assistant:I select"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
 
@@ -409,13 +410,13 @@ Yes or No?
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            pr  = PromptReshaper("""!@>discussion:                                 
+            pr  = PromptReshaper(f"""!@>discussion:                                 
 {{previous_discussion}}
 !@>instructions:
-Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the artwork description details. 
+Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
 {{initial_prompt}}
 !@>style_choice: {{styles}}                                 
-!@>art_generation_prompt: Create an artwork""")
+!@>art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
@@ -428,7 +429,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                     )
             self.print_prompt("Positive prompt",prompt)
 
-            sd_positive_prompt = "An artwork "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
             # ====================================================================================
