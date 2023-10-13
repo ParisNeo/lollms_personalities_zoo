@@ -54,7 +54,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"production_type","type":"str","value":"an artwork", "options":["an artwork", "a design", "a presentation background", "a game asset", "a game background", "an icon"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"production_type","type":"str","value":"an artwork", "options":["an artwork", "a design", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
@@ -63,9 +63,9 @@ class Processor(APScript):
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
                 {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
                 {"name":"automatic_resolution_selection","type":"bool","value":True,"help":"If true then artbot chooses the resolution of the image to generate"},
-                {"name":"add_style","type":"bool","value":True,"help":"If true then artbot will choose and add a specific style to the prompt"},
+                {"name":"add_style","type":"bool","value":False,"help":"If true then artbot will choose and add a specific style to the prompt"},
                 
-                {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make {self.personality_config.production_type}"},
+                {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make the graphical output requested"},
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
@@ -342,7 +342,8 @@ class Processor(APScript):
 
         return extract_resolution(sz, default_resolution)
 
-    def main_process(self, initial_prompt, full_context):    
+    def main_process(self, initial_prompt, full_context):
+        metadata_infos=""
         self.prepare()
         try:
             full_context = full_context[:full_context.index(initial_prompt)]
@@ -399,14 +400,16 @@ Yes or No?
             else:
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
-            self.full(f"### Chosen resolution:\n{self.width}x{self.height}")         
+            metadata_infos += f"### Chosen resolution:\n{self.width}x{self.height}\n"
+            self.full(f"{metadata_infos}")     
             # ====================================================================================
             if self.personality_config.add_style:
                 styles = self.get_styles(initial_prompt,full_context)
+                metadata_infos += f"### Chosen style:\n{styles}"
+                self.full(f"{metadata_infos}")     
             else:
-                styles = "No specific style selected."
-            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}")         
-
+                styles = None
+            stl = f"!@>style_choice: {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
@@ -415,12 +418,11 @@ Yes or No?
 !@>instructions:
 Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
 {{initial_prompt}}
-!@>style_choice: {{styles}}                                 
+{stl}
 !@>art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
-                    "styles":styles
                     }, 
                     self.personality.model.tokenize, 
                     self.personality.model.detokenize, 
@@ -431,7 +433,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
 
             sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}")         
+            metadata_infos += f"### Positive prompt:\n{sd_positive_prompt}\n"
+            self.full(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
             if not self.personality_config.use_fixed_negative_prompts:
@@ -465,7 +468,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                 self.step_end("Imagining negative prompt")
             else:
                 sd_negative_prompt = "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))"
-            self.full(f"### Chosen resolution:\n{self.width}x{self.height}\n### Chosen style:\n{styles}\n### Positive prompt:\n{sd_positive_prompt}\n### Negative prompt:\n{sd_negative_prompt}")         
+            metadata_infos += f"### Negative prompt:\n{sd_negative_prompt}\n"
+            self.full(f"{metadata_infos}")     
             # ====================================================================================            
             
         else:
@@ -482,7 +486,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
         self.previous_sd_positive_prompt = sd_positive_prompt
         self.previous_sd_negative_prompt = sd_negative_prompt
 
-        output = f"### Positive prompt :\n{sd_positive_prompt}\n### Negative prompt :\n{sd_negative_prompt}\n"
+        output = metadata_infos
 
         if self.personality_config.paint:
             files = []
@@ -509,7 +513,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                     file_html = self.make_selectable_photo(Path(file).stem, url)
                     files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                     ui += file_html
-                    self.full(output+f'\n![]({url})')
+                    metadata_infos += f'\n![]({url})'
+                    self.full(metadata_infos)
                     
                 elif self.personality_config.generation_engine=="dalle-2":
                     import openai
@@ -544,7 +549,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                     file_html = self.make_selectable_photo(Path(file).stem, url)
                     files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                     ui += file_html
-                    self.full(output+f'\n![]({url})')
+                    metadata_infos += f'\n![]({url})'
+                    self.full(metadata_infos)
 
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 

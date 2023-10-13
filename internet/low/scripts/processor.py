@@ -32,12 +32,12 @@ class Processor(APScript):
         self.callback = None
         self.generate_fn = None
         template = ConfigTemplate([
-                {"name":"craft_search_query","type":"bool","value":False,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
+                {"name":"craft_search_query","type":"bool","value":True,"help":"By default, your question is directly sent to wikipedia search engine. If you activate this, LOW will craft a more optimized version of your question and use that instead."},
                 {"name":"synthesize","type":"bool","value":True,"help":"By default, LOW will preprocess the outputs before answering you. If you deactivate this, you will simply get the wikiopedia output."},
                 {"name":"num_results","type":"int","value":20, "min":2, "max":100,"help":"Number of sentences to recover from wikipedia to be used by LOW to answer you."},
                 {"name":"max_nb_images","type":"int","value":10, "min":1, "max":100,"help":"Sometimes, LOW can show you images extracted from wikipedia."},
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
-                {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
+                {"name":"max_summery_size","type":"int","value":2048, "min":10, "max":personality.model.config["ctx_size"]},
             ])
         config = BaseConfig.from_template(template)
         personality_config = TypedConfig(
@@ -148,74 +148,51 @@ Do not explain the query.
 question>
 {prompt}
 query>"""
-                if callback is not None:
-                    callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
+                self.step_start("Crafting search query")
                 search_query = self.generate(search_formulation_prompt, self.personality_config.max_query_size).strip()
                 if search_query=="":
                     search_query=prompt
-                if callback is not None:
-                    callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
+                self.step_end("Crafting search query")
             else:
                 search_query = prompt
             results, stat = wikipedia.search(search_query, results = self.personality_config.num_results, suggestion = True)
             
             #select entry
-            ok = False
-            while not ok:
-                entry = self.data_driven_qa(
-                    "\n".join([f"{i}: {res}" for i, res in enumerate(results)]),
-                    f"{prompt}",
-                    "The most relevant entry to aswer the question among the proposed ones is entry number:",
-                    max_size = 4,
-                    repeat_penalty=0.5)
+            output = "### Results:\n"+'\n- '.join(results)
+            output += "### Analysis:\n"
+            self.full(output)
+            search_results = ""
+            for entry in results:
+                self.step_start(f"Entry: {entry}")
                 try:
-                    print(f"selected entry:{entry}")
-                    entry=int(entry.strip())
-                except:
-                    try:
-                        entry = entry.strip().split("\n")[0]
-                        entry=int(entry)
-                    except:
-                        try:
-                            entry = entry.strip().split(":")[0]
-                            entry=int(entry)
-                        except:
-                            ASCIIColors.warning(f"couldn't figure out which entry is best. Defaulting to first one")
-                            entry=0                
-
-
-                self.step(f"Entry: {results[entry]}")
-                try:
-                    page = wikipedia.page(results[entry])
-                    search_result = page.summary
+                    page = wikipedia.page(entry)
+                    search_results += f"{entry}:\n{page.summary}\n"
                     images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
                     # cap images
                     images = images[:self.personality_config.max_nb_images]
-                    images = '\n'.join([f"![image {i}]({im})" for i,im in enumerate(images)])
-                    ok = True
+                    images = '\n'.join([f'<img src="{im}" alt="image {i}" style="max-width: 200px; height: auto;">' for i,im in enumerate(images)])
+                    self.step_end(f"### Entry: {entry}")
+                    output += f"{entry}:\n"+search_results+"\n"+images
+                    self.full(output)
                 except:
-                    del results[entry]
-                    if len(results[entry])<=0:
+                    if len(entry)<=0:
                         raise Exception("Couldn't find relevant data")
+                    self.step_end(f"Entry: {entry}",False)
             if self.personality_config.synthesize:
                 prompt = f"""{previous_discussion_text}
     Use this data and images to answer the user
-    wikipedia>
-    {search_result}
-    images>
-    {images}
+    !@>wikipedia data:
+    {search_results}
     answer>"""
                 self.step_start("Generating response")
-                output = self.generate(prompt, self.personality_config.max_summery_size)
+                summary = self.generate(prompt, self.personality_config.max_summery_size)
                 sources_text = "\n--\n"
-                sources_text += "# Source :\n"
+                sources_text += "\n### Source :\n"
                 sources_text += f"[{page.title}]({page.url})\n\n"
                 self.step_end("Generating response")
-                output = output+sources_text
+                output += summary + sources_text
                 self.full(output)
-            else:
-                self.full(search_result)
-                output = search_result
+
         except Exception as ex:
             output = f"Exception occured while running workflow: {ex}"
             trace_exception(ex)
