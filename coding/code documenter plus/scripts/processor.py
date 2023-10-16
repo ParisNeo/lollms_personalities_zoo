@@ -71,7 +71,6 @@ class Processor(APScript):
         
         
     def idle(self, prompt, full_context):
-        if 
         structure = self.parse_python_code(prompt)
         text=f"""Json structure of the code:
 {json.dumps(structure)}
@@ -100,7 +99,7 @@ Please use markdown format for your output.
 
         return result
     
-    def process_python_files(self, path, file_function):
+    def process_python_files(self, path, file_function, project_path):
         if not isinstance(path, Path):
             raise ValueError("Input 'path' must be a pathlib.Path object.")
         if not callable(file_function):
@@ -111,7 +110,7 @@ Please use markdown format for your output.
                 file_function(path)
         elif path.is_dir():
             for item in path.iterdir():
-                self.process_python_files(item, file_function)
+                self.process_python_files(item, file_function, project_path)
                 
                 
     def start_documenting(self, prompt, full_context):
@@ -122,7 +121,7 @@ Please use markdown format for your output.
         if not project_path.exists():
             self.warning("Please select a project path in personality settings first")
         else:
-            self.step_start(f"-- Started documentation of {project_path} --")
+            self.step_start(f"Started documentation of {project_path} --")
             docs_dir=project_path/"docs"
             docs_dir.mkdir(parents=True, exist_ok=True)
             structure = self.path_to_json(docs_dir)
@@ -134,8 +133,8 @@ Please use markdown format for your output.
             doc = "# Project structure:"+ self.generate(text,self.personality_config.layout_max_size)
             with open(docs_dir/"project_structure.md","w") as f:
                 f.write(doc)
-            self.process_python_files(project_path, partial(self.parse_python_file, docs_dir=docs_dir))
-            self.step_end(f"-- Started documentation of {project_path} --")
+            self.process_python_files(project_path, partial(self.parse_python_file, docs_dir=docs_dir, project_path=project_path), project_path=project_path)
+            self.step_end(f"Started documentation of {project_path} --")
             
             
                     
@@ -188,25 +187,17 @@ Please use markdown format for your output.
 
         return result
 
-    def find_common_path_parts(self, path1, path2):
-        if not isinstance(path1, Path) or not isinstance(path2, Path):
-            raise ValueError("Inputs must be pathlib.Path objects.")
-
-        common_parts = path1.resolve().parts[:len(path2.resolve().parts)]
-        extra_path1 = path1.resolve().relative_to(*common_parts)
-        extra_path2 = path2.resolve().relative_to(*common_parts)
-
-        return Path(*common_parts), extra_path1, extra_path2
 
        
-    def parse_python_file(self, file_path:Path, docs_dir:Path):
+    def parse_python_file(self, file_path:Path, docs_dir:Path, project_path:Path):
         if file_path is not None:
             with open(file_path, 'r') as file:
                 source_code = file.read()
             doc =  self.parse_python_code(source_code)
-            _,extra_path1,_ = self.find_common_path_parts(file_path, docs_dir)
+            extra_path1 = file_path.relative_to(str(project_path))
             output_file_path = docs_dir / extra_path1
-            output_file_path.suffix=".md"
+            output_file_path = Path(".".join(str(output_file_path).split(".")[:-1])+".md")
+            output_file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_file_path,"w") as f:
                 f.write(doc)
                 
