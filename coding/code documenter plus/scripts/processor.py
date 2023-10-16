@@ -122,7 +122,7 @@ Please use markdown format for your output.
             self.warning("Please select a project path in personality settings first")
         else:
             self.step_start(f"Started documentation of {project_path} --")
-            docs_dir=project_path/"docs"
+            docs_dir=project_path/"docs"/"code"
             docs_dir.mkdir(parents=True, exist_ok=True)
             structure = self.path_to_json(docs_dir)
             text=f"""Json structure of the project folder:
@@ -199,7 +199,7 @@ Please use markdown format for your output.
             output_file_path = Path(".".join(str(output_file_path).split(".")[:-1])+".md")
             output_file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_file_path,"w") as f:
-                f.write(doc)
+                f.write(str(doc))
                 
 
 
