@@ -124,7 +124,7 @@ Please use markdown format for your output.
             self.step_start(f"Started documentation of {project_path} --")
             docs_dir=project_path/"docs"/"code"
             docs_dir.mkdir(parents=True, exist_ok=True)
-            structure = self.path_to_json(docs_dir)
+            structure = self.path_to_json(project_path)
             text=f"""Json structure of the project folder:
 {json.dumps(structure)}
 !@>instruction: Create a description of the project structure.
@@ -191,15 +191,29 @@ Please use markdown format for your output.
        
     def parse_python_file(self, file_path:Path, docs_dir:Path, project_path:Path):
         if file_path is not None:
-            with open(file_path, 'r') as file:
-                source_code = file.read()
-            doc =  self.parse_python_code(source_code)
-            extra_path1 = file_path.relative_to(str(project_path))
-            output_file_path = docs_dir / extra_path1
-            output_file_path = Path(".".join(str(output_file_path).split(".")[:-1])+".md")
-            output_file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_file_path,"w") as f:
-                f.write(str(doc))
+            print(f"Loading : {file_path}")
+            try:
+                with open(file_path, 'r') as file:
+                    source_code = file.read()
+                doc =  self.parse_python_code(source_code)
+                extra_path1 = file_path.relative_to(str(project_path))
+                output_file_path = docs_dir / extra_path1
+                output_file_path = Path(".".join(str(output_file_path).split(".")[:-1])+".md")
+                output_file_path.parent.mkdir(parents=True, exist_ok=True)
+                out = self.fast_gen("""!@>instruction: Create a description of the file.
+!@>documentation:
+!@>filename:{{fn}}
+{{doc}}
+# Global description: """,self.personality_config.layout_max_size, {"fn":file_path.name,"doc":str(doc)})
+                out += "# functions\n" + self.fast_gen("""!@>instruction: Create a description of the file.
+!@>documentation:
+!@>filename:{{fn}}
+{{doc}}
+# functions: """,self.personality_config.layout_max_size, {"fn":file_path.name,"doc":str(doc)})
+                with open(output_file_path,"w") as f:
+                    f.write(out)
+            except:
+                print("Can't load")
                 
 
 
