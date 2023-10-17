@@ -414,10 +414,10 @@ Yes or No?
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
             pr  = PromptReshaper(f"""!@>discussion:                                 
-{{previous_discussion}}
+{past if self.personality_config.continuous_discussion else ''}
 !@>instructions:
 Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
-{{initial_prompt}}
+{initial_prompt}
 {stl}
 !@>art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
