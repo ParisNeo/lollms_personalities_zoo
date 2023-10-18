@@ -166,10 +166,9 @@ Act as document relevance and answer the following question with Yes or No.
 Use the required relevance level to judge the relevance
 required relevance:{{relevance_check_severiry}}/10
 !@>document:
-title: {{title}}                                        
+title: {{title}}
 content: {{content}}
-!@>subject:                               
-{{initial_prompt}}
+!@>subject:{{initial_prompt}}
 !@>relevance of the document to the subject: """, self.personality_config.max_generation_prompt_size, {
                                 "title":result.title,
                                 "authors":authors,
@@ -180,14 +179,12 @@ content: {{content}}
                         if "yes" in is_relevant.lower():
                             self.abstract_vectorizer.add_document(result.entry_id.split('/')[-1], f"title:{result.title}\nauthors:{authors}\nabstract:{result.summary}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
                             relevance = "relevant"
-                            relevance_explanation = self.fast_gen("""!@>Instructions:
-Explain why you think this document is relevant to the subject.
+                            relevance_explanation = self.fast_gen("""!@>Instructions: Explain why you think this document is relevant to the subject.
 !@>document:
-title: {{title}}                                        
-authors: {{authors}}                                        
+title: {{title}}
+authors: {{authors}}
 content: {{content}}
-!@>subject:                               
-{{initial_prompt}}
+!@>subject: {{initial_prompt}}
 !@>Relevance explanation: """, self.personality_config.max_generation_prompt_size, {
                                 "title":result.title,
                                 "content":result.summary,
@@ -255,7 +252,3 @@ content: {{content}}
         articles_checking_text+=f"\n<b>Summary</b>:\n{output}"
         ASCIIColors.yellow(output)
         self.full(articles_checking_text)
-
-        
-
-
