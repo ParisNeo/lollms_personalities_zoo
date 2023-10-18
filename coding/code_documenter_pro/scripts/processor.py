@@ -469,17 +469,6 @@ class Processor(APScript):
         except Exception as ex:
             self.reinstall_pytorch_with_cuda()
 
-        # Step 1: Clone repository
-        if not sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/CompVis/stable-diffusion.git", str(sd_folder)])
-
-        # Step 2: Install the Python package inside sd folder
-        subprocess.run(["pip", "install", "--upgrade", str(sd_folder)])
-
-        # Step 3: Create models/Stable-diffusion folder if it doesn't exist
-        models_folder = shared_folder / "sd_models"
-        models_folder.mkdir(parents=True, exist_ok=True)
-
         ASCIIColors.success("Installed successfully")
 
     
