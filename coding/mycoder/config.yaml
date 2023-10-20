@@ -67,9 +67,8 @@ recommended_binding: ''
 recommended_model: ''
 user_message_prefix: '!@>User:'
 version: 1.0
-welcome_message: '```markdown
-
-  # Welcome to MyCoder!
+welcome_message: '
+  ## Welcome to MyCoder!
 
 
   I am MyCoder, your personal coding assistant. I can code in various languages and
@@ -83,7 +82,4 @@ welcome_message: '```markdown
 
 
   Let''s get started and make coding easier and more enjoyable for you!
-
-  ```
-
   '
