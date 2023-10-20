@@ -350,7 +350,7 @@ Avoid text as the generative ai is not good at generating text.
         
         # ----------------------------------------------------------------
 
-        path = self.personality.lollms_paths.personalities_zoo_path/"personal"/name.replace(" ","_")
+        path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_")
         assets_path= path/"assets"
         self.assets_path = assets_path
         personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
@@ -413,7 +413,8 @@ Avoid text as the generative ai is not good at generating text.
             yaml.safe_dump(config,f)
         
         assets_path.mkdir(parents=True, exist_ok=True)
-        shutil.copy(files[-1], assets_path/"logo.png")
+        if len(files)>0:
+            shutil.copy(files[-1], assets_path/"logo.png")
         return output
 
 
