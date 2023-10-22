@@ -75,7 +75,7 @@ personality_description: 'The Historian personality is characterized by a deep p
 recommended_binding: ''
 recommended_model: ''
 user_message_prefix: '!@>User:'
-version: 1.0
+version: 2.0
 welcome_message: 'Dear User,
 
 
