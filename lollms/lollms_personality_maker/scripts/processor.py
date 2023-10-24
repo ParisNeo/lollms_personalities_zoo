@@ -243,8 +243,7 @@ disclaimer:""",256,0.1,10,0.98).strip()
         self.step_start("Coming up with the conditionning")
         conditioning = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
-!@>task: Write a conditioning text to condition a text ai to simulate the personality infered from the request.
-The conditionning is a detailed description of the personality and its important traits.
+!@>task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request.
 {self.personality.ai_message_prefix}
 !@>lollms_personality_maker: Here is the conditionning text for the personality {name}:
 Act as""",256,0.1,10,0.98).strip()
@@ -258,7 +257,7 @@ Act as""",256,0.1,10,0.98).strip()
         welcome_message = self.generate(f"""{self.personality.personality_conditioning}
 !@>request:{prompt}
 !@>personality name:{name}
-!@>task: Write a welcome message text that {name} sends to the user at startup
+!@>task: Write a welcome message text that {name} sends to the user at startup. Keep it short and sweet.
 {self.personality.ai_message_prefix}
 welcome message:""",256,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message")
