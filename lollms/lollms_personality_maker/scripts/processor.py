@@ -173,8 +173,7 @@ class Processor(APScript):
 !@>user request:{prompt}
 !@>task: What is the name of the personality requested by the user?
 If the request contains already the name, then use that.
-{self.personality.ai_message_prefix}
-name:""",50,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix} The chozen personality name is: """,50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
@@ -243,7 +242,7 @@ disclaimer:""",256,0.1,10,0.98).strip()
         self.step_start("Coming up with the conditionning")
         conditioning = self.generate(f"""!@>request:{prompt}
 !@>personality name:{name}
-!@>task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request.
+!@>task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request. Do not write more than three sentences max.
 {self.personality.ai_message_prefix}
 !@>lollms_personality_maker: Here is the conditionning text for the personality {name}:
 Act as""",256,0.1,10,0.98).strip()

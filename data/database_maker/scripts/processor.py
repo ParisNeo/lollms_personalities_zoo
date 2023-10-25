@@ -1,11 +1,19 @@
-import subprocess
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import GenericDataLoader
+from safe_store import GenericDataLoader
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from pathlib import Path
+import json
 
+def find_available_file(folder_path):
+    i = 0
+    while True:
+        file_name = f"database_{i}.json"
+        file_path = Path(folder_path) / file_name
+        if not file_path.exists():
+            return str(file_path)
+        i += 1
 
 class Processor(APScript):
     """
@@ -37,6 +45,19 @@ class Processor(APScript):
                     "value": 512,
                     "help": "The maximum number of tokens that can be generated for each chunk of text in the questions building phase",
                 },
+                {
+                    "name": "data_vectorization_nb_chunks",
+                    "type": "int",
+                    "value": 2,
+                    "help": "The number of chunks to recover from the database",
+                },
+                {
+                    "name": "use_enhanced_mode",
+                    "type": "bool",
+                    "value": False,
+                    "help": "This activates using the keyword building part of the execution diagram. Please read the paper for more details.",
+                },
+                
                 
             ]
         )
@@ -68,6 +89,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        output = "### Building questions:\n"
+        self.full(output)
         self.callback = callback
         # Verify if the data_folder_path exists
         data_folder_path = Path(self.personality_config.data_folder_path)
@@ -75,7 +98,6 @@ class Processor(APScript):
             self.warning("The specified data_folder_path does not exist.")
         # Iterate over all documents in data_folder_path
         document_files = [v for v in data_folder_path.iterdir()]
-        total_chunks = len(document_files)
         processed_chunks = 0
         self.step_start(f"Loading files")
         for file_path in document_files:
@@ -88,19 +110,49 @@ class Processor(APScript):
         self.step_end(f"Indexing files")
         # Iterate over all chunks and extract text
         questions_vector = []
+        total_chunks = len(self.data_store.chunks.items())
         for chunk_name, chunk in self.data_store.chunks.items():
             chunk_text = chunk["chunk_text"]
             processed_chunks += 1
             self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
             # Build the prompt text with placeholders
-            prompt_text = f"###>instruction: Please formulate a set of questions that can be answered by reading the following chunk of text:\n\n###>chunk: {{chunk}}\n###>Here is an a set of questions that can be answered using the chunk of text you presented:\n- What is the topic of the text?\n- "
+            prompt_text = "###>instruction: Generate questions that delve into the specific details and information presented in the text chunks. Please do not :\n\n###>chunk: {{chunk}}\n###>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
             # Ask AI to generate questions
-            generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text})
+            generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text}, debug=True)
             # Split the generated text into lines and accumulate into questions_vector
             generated_lines = generated_text.strip().split("\n")
             questions_vector.extend(generated_lines)
-            self.step_end(f"Processing chunk {processed_chunks}/{total_chunks}")
+            self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
+            output += generated_text + "\n"
+            self.full(output)
+        
+        output += "### Building answers:\n"
+        self.full(output)
+        qna_list=[]
+        output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.name
+        output_folder.mkdir(parents=True, exist_ok=True)
+        db_name = find_available_file(output_folder)
         # Perform further processing with questions_vector
+        for index, question in enumerate(questions_vector):
+            self.step_start(f"Asking question {index}/{len(questions_vector)}")
+            docs, sorted_similarities = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
+            prompt_text = """###>chunk: {{chunk}}
+###>instruction: Use the information provided in the above chunk to answer the following question. If there is not enough information in the chunk to answer the question, please indicate that the answer is not available.
+###>question: {{question}}
+###>answer: """
+            ###>chunk: {{chunk}}\n###>instruction: Please use the text chunks to answer the following question:\n\n###>question: {{question}}\n\n###>answer: "
+            # Ask AI to generate an answer
+            answer = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
+            qna_list.append({
+                "question":question,
+                "answer":answer
+            })
+            output += f"q:{question}\na:{answer}\n"
+            self.full(output)
+            self.step_end(f"Asking question {index}/{len(questions_vector)}")
+            with open(output_folder/db_name, 'w') as file:
+                json.dump(qna_list, file)
+        print("Dictionary saved as JSON successfully!")
         return ""
 
 

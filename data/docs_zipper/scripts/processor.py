@@ -3,7 +3,7 @@ from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
 from lollms.helpers import ASCIIColors, trace_exception
-from lollms.utilities import GenericDataLoader
+from safe_store import GenericDataLoader
 
 import numpy as np
 import json
