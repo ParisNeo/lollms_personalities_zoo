@@ -46,6 +46,18 @@ class Processor(APScript):
                     "help": "The maximum number of tokens that can be generated for each chunk of text in the questions building phase",
                 },
                 {
+                    "name": "data_chunk_size",
+                    "type": "int",
+                    "value": 512,
+                    "help": "The maximum number of tokens that for each vectorized data chunks",
+                },
+                {
+                    "name": "data_overlap_size",
+                    "type": "int",
+                    "value": 128,
+                    "help": "The overlap between data chunks in tokens",
+                },
+                {
                     "name": "data_vectorization_nb_chunks",
                     "type": "int",
                     "value": 2,
@@ -134,8 +146,22 @@ class Processor(APScript):
         db_name = find_available_file(output_folder)
         # Perform further processing with questions_vector
         for index, question in enumerate(questions_vector):
-            self.step_start(f"Asking question {index}/{len(questions_vector)}")
             docs, sorted_similarities = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
+            if self.personality_config.use_enhanced_mode:
+                self.step_start(f"Verifying RAG data")
+                prompt_text = """###>chunk: {{chunk}}
+###>instruction: Is the information provided in the above chunk sufficient to answer the following question?
+Valid answers:
+- Yes
+- No
+###>question: {{question}}
+###>answer: """
+                if "no" in prompt_text.lower():
+                    self.step_end(f"Verifying RAG data", False)
+                    continue
+                self.step_end(f"Verifying RAG data")
+
+            self.step_start(f"Asking question {index}/{len(questions_vector)}")
             prompt_text = """###>chunk: {{chunk}}
 ###>instruction: Use the information provided in the above chunk to answer the following question. If there is not enough information in the chunk to answer the question, please indicate that the answer is not available.
 ###>question: {{question}}
@@ -144,8 +170,10 @@ class Processor(APScript):
             # Ask AI to generate an answer
             answer = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
             qna_list.append({
+                "conditionning":"Act as LoLLMs expert and answer the following questions.",
                 "question":question,
-                "answer":answer
+                "answer":answer,
+                "id":0
             })
             output += f"q:{question}\na:{answer}\n"
             self.full(output)
