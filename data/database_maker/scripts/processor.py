@@ -6,6 +6,16 @@ from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from pathlib import Path
 import json
 
+def find_last_file(folder_path):
+    i = 0
+    while True:
+        file_name = f"database_{i}.json"
+        file_path = Path(folder_path) / file_name
+        if not file_path.exists():
+            return str(f"database_{i-1}.json")
+        i += 1
+
+
 def find_available_file(folder_path):
     i = 0
     while True:
@@ -101,16 +111,15 @@ class Processor(APScript):
         Returns:
             None
         """
-        output = "### Building questions:\n"
-        self.full(output)
-        self.callback = callback
+        
+        # Preparing data
+        output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.name
+        output_folder.mkdir(parents=True, exist_ok=True)
         # Verify if the data_folder_path exists
         data_folder_path = Path(self.personality_config.data_folder_path)
         if not Path(data_folder_path).exists():
             self.warning("The specified data_folder_path does not exist.")
-        # Iterate over all documents in data_folder_path
         document_files = [v for v in data_folder_path.iterdir()]
-        processed_chunks = 0
         self.step_start(f"Loading files")
         for file_path in document_files:
             document_text = GenericDataLoader.read_file(file_path)
@@ -120,35 +129,55 @@ class Processor(APScript):
         self.step_start(f"Indexing files")
         self.data_store.index()
         self.step_end(f"Indexing files")
-        # Iterate over all chunks and extract text
-        questions_vector = []
-        total_chunks = len(self.data_store.chunks.items())
-        for chunk_name, chunk in self.data_store.chunks.items():
-            chunk_text = chunk["chunk_text"]
-            processed_chunks += 1
-            self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
-            # Build the prompt text with placeholders
-            prompt_text = "###>instruction: Generate questions that delve into the specific details and information presented in the text chunks. Please do not :\n\n###>chunk: {{chunk}}\n###>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
-            # Ask AI to generate questions
-            generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text}, debug=True)
-            # Split the generated text into lines and accumulate into questions_vector
-            generated_lines = generated_text.strip().split("\n")
-            questions_vector.extend(generated_lines)
-            self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
-            output += generated_text + "\n"
+        
+        #processing
+        if "continue" in prompt.lower():
+            try:
+                db_name = find_last_file(output_folder)
+                with open(output_folder/f"{db_name.split('.')[0]}_q.json", 'r') as file:
+                    questions_vector = json.load(file)
+            except:
+                output = "FAILED to continue from last process: "
+                self.full(output)
+                return
+        else:
+            db_name = find_available_file(output_folder)
+            output = "### Building questions:\n"
             self.full(output)
+            self.callback = callback
+            # Iterate over all documents in data_folder_path
+            processed_chunks = 0
+            # Iterate over all chunks and extract text
+            questions_vector = []
+            total_chunks = len(self.data_store.chunks.items())
+            for chunk_name, chunk in self.data_store.chunks.items():
+                chunk_text = chunk["chunk_text"]
+                processed_chunks += 1
+                self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
+                # Build the prompt text with placeholders
+                prompt_text = "###>instruction: Generate questions that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mension the text itself in your questions.\n\n###>chunk {{chunk_name}}: {{chunk}}\n###>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
+                # Ask AI to generate questions
+                generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
+                # Split the generated text into lines and accumulate into questions_vector
+                generated_lines = generated_text.strip().split("\n")
+                questions_vector.extend(generated_lines)
+                self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
+                output += generated_text + "\n"
+                self.full(output)
+            
+            self.step_start(f"Saving questions for future use")
+            with open(output_folder/f"{db_name.split('.')[0]}_q.json", 'w') as file:
+                json.dump(questions_vector, file)
+            self.step_end(f"Saving questions for future use")
         
         output += "### Building answers:\n"
         self.full(output)
         qna_list=[]
-        output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.name
-        output_folder.mkdir(parents=True, exist_ok=True)
-        db_name = find_available_file(output_folder)
         # Perform further processing with questions_vector
         for index, question in enumerate(questions_vector):
             docs, sorted_similarities = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
             if self.personality_config.use_enhanced_mode:
-                self.step_start(f"Verifying RAG data")
+                self.step_start(f"Verifying RAG data_{index}")
                 prompt_text = """###>chunk: {{chunk}}
 ###>instruction: Is the information provided in the above chunk sufficient to answer the following question?
 Valid answers:
@@ -156,14 +185,18 @@ Valid answers:
 - No
 ###>question: {{question}}
 ###>answer: """
-                if "no" in prompt_text.lower():
-                    self.step_end(f"Verifying RAG data", False)
+                if "yes" not in prompt_text.lower():
+                    self.step_end(f"Verifying RAG data_{index}", False)
                     continue
-                self.step_end(f"Verifying RAG data")
+                self.step_end(f"Verifying RAG data_{index}")
 
             self.step_start(f"Asking question {index}/{len(questions_vector)}")
             prompt_text = """###>chunk: {{chunk}}
-###>instruction: Use the information provided in the above chunk to answer the following question. If there is not enough information in the chunk to answer the question, please indicate that the answer is not available.
+###>instructions:
+Interpret the textual data contained within the chunk thoroughly to answer the corresponding instruction/task presented alongside it.
+If the information stored in this chunk does not suffice to provide categorically accurate answers, please indicate accordingly by stating "insufficient information".
+All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated. 
+It is crucial to maintain strict adherence to the content delineated in each instance of interaction.
 ###>question: {{question}}
 ###>answer: """
             ###>chunk: {{chunk}}\n###>instruction: Please use the text chunks to answer the following question:\n\n###>question: {{question}}\n\n###>answer: "
