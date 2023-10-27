@@ -5,6 +5,17 @@ from safe_store import GenericDataLoader
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from pathlib import Path
 import json
+import re
+
+def remove_indexing_from_markdown(markdown_text):
+    # Define a regular expression pattern to match numbered and hyphenated lists at the beginning of the line
+    pattern = r'^(?:\d+\.\s+|\d+-\s+)'
+    
+    # Use the sub() method to replace the matched pattern with an empty string
+    clean_text = re.sub(pattern, '', markdown_text.strip())
+    
+    return clean_text
+
 
 def find_last_file(folder_path):
     i = 0
@@ -164,14 +175,16 @@ class Processor(APScript):
                 processed_chunks += 1
                 self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 # Build the prompt text with placeholders
-                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mension the text itself in your questions. Start each question with -. Do not add question enumeration.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
+                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mention the text itself in your questions. Make sure you format the output using Markdown so it appears as a regular list without numbers.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions and tasks to further explore the contents of the given text chunks:\n- "
                 # Ask AI to generate questions
                 generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
                 # Split the generated text into lines and accumulate into questions_vector
-                generated_lines = [q[2:] if q.startswith("- ") else q for q in generated_text.strip().split("\n")]
+                generated_lines = generated_text.strip().split("\n")
+                generated_lines = [q[2:] if q.startswith("- ") else q for q in generated_lines]
+                generated_lines = [remove_indexing_from_markdown(q) for q in generated_lines]
                 questions_vector.extend(generated_lines)
                 self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
-                output += generated_text + "\n"
+                output += "\n- ".join(generated_lines) + "\n"
                 self.full(output)
             
             self.step_start(f"Saving questions for future use")
