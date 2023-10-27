@@ -56,6 +56,12 @@ class Processor(APScript):
                     "help": "The maximum number of tokens that can be generated for each chunk of text in the questions building phase",
                 },
                 {
+                    "name": "answer_gen_size",
+                    "type": "int",
+                    "value": 1024,
+                    "help": "The maximum number of tokens that can be generated for each chunk of text in the questions building phase",
+                },
+                {
                     "name": "data_chunk_size",
                     "type": "int",
                     "value": 512,
@@ -111,6 +117,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        # Preparing callback
+        self.callback = callback
         
         # Preparing data
         output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.name
@@ -140,11 +148,12 @@ class Processor(APScript):
                 output = "FAILED to continue from last process: "
                 self.full(output)
                 return
+            output = "### Loading questions:\n"
+            output += "\n".join(questions_vector)
         else:
             db_name = find_available_file(output_folder)
             output = "### Building questions:\n"
             self.full(output)
-            self.callback = callback
             # Iterate over all documents in data_folder_path
             processed_chunks = 0
             # Iterate over all chunks and extract text
@@ -155,11 +164,11 @@ class Processor(APScript):
                 processed_chunks += 1
                 self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 # Build the prompt text with placeholders
-                prompt_text = "###>instruction: Generate questions that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mension the text itself in your questions.\n\n###>chunk {{chunk_name}}: {{chunk}}\n###>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
+                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mension the text itself in your questions. Start each question with -. Do not add question enumeration.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions to explore the content of the text chunk. I will only present the questions without answering them:\n- "
                 # Ask AI to generate questions
                 generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
                 # Split the generated text into lines and accumulate into questions_vector
-                generated_lines = generated_text.strip().split("\n")
+                generated_lines = [q[2:] if q.startswith("- ") else q for q in generated_text.strip().split("\n")]
                 questions_vector.extend(generated_lines)
                 self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 output += generated_text + "\n"
@@ -178,30 +187,30 @@ class Processor(APScript):
             docs, sorted_similarities = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
             if self.personality_config.use_enhanced_mode:
                 self.step_start(f"Verifying RAG data_{index}")
-                prompt_text = """###>chunk: {{chunk}}
-###>instruction: Is the information provided in the above chunk sufficient to answer the following question?
+                prompt_text = """!@>chunk: {{chunk}}
+!@>instruction: Is the information provided in the above chunk sufficient to answer the following question?
 Valid answers:
 - Yes
 - No
-###>question: {{question}}
-###>answer: """
+!@>question: {{question}}
+!@>answer: """
                 if "yes" not in prompt_text.lower():
                     self.step_end(f"Verifying RAG data_{index}", False)
                     continue
                 self.step_end(f"Verifying RAG data_{index}")
 
             self.step_start(f"Asking question {index}/{len(questions_vector)}")
-            prompt_text = """###>chunk: {{chunk}}
-###>instructions:
+            prompt_text = """!@>chunk: {{chunk}}
+!@>instructions:
 Interpret the textual data contained within the chunk thoroughly to answer the corresponding instruction/task presented alongside it.
 If the information stored in this chunk does not suffice to provide categorically accurate answers, please indicate accordingly by stating "insufficient information".
 All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated. 
 It is crucial to maintain strict adherence to the content delineated in each instance of interaction.
-###>question: {{question}}
-###>answer: """
-            ###>chunk: {{chunk}}\n###>instruction: Please use the text chunks to answer the following question:\n\n###>question: {{question}}\n\n###>answer: "
+!@>question: {{question}}
+!@>answer: """
+            # !@>chunk: {{chunk}}\n!@>instruction: Please use the text chunks to answer the following question:\n\n!@>question: {{question}}\n\n!@>answer: "
             # Ask AI to generate an answer
-            answer = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
+            answer = self.fast_gen(prompt_text, max_generation_size=self.personality_config.answer_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
             qna_list.append({
                 "conditionning":"Act as LoLLMs expert and answer the following questions.",
                 "question":question,
