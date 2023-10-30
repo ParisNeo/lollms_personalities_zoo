@@ -36,8 +36,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                
-                {"name":"device","type":"str","value":"gpu","options":["gpu","cpu"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
+                {"name":"device","type":"str","value":"cuda:0","options":["cuda","cpu","xpu","ipu","hpu","xla","Vulkan"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
                 {"name":"model_name","type":"str","value":"facebook/musicgen-melody","options":["facebook/musicgen-small","facebook/musicgen-medium","facebook/musicgen-melody","facebook/musicgen-large"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
                 {"name":"number_of_samples","type":"int","value":1,"help":"The number of samples to generate"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
