@@ -241,7 +241,7 @@ class Processor(APScript):
 
             
             file_html = self.make_selectable_photo(path.stem,f"/{pth}")
-            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n!", callback=callback)
+            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
