@@ -1,12 +1,95 @@
-
 <style>
-.hidden {
-    display: none;
-}
-</style>
+    .hidden {
+        display: none;
+    }
+    
+    .floating-image-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        background-color: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    
+    .close-button {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        font-weight: bold;
+        display: flex;
+        border-radius: 50%;
+        border-color: green;
+        background-color: white;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .close-button:hover {
+        color: red;
+    }
+
+    .close-button .leaf-icon {
+        font-size: 20px;
+    }
+
+    .close-button .leaf-icon:hover {
+        transform: rotate(45deg);
+    }
+
+    .save-button {
+        margin-top: 10px;
+        padding: 8px 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .save-button:hover {
+        background-color: #45a049;
+    }
+    .variate-button {
+        margin-top: 10px;
+        padding: 8px 16px;
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .variate-button:hover {
+        background-color: #0e81ce;
+    }
+
+    .buttons-bar {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .buttons-bar button{
+        margin-right: 10px;
+    }
+
+    </style>
+    
     <div class="flex items-center justify-content: space-around">
-        <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="cursor-pointer" style="width:{thumbneil_width}px;height:{thumbneil_height}px" onclick="openFloatingImage('{image_id}')">
+        <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="cursor-pointer" style="width:{thumbneil_width}px;height:{thumbneil_height}px"  onclick="openFloatingImage('{image_id}')">
     </div>
+    
     <script>
         function openFloatingImage(imageId) {
             const imageElement = document.getElementById(`img_${imageId}`);
@@ -15,17 +98,44 @@
             // Create a new div for the floating image container
             const floatingImageContainer = document.createElement('div');
             floatingImageContainer.id = 'floatingImageContainer';
-            floatingImageContainer.className = 'hidden';
+            floatingImageContainer.className = 'hidden floating-image-container';
 
             // Create a new image element for the floating image
             const floatingImage = new Image();
             floatingImage.src = imageSource;
             floatingImage.id = 'floatingImage';
             floatingImage.className = 'cursor-pointer';
-            floatingImage.onclick = closeFloatingImage;
 
-            // Append the floating image to the container
+            // Create a new close button
+            const closeButton = document.createElement('div');
+            closeButton.className = 'close-button';
+            closeButton.innerHTML = '<i class="leaf-icon">X</i>';
+            closeButton.addEventListener('click', closeFloatingImage);
+
+            // Create a new save button
+            const saveButton = document.createElement('button');
+            saveButton.className = 'save-button';
+            saveButton.innerHTML = 'Save';
+            saveButton.addEventListener('click', saveImage);
+
+            // Create a new variate button
+            const variateButton = document.createElement('button');
+            variateButton.className = 'variate-button';
+            variateButton.innerHTML = 'Variate';
+            variateButton.addEventListener('click', postToPersonality);
+
+            // Create a new buttons bar
+            const buttonsBar = document.createElement('div');
+            buttonsBar.className = 'buttons-bar';
+
+            // Append the save button and variate button to the buttons bar
+            buttonsBar.appendChild(saveButton);
+            buttonsBar.appendChild(variateButton);            
+
+            // Append the floating image, close button, save button, and variate button to the container
             floatingImageContainer.appendChild(floatingImage);
+            floatingImageContainer.appendChild(closeButton);
+            floatingImageContainer.appendChild(buttonsBar);
 
             // Add the container to the body
             document.body.appendChild(floatingImageContainer);
@@ -34,8 +144,54 @@
             floatingImageContainer.classList.remove('hidden');
         }
 
+        function postToPersonality() {
+            const floatingImage = document.getElementById('floatingImage');
+            const imageSource = floatingImage.src;
+            const name = 'variate';
+
+            // Create a data object with the image path and name
+            const data = {
+                imagePath: imageSource,
+                name: variate
+            };
+
+            // Send a POST request to the "post_to_personality" endpoint
+            fetch('/post_to_personality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response from the server
+                console.log(data);
+            })
+            .catch(error => {
+                // Handle any errors
+                console.error(error);
+            });
+        }
+
+        function saveImage() {
+            const floatingImage = document.getElementById('floatingImage');
+            const imageSource = floatingImage.src;
+            
+            // Create a link element
+            const link = document.createElement('a');
+            link.href = imageSource;
+            link.download = 'image.png';
+            
+            // Programmatically click on the link to trigger the download
+            link.click();
+        }
+
+
+    
         function closeFloatingImage() {
             const floatingImageContainer = document.getElementById('floatingImageContainer');
             floatingImageContainer.remove(); // Remove the floating image container
         }
     </script>
+    
