@@ -159,14 +159,21 @@
             // Create a new save button
             const saveButton = document.createElement('button');
             saveButton.className = 'save-button';
-            saveButton.innerHTML = 'Save';
+            saveButton.innerHTML = 'Save Image';
             saveButton.addEventListener('click', saveImage);
+
+            // Create a new save metadata button
+            const saveMetadataButton = document.createElement('button');
+            saveMetadataButton.className = 'save-button';
+            saveMetadataButton.innerHTML = 'Save Metadata';
+            saveMetadataButton.addEventListener('click', saveMetadata);
 
             // Create a new variate button
             const variateButton = document.createElement('button');
             variateButton.className = 'variate-button';
             variateButton.innerHTML = 'Variate';
             variateButton.addEventListener('click', postToPersonality);
+
 
             // Create a new variate button
             const setAsCurrentImageButton = document.createElement('button');
@@ -192,6 +199,7 @@
             infosDiv.appendChild(infosDivTable);
             // Append the save button and variate button to the buttons bar
             buttonsBar.appendChild(saveButton);
+            buttonsBar.appendChild(saveMetadataButton);
             buttonsBar.appendChild(variateButton);       
             buttonsBar.appendChild(setAsCurrentImageButton);
             
@@ -304,6 +312,33 @@
             const floatingImageContainer = document.getElementById('floatingImageContainer');
             floatingImageContainer.remove(); // Remove the floating image container
         }
+        
+        function saveMetadata() {
+            const json = JSON.stringify(dictionary);
+  
+            // Create a Blob with the JSON string
+            const blob = new Blob([json], { type: 'application/json' });
+            
+            // Create a temporary URL for the Blob
+            const url = URL.createObjectURL(blob);
+            
+            // Create a link element
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Get default name
+            const title = infosData.title || 'Untitled'; // Use 'Untitled' if title is empty
+            
+            // Remove any incompatible characters from the title
+            const sanitizedTitle = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '');
+            link.download = sanitizedTitle + '.json';
+            
+            // Programmatically click on the link to trigger the download
+            link.click();
+            
+            // Clean up the temporary URL
+            URL.revokeObjectURL(url);
+        }
 
         function saveImage() {
             const floatingImage = document.getElementById('floatingImage');
@@ -312,7 +347,12 @@
             // Create a link element
             const link = document.createElement('a');
             link.href = imageSource;
-            link.download = 'image.png';
+            // Get default name
+            const title = infosData.title || 'Untitled'; // Use 'Untitled' if title is empty
+            
+            // Remove any incompatible characters from the title
+            const sanitizedTitle = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '');
+            link.download = sanitizedTitle + '.png';
             
             // Programmatically click on the link to trigger the download
             link.click();

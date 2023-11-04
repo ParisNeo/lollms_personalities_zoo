@@ -478,11 +478,13 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                         )
                 self.print_prompt("Make up a title", prompt)
                 sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-                self.previous_sd_title = sd_title
                 self.step_end("Making up a title")
+                metadata_infos += f"### title:\n{sd_title}\n"
+                self.full(f"{metadata_infos}")
+
             else:
                 sd_title = "unnamed"
-                self.previous_sd_title = sd_title
+
         else:
             self.width=self.personality_config.width
             self.height=self.personality_config.height
@@ -496,6 +498,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             
         self.previous_sd_positive_prompt = sd_positive_prompt
         self.previous_sd_negative_prompt = sd_negative_prompt
+        self.previous_sd_title = sd_title
 
         output = metadata_infos
 
