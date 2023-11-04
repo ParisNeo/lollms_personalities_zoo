@@ -58,6 +58,7 @@ class Processor(APScript):
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
+                {"name":"build_title","type":"bool","value":True,"help":"Build a title for the artwork"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"use_fixed_negative_prompts","type":"bool","value":True,"help":"Uses parisNeo's preferred negative prompts"},
                 {"name":"fixed_negative_prompts","type":"str","value":"((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes))","help":"which negative prompt to use in case use_fixed_negative_prompts is checked"},                
@@ -203,7 +204,7 @@ class Processor(APScript):
     
     def new_image(self, prompt="", full_context=""):
         self.files=[]
-        self.full("Starting fresh :)")
+        self.notify("Starting fresh :)")
         
         
     def show_sd(self, prompt="", full_context=""):
@@ -225,6 +226,7 @@ class Processor(APScript):
             self.full("Showing Stable diffusion settings UI")        
         
     def add_file(self, path, callback=None):
+        self.new_message("")
         if callback is None and self.callback is not None:
             callback = self.callback
 
@@ -353,26 +355,7 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                pr  = PromptReshaper("""!@>Instructions:
-Act as  prompt analyzer, a tool capable of analyzing the user prompt and answering yes or no this prompt asking to generate an image.
-!@>User prompt:                               
-{{initial_prompt}}
-!@>question: Is the user's message asking to generate an image?
-Yes or No?
-!@>prompt analyzer: After analyzing the user prompt, the answer is""")
-                prompt = pr.build({
-                        "previous_discussion":full_context,
-                        "initial_prompt":initial_prompt
-                        }, 
-                        self.personality.model.tokenize, 
-                        self.personality.model.detokenize, 
-                        self.personality.model.config.ctx_size,
-                        ["previous_discussion"]
-                        )
-                self.print_prompt("Ask yes or no, this is a generation request",prompt)
-                is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-                ASCIIColors.cyan(is_discussion)
-                if "yes" not in is_discussion.lower():
+                if not self.yes_no("Is the user's message asking to generate an image?", initial_prompt, self.personality_config.max_generation_prompt_size):
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
@@ -466,14 +449,40 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                         ["previous_discussion"]
                         )
                 self.print_prompt("Generate negative prompt", prompt)
-                sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                sd_negative_prompt = "((morbid)),"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Imagining negative prompt")
             else:
                 sd_negative_prompt = self.personality_config.fixed_negative_prompts
             metadata_infos += f"### Negative prompt:\n{sd_negative_prompt}\n"
             self.full(f"{metadata_infos}")     
             # ====================================================================================            
-            
+            if self.personality_config.build_title:
+                self.step_start("Making up a title")
+                # 1 first ask the model to formulate a query
+                pr  = PromptReshaper("""!@>instructions:
+    Given this image description prompt and negative prompt, make a consize title
+    !@>positive_prompt:
+    {{positive_prompt}}
+    !@>negative_prompt:
+    {{negative_prompt}}
+    !@>title:
+    """)
+                prompt = pr.build({
+                        "positive_prompt":sd_positive_prompt,
+                        "negative_prompt":sd_negative_prompt,
+                        }, 
+                        self.personality.model.tokenize, 
+                        self.personality.model.detokenize, 
+                        self.personality.model.config.ctx_size,
+                        ["negative_prompt"]
+                        )
+                self.print_prompt("Make up a title", prompt)
+                sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                self.previous_sd_title = sd_title
+                self.step_end("Making up a title")
+            else:
+                sd_title = "unnamed"
+                self.previous_sd_title = sd_title
         else:
             self.width=self.personality_config.width
             self.height=self.personality_config.height
@@ -509,6 +518,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                                     height = self.personality_config.height,
                                     restore_faces = self.personality_config.restore_faces,
                                 )
+                    infos["title"]=sd_title
                     file = str(file)
 
                     url = "/"+file[file.index("outputs"):].replace("\\","/")
@@ -626,7 +636,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             None
         """
         self.callback = callback
-        self.process_state(prompt, previous_discussion_text, callback)
+        self.main_process(prompt, previous_discussion_text)
 
         return ""
 
