@@ -60,6 +60,7 @@ class Processor(APScript):
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
                 {"name":"use_fixed_negative_prompts","type":"bool","value":True,"help":"Uses parisNeo's preferred negative prompts"},
+                {"name":"fixed_negative_prompts","type":"str","value":"((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes))","help":"which negative prompt to use in case use_fixed_negative_prompts is checked"},                
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
                 {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
                 {"name":"automatic_resolution_selection","type":"bool","value":False,"help":"If true then artbot chooses the resolution of the image to generate"},
@@ -121,7 +122,7 @@ class Processor(APScript):
         return '<link rel="stylesheet" href="/personalities/art/artbot/assets/tailwind.css">'
 
 
-    def make_selectable_photo(self, image_id, image_source):
+    def make_selectable_photo(self, image_id, image_source, image_infos={}):
         with(open(Path(__file__).parent.parent/"assets/photo.html","r") as f):
             str_data = f.read()
         
@@ -130,7 +131,8 @@ class Processor(APScript):
             "{image_id}":f"{image_id}",
             "{thumbneil_width}":f"{self.personality_config.thumbneil_width}",
             "{thumbneil_height}":f"{self.personality_config.thumbneil_height}",
-            "{image_source}":image_source
+            "{image_source}":image_source,
+            "{__infos__}":str(image_infos).replace("True","true").replace("False","false").replace("None","null")
         })
         return str_data
     def make_selectable_photos(self, html:str):
@@ -196,26 +198,26 @@ class Processor(APScript):
         return text_without_image_links
 
 
-    def help(self, prompt, full_context):
+    def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def new_image(self, prompt, full_context):
+    def new_image(self, prompt="", full_context=""):
         self.files=[]
         self.full("Starting fresh :)")
         
         
-    def show_sd(self, prompt, full_context):
+    def show_sd(self, prompt="", full_context=""):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
         self.full("Showing Stable diffusion UI")
         
         
-    def show_settings(self, prompt, full_context):
+    def show_settings(self, prompt="", full_context=""):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
         self.full("Showing Stable diffusion settings UI")
         
-    def show_last_image(self, prompt, full_context):
+    def show_last_image(self, prompt="", full_context=""):
         self.prepare()
         if len(self.files)>0:
             self.full(f"![]({self.files})")        
@@ -240,14 +242,14 @@ class Processor(APScript):
 
 
             
-            file_html = self.make_selectable_photo(path.stem,f"/{pth}")
+            file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
             self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
             self.full(f"File added successfully\n", callback=callback)
         
-    def regenerate(self, prompt, full_context):
+    def regenerate(self, prompt="", full_context=""):
         if self.previous_sd_positive_prompt:
             files = []
             ui=""
@@ -267,7 +269,7 @@ class Processor(APScript):
                                 restore_faces = self.personality_config.restore_faces,
                             )
                 file = str(file)
-                file_html = self.make_selectable_photo(Path(file).stem,"/"+file[file.index("outputs"):].replace("\\","/"))
+                file_html = self.make_selectable_photo(Path(file).stem,"/"+file[file.index("outputs"):].replace("\\","/"), infos)
 
                 ui += file_html
                 self.step_end(f"Building image {img}")
@@ -445,7 +447,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
     Try to force the generator not to generate text or extra fingers or deformed faces.
     Use as many words as you need depending on the context.
     To give more importance to a term put it ibti multiple brackets ().
-    example: ((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))
+    example: {{fixed_negative_prompts}}
     !@>discussion:
     {{previous_discussion}}{{initial_prompt}}
     !@>artbot:
@@ -455,7 +457,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                         "previous_discussion":self.remove_image_links(full_context),
                         "initial_prompt":initial_prompt,
                         "sd_positive_prompt":sd_positive_prompt,
-                        "styles":','+styles if styles!='' else ''
+                        "styles":','+styles if styles!='' else '',
+                        "fixed_negative_prompts": self.personality_config.fixed_negative_prompts
                         }, 
                         self.personality.model.tokenize, 
                         self.personality.model.detokenize, 
@@ -466,7 +469,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                 sd_negative_prompt = "blurry,"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Imagining negative prompt")
             else:
-                sd_negative_prompt = "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))"
+                sd_negative_prompt = self.personality_config.fixed_negative_prompts
             metadata_infos += f"### Negative prompt:\n{sd_negative_prompt}\n"
             self.full(f"{metadata_infos}")     
             # ====================================================================================            
@@ -509,7 +512,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                     file = str(file)
 
                     url = "/"+file[file.index("outputs"):].replace("\\","/")
-                    file_html = self.make_selectable_photo(Path(file).stem, url)
+                    file_html = self.make_selectable_photo(Path(file).stem, url, infos)
                     files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                     ui += file_html
                     metadata_infos += f'\n![]({url})'
@@ -582,10 +585,32 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
         ```
         """
         operation = data.get("name","variate")
+        prompt = data.get("prompt","")
+        negative_prompt =  data.get("negative_prompt","")
         if operation=="variate":
             imagePath = data.get("imagePath","")
+            ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
+            self.new_image()
+            ASCIIColors.info("Building new image")
+            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            ASCIIColors.info("Regenerating")
+            self.personality.app.notify("Regenerating",True)
+            self.previous_sd_positive_prompt = prompt
+            self.previous_sd_negative_prompt = negative_prompt
+            self.new_message(f"Generation {self.personality_config.num_images} variations")
+            self.regenerate()
             
-        return {"status":True}
+            return {"status":True, "message":"Image is now ready to be used as variation"}
+        elif operation=="set_as_current":
+            imagePath = data.get("imagePath","")
+            ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
+            self.new_image()
+            ASCIIColors.info("Building new image")
+            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            ASCIIColors.info("Regenerating")
+            return {"status":True, "message":"Image is now set as the current image for image to image operation"}
+
+        return {"status":False, "message":"Unknown operation"}
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """

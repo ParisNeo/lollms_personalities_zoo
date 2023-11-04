@@ -2,21 +2,62 @@
     .hidden {
         display: none;
     }
-    
+
     .floating-image-container {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        background-color: white;
-        padding: 10px;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
     }
+
+    .content-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90%;
+    max-height: 90%;
+    }
+
+    #floatingImage {
+    max-width: 100%;
+    max-height: 100%;
+    }
+
+
+    .floating-image-container::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .floating-image-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .floating-image-container::-webkit-scrollbar-thumb {
+        background: #888;
+    }
+
+    .floating-image-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .floating-image-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .infos {
+        background-color: #e2edff;
+        max-height: 150px;
+    }
+
 
     
     .close-button {
@@ -78,6 +119,7 @@
         display: flex;
         justify-content: center;
         margin-top: 10px;
+        margin-bottom: 10px;
     }
 
     .buttons-bar button{
@@ -91,6 +133,8 @@
     </div>
     
     <script>
+        // Parse the inline JSON code
+        const infosData = {__infos__};        
         function openFloatingImage(imageId) {
             const imageElement = document.getElementById(`img_${imageId}`);
             const imageSource = imageElement.src;
@@ -124,35 +168,85 @@
             variateButton.innerHTML = 'Variate';
             variateButton.addEventListener('click', postToPersonality);
 
+            // Create a new variate button
+            const setAsCurrentImageButton = document.createElement('button');
+            setAsCurrentImageButton.className = 'variate-button';
+            setAsCurrentImageButton.innerHTML = 'Set as current image';
+            setAsCurrentImageButton.addEventListener('click', setAsCurrentImageButtonFN);
+
             // Create a new buttons bar
             const buttonsBar = document.createElement('div');
             buttonsBar.className = 'buttons-bar';
-
+            // Create a new div for the information box
+            const infosDiv = document.createElement('div');
+            infosDiv.className = 'infos bg-light dark:hover:border-primary hover:border-solid hover:border-2 border-2 border-transparent p-4 pb-2 rounded-lg m-2 shadow-lgz-0 flex flex-col flex-grow overflow-y-auto scrollbar-thin scrollbar-track-bg-light-tone scrollbar-thumb-bg-light-tone-panel hover:scrollbar-thumb-primary dark:scrollbar-track-bg-dark-tone dark:scrollbar-thumb-bg-dark-tone-panel dark:hover:scrollbar-thumb-primary active:scrollbar-thumb-secondary';
+            
+            // Loop through the JSON data and create paragacraphs for eh entry
+            
+            const infosDivTable = document.createElement('table');
+            for (const [key, value] of Object.entries(infosData)) {
+                const infoParagraph = document.createElement('tr');
+                infoParagraph.innerHTML = `<td><strong>${key}:</strong></td><td>${value}</td>`;
+                infosDivTable.appendChild(infoParagraph);
+            }
+            infosDiv.appendChild(infosDivTable);
             // Append the save button and variate button to the buttons bar
             buttonsBar.appendChild(saveButton);
-            buttonsBar.appendChild(variateButton);            
+            buttonsBar.appendChild(variateButton);       
+            buttonsBar.appendChild(setAsCurrentImageButton);
+            
+            // Create a new div for the container of image, buttons bar, and infos
+            const contentContainer = document.createElement('div');
+            contentContainer.className = 'content-container';
 
-            // Append the floating image, close button, save button, and variate button to the container
-            floatingImageContainer.appendChild(floatingImage);
-            floatingImageContainer.appendChild(closeButton);
-            floatingImageContainer.appendChild(buttonsBar);
+            // Append the floating image, close button, buttons bar, and infos to the content container
+            contentContainer.appendChild(floatingImage);
+            contentContainer.appendChild(closeButton);
+            contentContainer.appendChild(buttonsBar);
+            contentContainer.appendChild(infosDiv);
 
+            // Append the content container to the floating image container
+            floatingImageContainer.appendChild(contentContainer);
+            
             // Add the container to the body
             document.body.appendChild(floatingImageContainer);
 
             // Show the floating image container
             floatingImageContainer.classList.remove('hidden');
-        }
+            // Add event listener for mouse wheel
+            floatingImage.addEventListener('wheel', zoomImage);
 
-        function postToPersonality() {
+            // Function to handle zooming of the image
+            function zoomImage(event) {
+                event.preventDefault();
+                const floatingImage = document.getElementById('floatingImage');
+
+                // Get the current scale of the image
+                const currentScale = parseFloat(floatingImage.style.transform.replace('scale(', '').replace(')', ''));
+
+                // Calculate the new scale based on the mouse wheel delta
+                const scaleDelta = event.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = currentScale * scaleDelta;
+
+                // Update the transform style of the image to apply the new scale
+                floatingImage.style.transform = `scale(${newScale})`;
+
+
+                console.log(`scale(${newScale})`)
+                console.log(floatingImage.style.transform)
+            }
+        }
+        function setAsCurrentImageButtonFN(){
             const floatingImage = document.getElementById('floatingImage');
             const imageSource = floatingImage.src;
-            const name = 'variate';
+            const name = 'set_as_current';
 
             // Create a data object with the image path and name
             const data = {
                 imagePath: imageSource,
-                name: variate
+                name: "set_as_current",
+                prompt: infosData["prompt"],
+                negative_prompt: infosData["negative_prompt"]
             };
 
             // Send a POST request to the "post_to_personality" endpoint
@@ -172,6 +266,43 @@
                 // Handle any errors
                 console.error(error);
             });
+            const floatingImageContainer = document.getElementById('floatingImageContainer');
+            floatingImageContainer.remove(); // Remove the floating image container            
+        }
+
+
+        function postToPersonality() {
+            const floatingImage = document.getElementById('floatingImage');
+            const imageSource = floatingImage.src;
+            const name = 'variate';
+
+            // Create a data object with the image path and name
+            const data = {
+                imagePath: imageSource,
+                name: "variate",
+                prompt: infosData["prompt"],
+                negative_prompt: infosData["negative_prompt"]
+            };
+
+            // Send a POST request to the "post_to_personality" endpoint
+            fetch('/post_to_personality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response from the server
+                console.log(data);
+            })
+            .catch(error => {
+                // Handle any errors
+                console.error(error);
+            });
+            const floatingImageContainer = document.getElementById('floatingImageContainer');
+            floatingImageContainer.remove(); // Remove the floating image container
         }
 
         function saveImage() {
