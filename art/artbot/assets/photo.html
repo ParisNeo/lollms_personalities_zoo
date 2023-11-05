@@ -129,57 +129,80 @@
     </style>
     
     <div class="flex items-center justify-content: space-around">
-        <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="cursor-pointer" style="width:{thumbneil_width}px;height:{thumbneil_height}px"  onclick="openFloatingImage('{image_id}')">
+        <img id="img_{image_id}" src="{image_source}" alt="Artbot generated image" class="cursor-pointer" style="width:{thumbneil_width}px;height:{thumbneil_height}px"  onclick="openFloatingImage('{image_id}',infoData_{image_id})">
+        <button id="copy_prompt" onclick="copy_to_clipboard(infoData_{image_id})"><i data-feather='copy'></i></button>
     </div>
     
     <script>
         // Parse the inline JSON code
-        const infosData = {__infos__};        
-        function openFloatingImage(imageId) {
+        const infoData_{image_id} = {__infos__};
+        
+        function copy_to_clipboard(infoData){
+            text = `${infoData["prompt"]}\n${infoData["negative_prompt"]}`
+            navigator.clipboard.writeText(text)
+            .then(() => {
+            console.log('Text copied to clipboard successfully!');
+            })
+            .catch((error) => {
+            console.error('Error copying text to clipboard:', error);
+            });
+        }
+
+        function openFloatingImage(imageId, infoData) {
             const imageElement = document.getElementById(`img_${imageId}`);
             const imageSource = imageElement.src;
 
             // Create a new div for the floating image container
             const floatingImageContainer = document.createElement('div');
-            floatingImageContainer.id = 'floatingImageContainer';
+            floatingImageContainer.id = `floatingImageContainer_${imageId}`;
             floatingImageContainer.className = 'hidden floating-image-container';
 
             // Create a new image element for the floating image
             const floatingImage = new Image();
             floatingImage.src = imageSource;
-            floatingImage.id = 'floatingImage';
+            floatingImage.id = `floatingImage_${imageId}`;
             floatingImage.className = 'cursor-pointer';
 
             // Create a new close button
             const closeButton = document.createElement('div');
             closeButton.className = 'close-button';
             closeButton.innerHTML = '<i class="leaf-icon">X</i>';
-            closeButton.addEventListener('click', closeFloatingImage);
+            closeButton.addEventListener('click', function() {
+                closeFloatingImage(imageId, infoData);
+            });
 
             // Create a new save button
             const saveButton = document.createElement('button');
             saveButton.className = 'save-button';
             saveButton.innerHTML = 'Save Image';
-            saveButton.addEventListener('click', saveImage);
+            saveButton.addEventListener('click', function() {
+                saveImage(imageId, infoData);
+            });
 
             // Create a new save metadata button
             const saveMetadataButton = document.createElement('button');
             saveMetadataButton.className = 'save-button';
             saveMetadataButton.innerHTML = 'Save Metadata';
-            saveMetadataButton.addEventListener('click', saveMetadata);
+            saveMetadataButton.addEventListener('click', function() {
+                saveMetadata(imageId, infoData);
+            });
 
             // Create a new variate button
             const variateButton = document.createElement('button');
             variateButton.className = 'variate-button';
             variateButton.innerHTML = 'Variate';
-            variateButton.addEventListener('click', postToPersonality);
+            variateButton.addEventListener('click', function() {
+                postToPersonality(imageId, infoData);
+            });
 
 
             // Create a new variate button
             const setAsCurrentImageButton = document.createElement('button');
             setAsCurrentImageButton.className = 'variate-button';
             setAsCurrentImageButton.innerHTML = 'Set as current image';
-            setAsCurrentImageButton.addEventListener('click', setAsCurrentImageButtonFN);
+            setAsCurrentImageButton.addEventListener('click', function() {
+                setAsCurrentImageButtonFN(imageId, infoData);
+            });
 
             // Create a new buttons bar
             const buttonsBar = document.createElement('div');
@@ -191,7 +214,7 @@
             // Loop through the JSON data and create paragacraphs for eh entry
             
             const infosDivTable = document.createElement('table');
-            for (const [key, value] of Object.entries(infosData)) {
+            for (const [key, value] of Object.entries(infoData)) {
                 const infoParagraph = document.createElement('tr');
                 infoParagraph.innerHTML = `<td><strong>${key}:</strong></td><td>${value}</td>`;
                 infosDivTable.appendChild(infoParagraph);
@@ -244,8 +267,8 @@
                 console.log(floatingImage.style.transform)
             }
         }
-        function setAsCurrentImageButtonFN(){
-            const floatingImage = document.getElementById('floatingImage');
+        function setAsCurrentImageButtonFN(imageId, infoData){
+            const floatingImage = document.getElementById(`floatingImage_${imageId}`);
             const imageSource = floatingImage.src;
             const name = 'set_as_current';
 
@@ -253,8 +276,8 @@
             const data = {
                 imagePath: imageSource,
                 name: "set_as_current",
-                prompt: infosData["prompt"],
-                negative_prompt: infosData["negative_prompt"]
+                prompt: infoData["prompt"],
+                negative_prompt: infoData["negative_prompt"]
             };
 
             // Send a POST request to the "post_to_personality" endpoint
@@ -274,13 +297,13 @@
                 // Handle any errors
                 console.error(error);
             });
-            const floatingImageContainer = document.getElementById('floatingImageContainer');
+            const floatingImageContainer = document.getElementById(`floatingImageContainer_${imageId}`);
             floatingImageContainer.remove(); // Remove the floating image container            
         }
 
 
-        function postToPersonality() {
-            const floatingImage = document.getElementById('floatingImage');
+        function postToPersonality(imageId, infoData) {
+            const floatingImage = document.getElementById(`floatingImage_${imageId}`);
             const imageSource = floatingImage.src;
             const name = 'variate';
 
@@ -288,8 +311,8 @@
             const data = {
                 imagePath: imageSource,
                 name: "variate",
-                prompt: infosData["prompt"],
-                negative_prompt: infosData["negative_prompt"]
+                prompt: infoData["prompt"],
+                negative_prompt: infoData["negative_prompt"]
             };
 
             // Send a POST request to the "post_to_personality" endpoint
@@ -309,12 +332,12 @@
                 // Handle any errors
                 console.error(error);
             });
-            const floatingImageContainer = document.getElementById('floatingImageContainer');
+            const floatingImageContainer = document.getElementById(`floatingImageContainer_${imageId}`);
             floatingImageContainer.remove(); // Remove the floating image container
         }
         
-        function saveMetadata() {
-            const json = JSON.stringify(dictionary);
+        function saveMetadata(imageId, infoData) {
+            const json = JSON.stringify(infoData);
   
             // Create a Blob with the JSON string
             const blob = new Blob([json], { type: 'application/json' });
@@ -327,7 +350,7 @@
             link.href = url;
 
             // Get default name
-            const title = infosData.title || 'Untitled'; // Use 'Untitled' if title is empty
+            const title = infoData.title || 'Untitled'; // Use 'Untitled' if title is empty
             
             // Remove any incompatible characters from the title
             const sanitizedTitle = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '');
@@ -340,19 +363,20 @@
             URL.revokeObjectURL(url);
         }
 
-        function saveImage() {
-            const floatingImage = document.getElementById('floatingImage');
+        function saveImage(imageId, infoData) {
+            const floatingImage = document.getElementById(`floatingImage_${imageId}`);
             const imageSource = floatingImage.src;
             
             // Create a link element
             const link = document.createElement('a');
             link.href = imageSource;
             // Get default name
-            const title = infosData.title || 'Untitled'; // Use 'Untitled' if title is empty
+            const title = infoData.title || 'Untitled'; // Use 'Untitled' if title is empty
             
             // Remove any incompatible characters from the title
             const sanitizedTitle = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '');
             link.download = sanitizedTitle + '.png';
+            console.log(link.download)
             
             // Programmatically click on the link to trigger the download
             link.click();
@@ -360,8 +384,8 @@
 
 
     
-        function closeFloatingImage() {
-            const floatingImageContainer = document.getElementById('floatingImageContainer');
+        function closeFloatingImage(imageId, infoData) {
+            const floatingImageContainer = document.getElementById(`floatingImageContainer_${imageId}`);
             floatingImageContainer.remove(); // Remove the floating image container
         }
     </script>

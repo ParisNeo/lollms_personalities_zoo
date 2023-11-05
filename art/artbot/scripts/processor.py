@@ -210,7 +210,7 @@ class Processor(APScript):
     def show_sd(self, prompt="", full_context=""):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
-        self.full("Showing Stable diffusion UI")
+        self.notify("Showing Stable diffusion UI")
         
         
     def show_settings(self, prompt="", full_context=""):
@@ -253,10 +253,14 @@ class Processor(APScript):
         
     def regenerate(self, prompt="", full_context=""):
         if self.previous_sd_positive_prompt:
+            self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
+            output0 = f"## Positive prompt:\n{self.previous_sd_positive_prompt}\n## negative prompt:\n{self.previous_sd_negative_prompt}"
+            output = output0
+            self.full(output)
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
-                self.step_start(f"Building image {img}")
+                self.step_start(f"Building image {img+1}/{self.personality_config.num_images}")
                 file, infos = self.sd.paint(
                                 self.previous_sd_positive_prompt, 
                                 self.previous_sd_negative_prompt,
@@ -271,11 +275,15 @@ class Processor(APScript):
                                 restore_faces = self.personality_config.restore_faces,
                             )
                 file = str(file)
-                file_html = self.make_selectable_photo(Path(file).stem,"/"+file[file.index("outputs"):].replace("\\","/"), infos)
-
+                url = "/"+file[file.index("outputs"):].replace("\\","/")
+                file_html = self.make_selectable_photo(Path(file).stem,url, infos)
+                output += f'\n![]({url})' 
+                self.full(output)
                 ui += file_html
-                self.step_end(f"Building image {img}")
-            self.ui(self.make_selectable_photos(ui))
+                self.step_end(f"Building image {img+1}/{self.personality_config.num_images}")
+            self.full(output0)
+            self.step_end("Regenerating using the previous prompt")
+            self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
             if self.personality_config.show_infos:
                 self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
         else:
@@ -347,6 +355,7 @@ class Processor(APScript):
         return extract_resolution(sz, default_resolution)
 
     def main_process(self, initial_prompt, full_context):
+        sd_title = "unnamed"    
         metadata_infos=""
         self.prepare()
         try:
@@ -355,7 +364,7 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                if not self.yes_no("Is the user's message asking to generate an image?", initial_prompt, self.personality_config.max_generation_prompt_size):
+                if not self.yes_no("Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate an image?", initial_prompt, self.personality_config.max_generation_prompt_size):
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
@@ -460,13 +469,13 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                 self.step_start("Making up a title")
                 # 1 first ask the model to formulate a query
                 pr  = PromptReshaper("""!@>instructions:
-    Given this image description prompt and negative prompt, make a consize title
-    !@>positive_prompt:
-    {{positive_prompt}}
-    !@>negative_prompt:
-    {{negative_prompt}}
-    !@>title:
-    """)
+Given this image description prompt and negative prompt, make a consize title
+!@>positive_prompt:
+{{positive_prompt}}
+!@>negative_prompt:
+{{negative_prompt}}
+!@>title:
+""")
                 prompt = pr.build({
                         "positive_prompt":sd_positive_prompt,
                         "negative_prompt":sd_negative_prompt,
@@ -481,9 +490,6 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
                 self.step_end("Making up a title")
                 metadata_infos += f"### title:\n{sd_title}\n"
                 self.full(f"{metadata_infos}")
-
-            else:
-                sd_title = "unnamed"
 
         else:
             self.width=self.personality_config.width
@@ -571,10 +577,10 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
 
             if self.personality_config.continue_from_last_image:
                 self.files= [file]            
+            self.full(output.strip())
+            self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         else:
             infos = None
-        self.full(output.strip())
-        self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 
@@ -610,7 +616,7 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
             self.personality.app.notify("Regenerating",True)
             self.previous_sd_positive_prompt = prompt
             self.previous_sd_negative_prompt = negative_prompt
-            self.new_message(f"Generation {self.personality_config.num_images} variations")
+            self.new_message(f"Generating {self.personality_config.num_images} variations")
             self.regenerate()
             
             return {"status":True, "message":"Image is now ready to be used as variation"}
