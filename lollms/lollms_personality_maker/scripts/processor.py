@@ -38,6 +38,7 @@ class Processor(APScript):
         self.sd = None
         personality_config_template = ConfigTemplate(
             [
+                {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
@@ -413,6 +414,16 @@ Avoid text as the generative ai is not good at generating text.
         assets_path.mkdir(parents=True, exist_ok=True)
         if len(files)>0:
             shutil.copy(files[-1], assets_path/"logo.png")
+
+        if self.personality_config.make_scripted:
+            self.step_start("Creating default script")
+            scripts_path = path/"scripts"
+            template_fn = Path(__file__).parent/"script_template.py"
+            shutil.copy(template_fn, scripts_path/"processor.py")
+            self.step_end("Creating default script")
+
+
+
         return output
 
 
