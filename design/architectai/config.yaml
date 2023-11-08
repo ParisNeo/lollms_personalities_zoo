@@ -89,3 +89,28 @@ welcome_message: 'Welcome to ArchitectAI! I am here to assist you in designing a
   creating your dream spaces. Let''s collaborate and bring your visions to life.
 
   '
+
+help: |
+  Artbot 2 uses auto1111's stable diffusion to generate images. It can help you generate beautiful images out of your ideas, convert your imagination into concrete artworks and help you fine tune them to become even better.
+
+commands:
+  - name: Send File
+    value: send_file
+    icon: 'feather:file-plus'
+    is_file: true
+    file_types: .png,.jpg,.bmp
+    help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
+  - name: New Image
+    value: new_image
+    icon: 'feather:file'
+    help: start 
+  - name: Show Stable diffusion UI
+    value: show_sd
+    icon: personalities/art/artbot/assets/open_sd.svg
+    help: shows the full stable diffusion ui for more options.
+  - name: Regenerate with last prompt
+    value: regenerate
+    help: shows the stable diffusion settings
+  - name: Show Advanceed settings
+    value: show_settings
+    help: shows the stable diffusion settings

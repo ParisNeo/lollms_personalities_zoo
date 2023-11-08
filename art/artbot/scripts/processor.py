@@ -617,6 +617,7 @@ Given this image description prompt and negative prompt, make a consize title
             self.previous_sd_positive_prompt = prompt
             self.previous_sd_negative_prompt = negative_prompt
             self.new_message(f"Generating {self.personality_config.num_images} variations")
+            self.prepare()
             self.regenerate()
             
             return {"status":True, "message":"Image is now ready to be used as variation"}
