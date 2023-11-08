@@ -131,7 +131,7 @@ class Processor(APScript):
                 full_text =f"""!@>instructor:Extract keywords from this prompt. The keywords output format is comma separated values.
 !@>prompt: {prompt}
 !@>assistant: The keywords are """
-                preprocessed_prompt = self.generate(full_text, self.personality_config["max_answer_size"]).strip()
+                preprocessed_prompt = self.generate(full_text, int(self.personality_config["max_answer_size"])).strip()
             else:
                 preprocessed_prompt = prompt
             self.step_end("Analyzing request", callback=self.callback)
@@ -139,11 +139,11 @@ class Processor(APScript):
                 preprocessed_prompt = prompt
             self.full(f"Query : {preprocessed_prompt}")
 
-            docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(preprocessed_prompt), top_k=self.personality_config.nb_chunks)
+            docs, sorted_similarities = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"document chunk {s[0].split('_')[-2:]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
+            docs = '\n'.join([f"document chunk {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
             full_text =f"""{docs}
 {full_context}"""
 
@@ -196,23 +196,7 @@ class Processor(APScript):
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
         for file in self.files:
             try:
-                if Path(file).suffix==".pdf":
-                    text =  GenericDataLoader.read_pdf_file(file)
-                elif Path(file).suffix==".docx":
-                    text =  GenericDataLoader.read_docx_file(file)
-                elif Path(file).suffix==".docx":
-                    text =  GenericDataLoader.read_pptx_file(file)
-                elif Path(file).suffix==".json":
-                    text =  GenericDataLoader.read_json_file(file)
-                elif Path(file).suffix==".csv":
-                    text =  GenericDataLoader.read_csv_file(file)
-                elif Path(file).suffix==".html":
-                    text =  GenericDataLoader.read_html_file(file)
-                elif Path(file).suffix in [".txt", ".md"]:
-                    text =  GenericDataLoader.read_text_file(file)
-                else:
-                    ASCIIColors.error("File type not supported")
-                    return False
+                text =  GenericDataLoader.read_file(file)
                 try:
                     chunk_size=int(self.personality_config["max_chunk_size"])
                 except:
