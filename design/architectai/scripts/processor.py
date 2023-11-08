@@ -13,6 +13,22 @@ import webbrowser
 from typing import Dict, Any
 from pathlib import Path
 
+
+import requests
+
+def download_file(url, local_filename):
+  response = requests.get(url, stream=True)
+  total_size = int(response.headers['Content-Length'])
+  block_size = 1024*8
+  num_bars = int((total_size + (block_size - 1)) // block_size)
+  
+  with open(local_filename, 'wb') as f:
+     for chunk in tqdm(response.iter_content(chunk_size=block_size), desc="Downloading", total=num_bars, unit='B',unit_scale=True, unit_divisor=1024):
+        if chunk:
+           f.write(chunk)
+           f.flush()
+
+
 # Helper functions
 def find_next_available_filename(folder_path, prefix):
     folder = Path(folder_path)
@@ -54,7 +70,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
+                {"name":"production_type","type":"str","value":"an design", "options":["a photo","a design","an artwork", "a drawing", "a painting", "a hand drawing", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
@@ -65,7 +81,6 @@ class Processor(APScript):
                 {"name":"show_infos","type":"bool","value":True,"help":"Shows generation informations"},
                 {"name":"continuous_discussion","type":"bool","value":True,"help":"If true then previous prompts and infos are taken into acount to generate the next image"},
                 {"name":"automatic_resolution_selection","type":"bool","value":False,"help":"If true then architectai chooses the resolution of the image to generate"},
-                {"name":"add_style","type":"bool","value":False,"help":"If true then architectai will choose and add a specific style to the prompt"},
                 
                 {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make the graphical output requested"},
                 
@@ -164,6 +179,25 @@ class Processor(APScript):
             subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
         # verify if the models are installed
         
+        models =[
+            {
+                "url": "https://civitai.com/api/download/models/141091?type=Model&format=SafeTensor&size=full&fp=fp16",
+                "fn": "architectureExterior_v90.safetensors"
+            },
+            {
+                "url": "https://civitai.com/api/download/models/138737?type=Model&format=SafeTensor&size=full&fp=fp16",
+                "fn": "architecture_Interior_SDlife_Chiasedamme_V6.0.safetensors"
+            }
+        ]
+        
+        for model in models:
+            local_filename = self.personality.lollms_paths.personal_path/"shared"/"auto_sd"/"models"/"Stable-diffusion"/model["fn"]
+
+            if not local_filename.exists():
+                print(f"Model {model['fn']} does not exist. Downloading...")
+                download_file(model["url"], local_filename)
+            else:
+                print(f"Model {model['fn']} already exists.")        
         self.prepare()
         ASCIIColors.success("Installed successfully")
 
@@ -292,46 +326,6 @@ class Processor(APScript):
             self.full("Please generate an image first then retry")
 
     
-
-    def get_styles(self, prompt, full_context):
-        self.step_start("Selecting style")
-        styles=[
-            "Oil painting",
-            "Octane rendering",
-            "Cinematic",
-            "Art deco",
-            "Enameled",
-            "Etching",
-            "Arabesque",
-            "Cross Hatching",
-            "Callegraphy",
-            "Vector art",
-            "Vexel art",
-            "Cartoonish",
-            "Cubism",
-            "Surrealism",
-            "Pop art",
-            "Pop surrealism",
-            "Roschach Inkblot",
-            "Flat icon",
-            "Material Design Icon",
-            "Skeuomorphic Icon",
-            "Glyph Icon",
-            "Outline Icon",
-            "Gradient Icon",
-            "Neumorphic Icon",
-            "Vintage Icon",
-            "Abstract Icon"
-
-        ]
-        stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this {self.personality_config.production_type.split()[-1]}: {stl}\n!@>assistant:I select"
-        stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-        self.step_end("Selecting style")
-
-        selected_style = ",".join([s for s in styles if s.lower() in stl])
-        return selected_style
-
     def get_resolution(self, prompt, full_context, default_resolution=[512,512]):
 
         def extract_resolution(text, default_resolution=[512, 512]):
@@ -366,7 +360,7 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                if not self.yes_no("Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate an image?", initial_prompt, self.personality_config.max_generation_prompt_size):
+                if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate {self.personality_config.production_type}?", initial_prompt, self.personality_config.max_generation_prompt_size):
                     pr  = PromptReshaper("""!@>instructions>ArchitectAI is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
@@ -398,13 +392,6 @@ class Processor(APScript):
             metadata_infos += f"### Chosen resolution:\n{self.width}x{self.height}\n"
             self.full(f"{metadata_infos}")     
             # ====================================================================================
-            if self.personality_config.add_style:
-                styles = self.get_styles(initial_prompt,full_context)
-                metadata_infos += f"### Chosen style:\n{styles}"
-                self.full(f"{metadata_infos}")     
-            else:
-                styles = None
-            stl = f"!@>style_choice: {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
@@ -413,7 +400,6 @@ class Processor(APScript):
 !@>instructions:
 Act as architectai, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
 {initial_prompt}
-{stl}
 !@>art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
@@ -445,13 +431,12 @@ Act as architectai, the art prompt generation AI. Use the previous discussion to
     !@>discussion:
     {{previous_discussion}}{{initial_prompt}}
     !@>architectai:
-    prompt:{{sd_positive_prompt}}{{styles}}
+    prompt:{{sd_positive_prompt}}
     negative_prompt: ((morbid)),""")
                 prompt = pr.build({
                         "previous_discussion":self.remove_image_links(full_context),
                         "initial_prompt":initial_prompt,
                         "sd_positive_prompt":sd_positive_prompt,
-                        "styles":','+styles if styles!='' else '',
                         "fixed_negative_prompts": self.personality_config.fixed_negative_prompts
                         }, 
                         self.personality.model.tokenize, 
@@ -619,6 +604,7 @@ Given this image description prompt and negative prompt, make a consize title
             self.previous_sd_positive_prompt = prompt
             self.previous_sd_negative_prompt = negative_prompt
             self.new_message(f"Generating {self.personality_config.num_images} variations")
+            self.prepare()
             self.regenerate()
             
             return {"status":True, "message":"Image is now ready to be used as variation"}
