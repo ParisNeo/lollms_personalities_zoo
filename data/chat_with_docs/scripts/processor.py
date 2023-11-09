@@ -118,7 +118,7 @@ class Processor(APScript):
         self.full("Starting fresh")
         
     def show_files(self,prompt, full_context):
-        files = "\n".join([f.name for f in self.files])
+        files = "\n".join([f.name for f in self.text_files])
         self.full(files)
         
 
@@ -194,7 +194,7 @@ class Processor(APScript):
             self.ready = True
 
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
-        for file in self.files:
+        for file in self.text_files:
             try:
                 text =  GenericDataLoader.read_file(file)
                 try:

@@ -132,7 +132,7 @@ class Processor(APScript):
         self.full(self.personality.help, callback=self.callback)
     
     def new_image(self, prompt, full_context):
-        self.files=[]
+        self.image_files=[]
         self.full("Starting fresh :)", callback=self.callback)
         
         
@@ -167,12 +167,12 @@ class Processor(APScript):
         infos = {}
         for i in range(self.personality_config.num_images):
             self.step_start(f"Building image number {i+1}/{self.personality_config.num_images}", callback=self.callback)
-            if len(self.files)>0:
+            if len(self.image_files)>0:
                 try:
                     generated = self.sd.img2img(
                                 sd_positive_prompt,
                                 sd_negative_prompt, 
-                                [self.sd.loadImage(self.files[-1])],
+                                [self.sd.loadImage(self.image_files[-1])],
                                 sampler_name="Euler",
                                 seed=self.personality_config.seed,
                                 cfg_scale=self.personality_config.scale,
@@ -249,7 +249,7 @@ class Processor(APScript):
             output += str(infos)
 
         if self.personality_config.continue_from_last_image:
-            self.files= [files[-1]]
+            self.image_files= [files[-1]]
         return files, output
 
     def main_process(self, prompt, full_context):    

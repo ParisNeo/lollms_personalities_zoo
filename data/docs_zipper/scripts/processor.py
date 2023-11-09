@@ -95,7 +95,7 @@ class Processor(APScript):
 
     def build_db(self):
         ASCIIColors.info("-> Loading text data"+ASCIIColors.color_orange)
-        for file in self.files:
+        for file in self.text_files:
             try:
                 if Path(file).suffix==".pdf":
                     text =  GenericDataLoader.read_pdf_file(file)

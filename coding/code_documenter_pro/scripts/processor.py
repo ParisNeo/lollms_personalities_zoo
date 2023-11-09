@@ -607,7 +607,7 @@ Be precise and give details in your answer.
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
         if self.callback is not None:
             self.callback("Vectorizing the database", MSG_TYPE.MSG_TYPE_STEP)
-        for file in self.files:
+        for file in self.text_files:
             try:
                 if Path(file).suffix==".pdf":
                     text =  Processor.read_pdf_file(file)

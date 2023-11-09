@@ -55,7 +55,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2", "dalle-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"build_title","type":"bool","value":True,"help":"Build a title for the artwork"},
@@ -203,7 +203,7 @@ class Processor(APScript):
         self.full(self.personality.help)
     
     def new_image(self, prompt="", full_context=""):
-        self.files=[]
+        self.image_files=[]
         self.notify("Starting fresh :)")
         
         
@@ -220,8 +220,8 @@ class Processor(APScript):
         
     def show_last_image(self, prompt="", full_context=""):
         self.prepare()
-        if len(self.files)>0:
-            self.full(f"![]({self.files})")        
+        if len(self.image_files)>0:
+            self.full(f"![]({self.image_files})")        
         else:
             self.full("Showing Stable diffusion settings UI")        
         
@@ -260,27 +260,66 @@ class Processor(APScript):
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
-                self.step_start(f"Building image {img+1}/{self.personality_config.num_images}")
-                file, infos = self.sd.paint(
-                                self.previous_sd_positive_prompt, 
-                                self.previous_sd_negative_prompt,
-                                self.files,
-                                sampler_name = self.personality_config.sampler_name,
-                                seed = self.personality_config.seed,
-                                scale = self.personality_config.scale,
-                                steps = self.personality_config.steps,
-                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                                width = self.personality_config.width,
-                                height = self.personality_config.height,
-                                restore_faces = self.personality_config.restore_faces,
-                            )
-                file = str(file)
-                url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem,url, infos)
-                output += f'\n![]({url})' 
-                self.full(output)
-                ui += file_html
-                self.step_end(f"Building image {img+1}/{self.personality_config.num_images}")
+                if self.personality_config.generation_engine=="stable_diffusion":
+                    self.step_start(f"Building image {img+1}/{self.personality_config.num_images}")
+                    file, infos = self.sd.paint(
+                                    self.previous_sd_positive_prompt, 
+                                    self.previous_sd_negative_prompt,
+                                    self.image_files,
+                                    sampler_name = self.personality_config.sampler_name,
+                                    seed = self.personality_config.seed,
+                                    scale = self.personality_config.scale,
+                                    steps = self.personality_config.steps,
+                                    img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                    width = self.personality_config.width,
+                                    height = self.personality_config.height,
+                                    restore_faces = self.personality_config.restore_faces,
+                                )
+                    file = str(file)
+                    url = "/"+file[file.index("outputs"):].replace("\\","/")
+                    file_html = self.make_selectable_photo(Path(file).stem,url, infos)
+                    output += f'\n![]({url})' 
+                    self.full(output)
+                    ui += file_html
+                    self.step_end(f"Building image {img+1}/{self.personality_config.num_images}")
+                elif self.personality_config.generation_engine=="dalle-2" or  self.personality_config.generation_engine=="dalle-3":
+                    import openai
+                    openai.api_key = self.personality_config.config["openai_key"]
+                    response = openai.images.generate(
+                        prompt=self.previous_sd_positive_prompt.strip(),
+                        quality="standard",
+                        size=f"{self.personality_config.width}x{self.personality_config.height}",
+                        n=1,
+                        )
+                    infos = {}
+                    # download image to outputs
+                    output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    image_url = response.data[0].url
+
+                    # Get the image data from the URL
+                    response = requests.get(image_url)
+
+                    if response.status_code == 200:
+                        # Generate the full path for the image file
+                        file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
+
+                        # Save the image to the specified folder
+                        with open(file_name, "wb") as file:
+                            file.write(response.content)
+                        ASCIIColors.yellow(f"Image saved to {file_name}")
+                    else:
+                        ASCIIColors.red("Failed to download the image")
+                    file = str(file_name)
+
+                    url = "/"+file[file.index("outputs"):].replace("\\","/")
+                    file_html = self.make_selectable_photo(Path(file).stem, url)
+                    files.append("/"+file[file.index("outputs"):].replace("\\","/"))
+                    ui += file_html
+                    metadata_infos += f'\n![]({url})'
+                    self.full(metadata_infos)
+
+                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")                    
             self.full(output0)
             self.step_end("Regenerating using the previous prompt")
             self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
@@ -517,7 +556,7 @@ Given this image description prompt and negative prompt, make a consize title
                     file, infos = self.sd.paint(
                                     sd_positive_prompt, 
                                     sd_negative_prompt,
-                                    self.files,
+                                    self.image_files,
                                     sampler_name = self.personality_config.sampler_name,
                                     seed = self.personality_config.seed,
                                     scale = self.personality_config.scale,
@@ -537,19 +576,20 @@ Given this image description prompt and negative prompt, make a consize title
                     metadata_infos += f'\n![]({url})'
                     self.full(metadata_infos)
                     
-                elif self.personality_config.generation_engine=="dalle-2":
+                elif self.personality_config.generation_engine=="dalle-2" or  self.personality_config.generation_engine=="dalle-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
-                    response = openai.Image.create(
-                        prompt=sd_positive_prompt,
+                    response = openai.images.generate(
+                        prompt=sd_positive_prompt.strip(),
+                        quality="standard",
+                        size=f"{self.personality_config.width}x{self.personality_config.height}",
                         n=1,
-                        size=f"{self.personality_config.width}x{self.personality_config.height}"
                         )
                     infos = {}
                     # download image to outputs
                     output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
                     output_dir.mkdir(parents=True, exist_ok=True)
-                    image_url = response['data'][0]['url']
+                    image_url = response.data[0].url
 
                     # Get the image data from the URL
                     response = requests.get(image_url)
@@ -576,7 +616,7 @@ Given this image description prompt and negative prompt, make a consize title
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 
             if self.personality_config.continue_from_last_image:
-                self.files= [file]            
+                self.image_files= [file]            
             self.full(output.strip())
             self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         else:
@@ -611,7 +651,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             ASCIIColors.info("Regenerating")
             self.personality.app.notify("Regenerating",True)
             self.previous_sd_positive_prompt = prompt
@@ -626,7 +666,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             ASCIIColors.info("Regenerating")
             return {"status":True, "message":"Image is now set as the current image for image to image operation"}
 

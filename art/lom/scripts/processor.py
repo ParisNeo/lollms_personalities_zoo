@@ -107,8 +107,8 @@ class Processor(APScript):
         self.full(self.personality.help)
     
     def new_music(self, prompt, full_context):
-        self.files=[]
-        self.full("Stmusicing fresh :)")
+        self.image_files=[]
+        self.full("Starting fresh :)")
         
 
     def regenerate(self, prompt, full_context):

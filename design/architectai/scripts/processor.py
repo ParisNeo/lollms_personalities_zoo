@@ -239,7 +239,7 @@ class Processor(APScript):
         self.full(self.personality.help)
     
     def new_image(self, prompt="", full_context=""):
-        self.files=[]
+        self.image_files=[]
         self.notify("Starting fresh :)")
         
         
@@ -256,8 +256,8 @@ class Processor(APScript):
         
     def show_last_image(self, prompt="", full_context=""):
         self.prepare()
-        if len(self.files)>0:
-            self.full(f"![]({self.files})")        
+        if len(self.image_files)>0:
+            self.full(f"![]({self.image_files})")        
         else:
             self.full("Showing Stable diffusion settings UI")        
         
@@ -300,7 +300,7 @@ class Processor(APScript):
                 file, infos = self.sd.paint(
                                 self.previous_sd_positive_prompt, 
                                 self.previous_sd_negative_prompt,
-                                self.files,
+                                self.image_files,
                                 sampler_name = self.personality_config.sampler_name,
                                 seed = self.personality_config.seed,
                                 scale = self.personality_config.scale,
@@ -504,7 +504,7 @@ Given this image description prompt and negative prompt, make a consize title
                     file, infos = self.sd.paint(
                                     sd_positive_prompt, 
                                     sd_negative_prompt,
-                                    self.files,
+                                    self.image_files,
                                     sampler_name = self.personality_config.sampler_name,
                                     seed = self.personality_config.seed,
                                     scale = self.personality_config.scale,
@@ -563,7 +563,7 @@ Given this image description prompt and negative prompt, make a consize title
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 
             if self.personality_config.continue_from_last_image:
-                self.files= [file]            
+                self.image_files= [file]            
             self.full(output.strip())
             self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
         else:
@@ -598,7 +598,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             ASCIIColors.info("Regenerating")
             self.personality.app.notify("Regenerating",True)
             self.previous_sd_positive_prompt = prompt
@@ -613,7 +613,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             ASCIIColors.info("Regenerating")
             return {"status":True, "message":"Image is now set as the current image for image to image operation"}
 

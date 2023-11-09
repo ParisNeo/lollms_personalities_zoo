@@ -76,12 +76,12 @@ class Processor(APScript):
         if callback is None and self.callback is not None:
             callback = self.callback
         super().add_file(path)
-        image = Image.open(self.files[-1])
-        url = str(self.files[-1]).replace("\\","/").split("uploads")[-1]
+        image = Image.open(self.image_files[-1])
+        url = str(self.image_files[-1]).replace("\\","/").split("uploads")[-1]
         self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)
         try:
             # Load an image using PIL (Python Imaging Library)
-            image = Image.open(self.files[-1])
+            image = Image.open(self.image_files[-1])
 
             # Use pytesseract to extract text from the image
             text = pytesseract.image_to_string(image)
@@ -92,7 +92,7 @@ class Processor(APScript):
     
     
     def main_process(self, initial_prompt, full_context):
-        if len(self.files)==0:
+        if len(self.image_files)==0:
             self.full("<h3>Please send an image file first</h3>")
         else:
             text = self.generate(full_context+initial_prompt,1024, callback=self.callback)

@@ -99,7 +99,7 @@ class Processor(APScript):
 
             # only one path is required
             self.raw_image = Image.open(path).convert('RGB')
-            self.files = [path]
+            self.image_files = [path]
             inputs = self.processor(self.raw_image, return_tensors="pt").to(self.personality_config.device) #"cuda")
             def local_callback(output):
                 token = output.argmax(dim=-1)
@@ -119,7 +119,7 @@ class Processor(APScript):
 
     def remove_file(self, path):
         # only one path is required
-        self.files = []
+        self.image_files = []
 
     def remove_text_from_string(self, string, text_to_find):
         """
