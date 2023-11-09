@@ -55,7 +55,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dalle-2", "dalle-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"build_title","type":"bool","value":True,"help":"Build a title for the artwork"},
@@ -282,10 +282,11 @@ class Processor(APScript):
                     self.full(output)
                     ui += file_html
                     self.step_end(f"Building image {img+1}/{self.personality_config.num_images}")
-                elif self.personality_config.generation_engine=="dalle-2" or  self.personality_config.generation_engine=="dalle-3":
+                elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
                     response = openai.images.generate(
+                        model=self.personality_config.generation_engine,
                         prompt=self.previous_sd_positive_prompt.strip(),
                         quality="standard",
                         size=f"{self.personality_config.width}x{self.personality_config.height}",
@@ -576,10 +577,11 @@ Given this image description prompt and negative prompt, make a consize title
                     metadata_infos += f'\n![]({url})'
                     self.full(metadata_infos)
                     
-                elif self.personality_config.generation_engine=="dalle-2" or  self.personality_config.generation_engine=="dalle-3":
+                elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
                     response = openai.images.generate(
+                        model=self.personality_config.generation_engine,
                         prompt=sd_positive_prompt.strip(),
                         quality="standard",
                         size=f"{self.personality_config.width}x{self.personality_config.height}",
