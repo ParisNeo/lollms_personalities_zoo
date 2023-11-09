@@ -418,6 +418,7 @@ Avoid text as the generative ai is not good at generating text.
         if self.personality_config.make_scripted:
             self.step_start("Creating default script")
             scripts_path = path/"scripts"
+            scripts_path.mkdir(exist_ok=True, parents=True)
             template_fn = Path(__file__).parent/"script_template.py"
             shutil.copy(template_fn, scripts_path/"processor.py")
             self.step_end("Creating default script")

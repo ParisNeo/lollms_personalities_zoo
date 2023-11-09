@@ -155,7 +155,7 @@
             // Create a new div for the floating image container
             const floatingImageContainer = document.createElement('div');
             floatingImageContainer.id = `floatingImageContainer_${imageId}`;
-            floatingImageContainer.className = 'hidden floating-image-container';
+            floatingImageContainer.className = 'hidden floating-image-container overflow-y-auto scrollbar-thin scrollbar-track-bg-light-tone scrollbar-thumb-bg-light-tone-panel hover:scrollbar-thumb-primary dark:scrollbar-track-bg-dark-tone dark:scrollbar-thumb-bg-dark-tone-panel dark:hover:scrollbar-thumb-primary active:scrollbar-thumb-secondary';
 
             // Create a new image element for the floating image
             const floatingImage = new Image();

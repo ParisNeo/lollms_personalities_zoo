@@ -3,190 +3,12 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 
+from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 
 from pathlib import Path
 import subprocess
 import re
 
-def format_url_parameter(value:str):
-    encoded_value = value.strip().replace("\"","")
-    return encoded_value
-
-
-def get_relevant_text_block(
-                                url, 
-                                question, 
-                                driver,
-                                max_nb_chunks=2, 
-                                max_global_size=512, 
-                                max_chunk_size=256, 
-                                overlap_size=50,
-                                callback=None):
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from bs4 import BeautifulSoup    
-    # Load the webpage
-    driver.get(url)
-
-    # Wait for JavaScript to execute and get the final page source
-    html_content = driver.page_source
-
-    # Parse the HTML content
-    soup = BeautifulSoup(html_content, "html.parser")
-    # Example: Remove all <script> and <style> tags
-    for script in soup(["script", "style"]):
-        script.extract()
-
-    all_text = soup.get_text()
-    # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
-    all_text = ' '.join(all_text.strip().splitlines())
-    if callback:
-        callback("Recovering data", MSG_TYPE.MSG_TYPE_STEP_END)
-
-    # Split the text into sentences
-    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)[\.\?\s]{2,}', all_text)
-
-
-    # Chunk the sentences into consistent blocks with overlap
-    chunks = []
-    chunk=""
-    for i in range(len(sentences)):
-        sentence_size = len(sentences[i])
-        current_chunk_size = len(chunk)+sentence_size
-        if current_chunk_size<max_chunk_size:
-            chunk+=sentences[i]
-        else:
-            chunks.append(chunk)
-            
-            chunk = ""
-            ol = []
-            j=0
-            while len(chunk)<overlap_size and i-j>=0:
-                ol.append(sentences[i-j])
-                j+=1
-                chunk=chunk+sentences[i-j]+".\n"
-            chunk += ".\n".join(reversed(ol))
-    if chunk!="":
-        chunks.append(chunk)
-
-    if len(chunks)==1:
-        return chunks[0]
-    else:
-        if callback:
-            callback("Vectorizing data", MSG_TYPE.MSG_TYPE_STEP_START)
-        # Vectorize the chunks
-        vectorizer = TfidfVectorizer()
-        vectorized_text = vectorizer.fit_transform(chunks)
-
-        if callback:
-            callback("Vectorizing data", MSG_TYPE.MSG_TYPE_STEP_END)
-
-        if callback:
-            callback("Searching relevant data", MSG_TYPE.MSG_TYPE_STEP_START)
-
-        # Vectorize the question
-        vectorized_question = vectorizer.transform([question])
-
-        # Calculate document similarity
-        similarity_scores = cosine_similarity(vectorized_text, vectorized_question)
-
-
-        # Retrieve relevant text chunks based on similarity threshold
-        relevant_chunks = []
-        if max(similarity_scores)<0.5:
-            return ""
-        # Sort similarity scores in descending order and get the indices of top n scores
-        top_n_indices = similarity_scores.argsort(axis=0)[-max_nb_chunks:][::-1]
-
-        # Retrieve the corresponding chunks
-        for index in top_n_indices:
-            relevant_chunks.append(chunks[index[0]])
-
-        if callback:
-            callback("Searching relevant data", MSG_TYPE.MSG_TYPE_STEP_END)
-
-        if callback:
-            callback("Preprocessing data", MSG_TYPE.MSG_TYPE_STEP_START)
-
-        # Cap the relevant chunks to not exceed max_global_size
-        capped_relevant_chunks = []
-        current_size = 0
-        for chunk in relevant_chunks:
-            chunk_size = len(chunk)
-            if current_size + chunk_size <= max_global_size:
-                capped_relevant_chunks.append(chunk)
-                current_size += chunk_size
-            else:
-                break
-
-        # Concatenate relevant text chunks into a single text block
-        relevant_text_block = ' '.join(capped_relevant_chunks)
-        if callback:
-            callback("Preprocessing data", MSG_TYPE.MSG_TYPE_STEP_END)
-
-        return relevant_text_block
-
-
-
-
-
-def extract_results(url, max_num, driver=None):
-    from bs4 import BeautifulSoup    
-
-    # Load the webpage
-    driver.get(url)
-
-    # Wait for JavaScript to execute and get the final page source
-    html_content = driver.page_source
-
-    # Parse the HTML content
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Detect that no outputs are found
-    Not_found = soup.find("No results found")
-
-    if Not_found : 
-        return []    
-
-    # Find the <ol> tag with class="react-results--main"
-    ol_tag = soup.find("ol", class_="react-results--main")
-
-    # Initialize an empty list to store the results
-    results_list = []
-
-    try:
-        # Find all <li> tags within the <ol> tag
-        li_tags = ol_tag.find_all("li")
-
-        # Loop through each <li> tag, limited by max_num
-        for index, li_tag in enumerate(li_tags):
-            if index > max_num*3:
-                break
-
-            try:
-                # Find the three <div> tags within the <article> tag
-                div_tags = li_tag.find_all("div")
-
-                # Extract the link, title, and content from the <div> tags
-                links = div_tags[0].find_all("a")
-                href_value = links[1].get('href')
-                span = links[1].find_all("span")
-                link = span[0].text.strip()
-
-                title = div_tags[2].text.strip()
-                content = div_tags[3].text.strip()
-
-                # Add the extracted information to the list
-                results_list.append({
-                    "link": link,
-                    "href": href_value,
-                    "title": title,
-                    "brief": content
-                })
-            except Exception:
-                pass
-    except:
-        pass
-    return results_list
 
    
 class Processor(APScript):
@@ -209,7 +31,11 @@ class Processor(APScript):
         template = ConfigTemplate([
                 {"name":"craft_search_query","type":"bool","value":False},
                 {"name":"chromedriver_path","type":"str","value":""},
+                {"name":"chunk_size","type":"int","value":512, "min":128, "max":personality.model.config["ctx_size"]//2},
+                {"name":"chunk_overlap","type":"int","value":128, "min":0, "max":personality.model.config["ctx_size"]//2},
                 {"name":"num_results","type":"int","value":5, "min":2, "max":100},
+                {"name":"num_relevant_chunks","type":"int","value":2, "min":1, "max":100},
+
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
             ])
@@ -225,6 +51,7 @@ class Processor(APScript):
                         )
         
         
+        
     def install(self):
         super().install()
         requirements_file = self.personality.personality_package_path / "requirements.txt"
@@ -235,6 +62,96 @@ class Processor(APScript):
     def uninstall(self):
         super().uninstall()
 
+
+    def format_url_parameter(self, value:str):
+        encoded_value = value.strip().replace("\"","")
+        return encoded_value
+
+
+    def get_relevant_text_block(
+                                    self, 
+                                    url,
+                                    driver,
+                                ):
+        from bs4 import BeautifulSoup    
+        # Load the webpage
+        driver.get(url)
+
+        # Wait for JavaScript to execute and get the final page source
+        html_content = driver.page_source
+
+        # Parse the HTML content
+        soup = BeautifulSoup(html_content, "html.parser")
+        # Example: Remove all <script> and <style> tags
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        all_text = soup.get_text()
+        # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
+        self.step_end("Recovering data")
+        self.vectorizer.add_document(url,all_text, self.personality_config.chunk_size, self.personality_config.chunk_overlap)
+        self.vectorizer.index()
+        self.step_end("Vectorizing data")
+
+
+    def extract_results(self, url, max_num, driver=None):
+        from bs4 import BeautifulSoup    
+
+        # Load the webpage
+        driver.get(url)
+
+        # Wait for JavaScript to execute and get the final page source
+        html_content = driver.page_source
+
+        # Parse the HTML content
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Detect that no outputs are found
+        Not_found = soup.find("No results found")
+
+        if Not_found : 
+            return []    
+
+        # Find the <ol> tag with class="react-results--main"
+        ol_tag = soup.find("ol", class_="react-results--main")
+
+        # Initialize an empty list to store the results
+        results_list = []
+
+        try:
+            # Find all <li> tags within the <ol> tag
+            li_tags = ol_tag.find_all("li")
+
+            # Loop through each <li> tag, limited by max_num
+            for index, li_tag in enumerate(li_tags):
+                if index > max_num*3:
+                    break
+
+                try:
+                    # Find the three <div> tags within the <article> tag
+                    div_tags = li_tag.find_all("div")
+
+                    # Extract the link, title, and content from the <div> tags
+                    links = div_tags[0].find_all("a")
+                    href_value = links[1].get('href')
+                    span = links[1].find_all("span")
+                    link = span[0].text.strip()
+
+                    title = div_tags[2].text.strip()
+                    content = div_tags[3].text.strip()
+
+                    # Add the extracted information to the list
+                    results_list.append({
+                        "link": link,
+                        "href": href_value,
+                        "title": title,
+                        "brief": content
+                    })
+                except Exception:
+                    pass
+        except:
+            pass
+        return results_list
      
     def internet_search(self, query, chromedriver_path):
         """
@@ -268,8 +185,8 @@ class Processor(APScript):
         except:
             driver = webdriver.Chrome(options=chrome_options)
 
-        results = extract_results(
-                                    f"https://duckduckgo.com/?q={format_url_parameter(query)}&t=h_&ia=web",
+        results = self.extract_results(
+                                    f"https://duckduckgo.com/?q={self.format_url_parameter(query)}&t=h_&ia=web",
                                     self.personality_config.num_results,
                                     driver
                                 )
@@ -277,18 +194,12 @@ class Processor(APScript):
             title = result["title"]
             brief = result["brief"]
             href = result["href"]
-            content = get_relevant_text_block(href, query, driver, callback=self.word_callback)
-            if len(content)>50:
-                nb_non_empty += 1
-                formatted_text += f"title:{result['title']}\nlink:{result['href']}\n"+"brief:"+brief+"\ncontent:"+content+"\n"
+            self.get_relevant_text_block(href, driver)
+            nb_non_empty += 1
             if nb_non_empty>=self.personality_config.num_results:
                 break
         # Close the browser
         driver.quit()
-
-        print("Searchengine results : ")
-        print(formatted_text)
-        return formatted_text, results
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -305,7 +216,9 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.word_callback = callback
+        self.callback = callback
+        self.vectorizer = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
+
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = f"""!@>instructions:
@@ -317,17 +230,17 @@ Do not explain the query.
 {prompt}
 ### search query:
     """
-            if callback is not None:
-                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_START)
-            search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
+            self.step_start("Crafting search query")
+            search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
             if search_query=="":
                 search_query=prompt
-            if callback is not None:
-                callback("Crafting search query", MSG_TYPE.MSG_TYPE_STEP_END)
+            self.step_end("Crafting search query")
         else:
             search_query = prompt
             
-        search_result, results = self.internet_search(search_query, self.personality_config.chromedriver_path)
+        self.internet_search(search_query, self.personality_config.chromedriver_path)
+        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        search_result = [f"{s[0]}:\n{d}" for d,s in zip(docs, sorted_similarities)]
         prompt = f"""!@>instructions:
 Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
 Place the citation links in front of each relevant information.
@@ -341,14 +254,13 @@ Citation is mandatory.
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"
-        for result in results:
-            link = result["link"]
-            href = result["href"]
-            sources_text += f"[source : {link}]({href})\n\n"
+        for i,s in enumerate(sorted_similarities):
+            link = "_".join(s[0].split('_')[:-2])
+            href = "_".join(s[0].split('_')[:-2])
+            sources_text += f"[ [{i}] : {link}]({href})\n\n"
 
         output = output+sources_text
-        if callback is not None:
-            callback(output, MSG_TYPE.MSG_TYPE_FULL)
+        self.full(output)
 
         return output
 
