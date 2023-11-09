@@ -580,7 +580,7 @@ Given this image description prompt and negative prompt, make a consize title
         output = metadata_infos
 
         if self.personality_config.paint:
-            infos, metadata_infos = self.paint(sd_positive_prompt, sd_negative_prompt, sd_title, metadata_infos)
+            infos = self.paint(sd_positive_prompt, sd_negative_prompt, sd_title, metadata_infos)
             self.full(output.strip())
 
         else:
