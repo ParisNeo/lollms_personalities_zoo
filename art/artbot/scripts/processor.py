@@ -57,6 +57,7 @@ class Processor(APScript):
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
+                {"name":"quality","type":"str","value":"standard", "options":["standard","hd"],"help":"The quality of Dalle generated files."},                
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"build_title","type":"bool","value":True,"help":"Build a title for the artwork"},
                 {"name":"paint","type":"bool","value":True,"help":"Paint the images"},
@@ -285,6 +286,24 @@ class Processor(APScript):
                 elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
+                    if self.personality_config.generation_engine=="dall-e-2":
+                        supported_resolutions = [
+                            [512, 512],
+                            [1024, 1024],
+                        ]
+                    else:
+                        supported_resolutions = [
+                            [1024, 1024],
+                            [1024, 1792],
+                            [1792, 1024]
+                        ]
+
+                    # Find the closest resolution
+                    closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
+
+                    # Update the width and height
+                    self.personality_config.width = closest_resolution[0]
+                    self.personality_config.height = closest_resolution[1]                    
                     response = openai.images.generate(
                         model=self.personality_config.generation_engine,
                         prompt=self.previous_sd_positive_prompt.strip(),
@@ -580,6 +599,25 @@ Given this image description prompt and negative prompt, make a consize title
                 elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
+                    if self.personality_config.generation_engine=="dall-e-2":
+                        supported_resolutions = [
+                            [512, 512],
+                            [1024, 1024],
+                        ]
+                    else:
+                        supported_resolutions = [
+                            [1024, 1024],
+                            [1024, 1792],
+                            [1792, 1024]
+                        ]
+
+                    # Find the closest resolution
+                    closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
+
+                    # Update the width and height
+                    self.personality_config.width = closest_resolution[0]
+                    self.personality_config.height = closest_resolution[1]                    
+
                     response = openai.images.generate(
                         model=self.personality_config.generation_engine,
                         prompt=sd_positive_prompt.strip(),
