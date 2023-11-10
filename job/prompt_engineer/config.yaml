@@ -1,11 +1,11 @@
-ai_message_prefix: '!@>the_name_of_the_personality_requested_by_the_user_is_prompt_engineer.:'
+ai_message_prefix: '!@>prompt_engeneer:'
 anti_prompts:
 - '!@>'
 - <|end|>
 - <|user|>
 - <|system|>
 author: lollms_personality_maker prompted by ParisNeo
-category: Lollms Personality Maker
+category: jobs
 dependencies: []
 disclaimer: 'The personality created by the lollms personality maker, named Prompt
   Engineer, is a fictional character designed to fulfill the specific role of an engineer

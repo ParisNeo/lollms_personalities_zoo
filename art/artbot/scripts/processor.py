@@ -55,7 +55,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860/","help":"The address to stable diffusion service"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"quality","type":"str","value":"standard", "options":["standard","hd"],"help":"The quality of Dalle generated files."},                
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},

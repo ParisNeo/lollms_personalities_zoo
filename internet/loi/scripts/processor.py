@@ -222,13 +222,10 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = f"""!@>instructions:
-Formulate a search query text out of the user prompt.
-Keep all important information in the query and do not add unnecessary text.
-Write a short query.
-Do not explain the query.
-## question:
+Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
+!@> question:
 {prompt}
-### search query:
+!@> search query:
     """
             self.step_start("Crafting search query")
             search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
@@ -240,24 +237,22 @@ Do not explain the query.
             
         self.internet_search(search_query, self.personality_config.chromedriver_path)
         docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
-        search_result = [f"{s[0]}:\n{d}" for d,s in zip(docs, sorted_similarities)]
+        search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
         prompt = f"""!@>instructions:
-Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
-Place the citation links in front of each relevant information.
-Citation is mandatory.
-### search results:
+Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
+!@> search results:
 {search_result}
-### question:
+!@> user:
 {prompt}
-## answer:
+!@> answer:
 """
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"
         for i,s in enumerate(sorted_similarities):
-            link = "_".join(s[0].split('_')[:-2])
+            link = "_".join(s[0].split('_')[:-2]) + f"  chunk number {s[0].split('_')[-1]}"
             href = "_".join(s[0].split('_')[:-2])
-            sources_text += f"[ [{i}] : {link}]({href})\n\n"
+            sources_text += f"[ [{i+1}] : {link}]({href})\n\n"
 
         output = output+sources_text
         self.full(output)
