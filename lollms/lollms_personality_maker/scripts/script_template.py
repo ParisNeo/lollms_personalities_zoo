@@ -41,7 +41,7 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                     },
-                                    "default": self.main_process
+                                    "default": None
                                 },                           
                             ],
                             callback=callback
