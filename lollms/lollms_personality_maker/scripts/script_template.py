@@ -79,7 +79,7 @@ class Processor(APScript):
         """
         ASCIIColors.info("Generating")
         self.callback = callback
-        out = self.fast_gen(previous_discussion_text, self.personality.model_n_predicts)
+        out = self.fast_gen(previous_discussion_text)
         self.full(out)
         return ""
 
