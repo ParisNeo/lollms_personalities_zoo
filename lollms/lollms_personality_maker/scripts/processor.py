@@ -36,10 +36,13 @@ class Processor(APScript):
         self.sd_folder = shared_folder / "auto_sd"
         self.word_callback = None
         self.sd = None
+        self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
+        self.sd_models = [f.stem for f in self.sd_models_folder.iterdir()]
         personality_config_template = ConfigTemplate(
             [
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-                {"name":"model_name","type":"str","value":"DreamShaper_5_beta2_noVae_half_pruned.ckpt", "help":"Name of the model to be loaded for stable diffusion generation"},
+                {"name":"data_file_path","type":"str","value":"", "help":"A path to a txt file containing data to augment the personality"},
+                {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
@@ -423,7 +426,17 @@ Avoid text as the generative ai is not good at generating text.
             shutil.copy(template_fn, scripts_path/"processor.py")
             self.step_end("Creating default script")
 
-
+        if self.personality_config.data_file_path!="":
+            self.step_start("Copying data files")
+            dfp = Path(self.personality_config.data_file_path)
+            if dfp.exists():
+                data_path = path/"data"
+                data_path.mkdir(exist_ok=True, parents=True)
+                if dfp.is_dir():
+                    for f in dfp.glob("*.txt"):
+                        shutil.copy(str(f), data_path/f.name)
+                else:
+                    shutil.copy(str(dfp), data_path/dfp.name)
 
         return output
 
