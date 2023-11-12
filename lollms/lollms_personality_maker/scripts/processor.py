@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
+from lollms.image_gen_modules.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
@@ -98,7 +99,7 @@ class Processor(APScript):
     def prepare(self):
         if self.sd is None:
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Personality maker", max_retries=-1)
+            self.sd = LollmsSD(self.personality.app, "Personality maker", max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
 
     def get_sd(self):
@@ -437,6 +438,7 @@ Avoid text as the generative ai is not good at generating text.
                         shutil.copy(str(f), data_path/f.name)
                 else:
                     shutil.copy(str(dfp), data_path/dfp.name)
+            self.step_end("Copying data files")
 
         return output
 

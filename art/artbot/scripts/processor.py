@@ -5,6 +5,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
+from lollms.image_gen_modules.lollms_sd import LollmsSD
 import re
 import importlib
 import requests
@@ -56,7 +57,9 @@ class Processor(APScript):
             [
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
-                {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860/","help":"The address to stable diffusion service"},
+                {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
+                {"name":"install_sd","type":"btn","value":"Install Stable diffusion","help":"Installs stable diffusion"},
+
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"quality","type":"str","value":"standard", "options":["standard","hd"],"help":"The quality of Dalle generated files."},                
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
@@ -161,36 +164,14 @@ class Processor(APScript):
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
 
-        # Clone repository
-        if not self.sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-        self.prepare()
-        ASCIIColors.success("Installed successfully")
-
 
     def prepare(self):
         if self.sd is None and self.personality_config.generation_engine=="stable_diffusion":
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Artbot", max_retries=-1)
+            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
         
-    def get_sd(self):
-        sd_script_path = self.sd_folder / "lollms_sd.py"
-        git_pull(self.sd_folder)
-        
-        if sd_script_path.exists():
-            ASCIIColors.success("lollms_sd found.")
-            ASCIIColors.success("Loading source file...",end="")
-            module_name = sd_script_path.stem  # Remove the ".py" extension
-            # use importlib to load the module from the file path
-            loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
-            ASCIIColors.success("ok")
-            ASCIIColors.success("Loading module...",end="")
-            sd_module = loader.load_module()
-            ASCIIColors.success("ok")
-            return sd_module
-
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
         image_link_pattern = r"!\[.*?\]\((.*?)\)"
@@ -211,13 +192,14 @@ class Processor(APScript):
         
     def show_sd(self, prompt="", full_context=""):
         self.prepare()
-        webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
+        
+        webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
         self.notify("Showing Stable diffusion UI")
         
         
     def show_settings(self, prompt="", full_context=""):
         self.prepare()
-        webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
+        webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
         self.full("Showing Stable diffusion settings UI")
         
     def show_last_image(self, prompt="", full_context=""):
