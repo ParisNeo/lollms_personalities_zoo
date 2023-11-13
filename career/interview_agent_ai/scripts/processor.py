@@ -71,6 +71,24 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
+
+    def remove_backticks(self, text):
+        if text.startswith("```") and text.endswith("```"):
+            split_text = text.split()
+            text = " ".join(split_text[1:])
+            return text.replace("```", "")
+        else:
+            return text
+
+    def summerize(self, chunks, summary_instruction="summerize"):
+        summeries = []
+        for i, chunk in enumerate(chunks):
+            self.step_start(f"Processing chunk : {i}")
+            summery = self.remove_backticks("```markdown\n"+ self.fast_gen(f"!@>instructuion: {summary_instruction}\nCV chunk {chunk}\n!@>summary:\n```markdown\n"))
+            summeries.append(summery)
+            self.step_end(f"Processing chunk : {i}")
+        return "\n".join(summeries)
+
     def process_cv(self):
         output = ""
         self.step_start("Reading data")
@@ -80,16 +98,23 @@ class Processor(APScript):
 
         self.step_start("Processing cv")
         cv_chunks = DocumentDecomposer.decompose_document(cv_data,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize)
+        subject_chunks = DocumentDecomposer.decompose_document(subject_text,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize)
         output += f"Found `{len(cv_chunks)}` chunks in cv\n"
+        output += f"Found `{len(subject_chunks)}` chunks in position description\n"
         self.full(output)
-        self.summeries = []
-        for i, cv_chunk in enumerate(cv_chunks):
-            self.step_start(f"Processing chunk : {i}")
-            summery = "```markdown\n"+ self.fast_gen(f"!@>instructuion: Summerize this CV chunk in form of bullet points. Keep only relevant information about the candidate.\nCV chunk {cv_chunk}\n!@>summary:```markdown\n")
-            output += f"Summery of chunk {i}:\n"+ summery
-            self.summeries.append(summery)
-            self.step_end(f"Processing chunk : {i}")
-            self.full(output)
+        
+        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points. Start by giving information about the candidate like his name and address, then his academic record, followed by his professional record if applicable. Finally, list pros and cons. Keep only relevant information about the candidate.")
+        output += f"**CV summary**\n{cv_summary}\n"
+        self.full(output)
+        
+        subject_summary = self.summerize(subject_chunks,"Summerize this position description. The objective is to identify the skills required for this position. Only extract the information from the provided chunk. Do not invent anything outside the provided text.")
+        output += f"**Position description summary**\n{subject_summary}\n"
+        self.full(output)
+
+        answer = "```latex\n"+self.fast_gen("!@>instructions: Given the following position description and cv, build a latex file to help the interviewer planify and prepare the interview with the candidate. The text has the following sections:\n1- Candidate presentation\n2- Interview questions\n3- grades table.!@>interview ai:\nHere is the latex code:\n```latex\n")
+        output += answer
+        self.full(output)
+
 
         self.step_end("Processing cv")
 
