@@ -28,6 +28,8 @@ class Processor(APScript):
             [
                 {"name":"candidate_cv","type":"str","value":"", "help":"Path to the candidate CV"},
                 {"name":"subject_text","type":"str","value":"", "help":"Path to the job position description"},
+                {"name":"language","type":"str","value":"", "help":"language to rewrite the document in"},
+
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -73,12 +75,12 @@ class Processor(APScript):
 
 
     def remove_backticks(self, text):
-        if text.startswith("```") and text.endswith("```"):
+        if text.startswith("```"):
             split_text = text.split()
             text = " ".join(split_text[1:])
-            return text.replace("```", "")
-        else:
-            return text
+        if text.endswith("```"):
+            text= text[:-3]
+        return text
 
     def summerize(self, chunks, summary_instruction="summerize"):
         summeries = []
@@ -103,7 +105,7 @@ class Processor(APScript):
         output += f"Found `{len(subject_chunks)}` chunks in position description\n"
         self.full(output)
         
-        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points. Start by giving information about the candidate like his name and address, then his academic record, followed by his professional record if applicable. Finally, list pros and cons. Keep only relevant information about the candidate.")
+        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points separated by new line. Start by giving information about the candidate like his name and address, then his academic record, followed by his professional record if applicable. Finally, list pros and cons. Keep only relevant information about the candidate.")
         output += f"**CV summary**\n{cv_summary}\n"
         self.full(output)
         
@@ -111,11 +113,16 @@ class Processor(APScript):
         output += f"**Position description summary**\n{subject_summary}\n"
         self.full(output)
 
-        answer = "```latex\n"+self.fast_gen("!@>instructions: Given the following position description and cv, build a latex file to help the interviewer planify and prepare the interview with the candidate. The text has the following sections:\n1- Candidate presentation\n2- Interview questions\n3- grades table.!@>interview ai:\nHere is the latex code:\n```latex\n")
+        answer = "```latex\n"+self.fast_gen("!@>instructions: Given the following position description and cv, build a latex file to help the interviewer planify and prepare the interview with the candidate. At the end generate a table of grades for each specific point and do not fill it as it should be filled by the interviewer. The text has the following sections:\n1- Candidate presentation\n2- Interview questions\n3- grades table.!@>interview ai:\nHere is the latex code:\n```latex\n")
         output += answer
         self.full(output)
 
-
+        if self.personality_config.language!="":
+            self.step_start(f"Translating to:{self.personality_config.language}")
+            answer = self.remove_backticks("```text\n" + self.fast_gen("!@>instructions: Translate the following text to {self.personality_config.language}\n!@>translator:\n```text\n"))
+            self.step_end(f"Translating to:{self.personality_config.language}")            
+            output += f"## Translated to {self.personality_config.language}\n{answer}"
+        self.full(output)
         self.step_end("Processing cv")
 
 
