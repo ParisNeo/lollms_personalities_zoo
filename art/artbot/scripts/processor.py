@@ -58,6 +58,8 @@ class Processor(APScript):
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
+                {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
+                
                 {"name":"install_sd","type":"btn","value":"Install Stable diffusion","help":"Installs stable diffusion"},
 
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
@@ -168,7 +170,7 @@ class Processor(APScript):
     def prepare(self):
         if self.sd is None and self.personality_config.generation_engine=="stable_diffusion":
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address)
+            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
         

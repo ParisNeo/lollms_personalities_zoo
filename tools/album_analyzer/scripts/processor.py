@@ -168,6 +168,9 @@ class Processor(APScript):
                 self.process_images()
             else:
                 self.step_end("Understanding request")
-                self.fast_gen(previous_discussion_text)
+                self.fast_gen(previous_discussion_text, callback=self.callback)
+        else:
+            self.step_end("Understanding request")
+            self.fast_gen(previous_discussion_text, callback=self.callback)
         return ""
 
