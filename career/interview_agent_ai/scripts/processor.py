@@ -77,17 +77,17 @@ class Processor(APScript):
 
     def remove_backticks(self, text):
         if text.startswith("```"):
-            split_text = text.split()
-            text = " ".join(split_text[1:])
+            split_text = text.split("\n")
+            text = "\n".join(split_text[1:])
         if text.endswith("```"):
             text= text[:-3]
         return text
 
-    def summerize(self, chunks, summary_instruction="summerize", chunk_name="chunk"):
+    def summerize(self, chunks, summary_instruction="summerize", chunk_name="chunk", answer_start=""):
         summeries = []
         for i, chunk in enumerate(chunks):
             self.step_start(f"Processing chunk : {i+1}")
-            summery = self.remove_backticks("```markdown\n"+ self.fast_gen(f"!@>instructuion: {summary_instruction}\n{chunk_name}:\n{chunk}\n!@>summary:\n```markdown\n"))
+            summery = self.remove_backticks(f"```markdown\n{answer_start}"+ self.fast_gen(f"!@>instructuion: {summary_instruction}\n{chunk_name}:\n{chunk}\n!@>summary:\n```markdown\n{answer_start}"))
             summeries.append(summery)
             self.step_end(f"Processing chunk : {i+1}")
         return "\n".join(summeries)
@@ -99,23 +99,26 @@ class Processor(APScript):
         subject_text = GenericDataLoader.read_file(self.personality_config.subject_text)
         self.step_end("Reading data")
 
-        self.step_start("Processing cv")
+        self.step_start("chunking documents")
         cv_chunks = DocumentDecomposer.decompose_document(cv_data,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize, True)
         subject_chunks = DocumentDecomposer.decompose_document(subject_text,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize, True)
         output += f"Found `{len(cv_chunks)}` chunks in cv\n"
         output += f"Found `{len(subject_chunks)}` chunks in position description\n"
         self.full(output)
+        self.step_end("chunking documents")
         
-        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points separated by new line and do not add anny comments after the summary.\nUse a new line for each summary entry.\nStart by giving information about the candidate like his name and address and any other available information in the cv, then his academic record if applicable, followed by his professional record if applicable.\nKeep only relevant information about the candidate.\nDo not add information that is not in the cv.")
+        self.step_start("summerizing cv")
+        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points separated by new line and do not add anny comments after the summary.\nUse a new line for each summary entry.\nStart by giving information about the candidate like his name and address and any other available information in the cv, then his academic record if applicable, followed by his professional record if applicable.\nKeep only relevant information about the candidate.\nDo not add information that is not in the cv.", "CV chunk", answer_start="- Type: Candidate\n- Name:")
         output += f"**CV summary**\n{cv_summary}\n\n"
         self.full(output)
-
         cv_path = Path(self.personality_config.candidate_cv)
         summary_path = cv_path.parent/(cv_path.stem+"_summary.md")
         with open(summary_path,"w") as f:
             f.write(cv_summary)
-        
-        subject_summary = self.summerize(subject_chunks,"Summerize this position description and do not add any comments after the summary.\nThe objective is to identify the skills required for this position. Only extract the information from the provided chunk.\nDo not invent anything outside the provided text.")
+        self.step_end("summerizing cv")
+
+        self.step_start("summerizing position subject")
+        subject_summary = self.summerize(subject_chunks,"Summerize this position description and do not add any comments after the summary.\nThe objective is to identify the skills required for this position. Only extract the information from the provided chunk.\nDo not invent anything outside the provided text.","position description chunk")
         output += f"**Position description summary**\n{subject_summary}\n"
         self.full(output)
 
@@ -123,19 +126,29 @@ class Processor(APScript):
         subject_text_summary_path = subject_text_path.parent/(subject_text_path.stem+"_summary.md")
         with open(subject_text_summary_path,"w") as f:
             f.write(subject_summary)
+        self.step_end("summerizing position subject")
 
-        answer = "```latex\n"+self.fast_gen(f"!@>instructions: Given the following position description and candidate cv, build a latex file to help the interviewer planify and prepare the interview with the candidate. At the end, generate a table of grades for each specific point and do not fill it as it should be filled by the interviewer. The text has the following sections:\n1- Candidate presentation\n2- Interview questions\n3- grades table.\nDo not add any comments after the code.\nSubject:{subject_summary}\nCandidate cv:\n{cv_summary}!@>interview ai:\nHere is the latex code:\n```latex\n")
+        self.step_start("writing interview document")
+        answer = "```latex\n"+"\\begin{document}\n"+self.fast_gen(f"!@>instructions: Given the following position description and candidate cv, build a latex file to help the interviewer planify and prepare the interview with the candidate. At the end, generate a table of grades for each specific point and do not fill it as it should be filled by the interviewer. The text has the following sections:\n1- Candidate presentation\n2- Interview questions\n3- grades table.\nDo not add any comments after the code.\nSubject:{subject_summary}\nCandidate cv:\n{cv_summary}\n!@>interview ai:\nHere is the latex code built from the subject summary and the cv:\n```latex\n"+"\\begin{document}\n")
+        if not answer.endswith("```"):
+            answer += "\n```\n"
+
         output += answer
         self.full(output)
 
         interview_latex_path = cv_path.parent/(cv_path.stem+"_interview.tex")
         with open(interview_latex_path,"w") as f:
             f.write(self.remove_backticks(answer))        
+        self.step_end("writing interview document")
         
 
         if self.personality_config.language!="":
             self.step_start(f"Translating to:{self.personality_config.language}")
             answer = self.remove_backticks("```text\n" + self.fast_gen(f"!@>instructions: Translate the following text to {self.personality_config.language}\n!@>text to translate:\n{answer}!@>translator:\n```text\n"))
+            if not answer.startswith("```"):
+                answer = "```latex\n"+answer
+            if not answer.endswith("```"):
+                answer += "\n```\n"
             self.step_end(f"Translating to:{self.personality_config.language}")            
             output += f"## Translated to {self.personality_config.language}\n{answer}"
             interview_latex_path = cv_path.parent/(cv_path.stem+f"_interview_{self.personality_config.language}.tex")
