@@ -2,6 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from safe_store.generic_data_loader import GenericDataLoader
+from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 
 # Helper functions
@@ -43,6 +44,7 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
+                                        "start":self.start
                                     },
                                     "default": None
                                 },                           
@@ -69,6 +71,37 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
+    def process_cv(self):
+        output = ""
+        self.step_start("Reading data")
+        cv_data = GenericDataLoader.read_file(self.personality_config.candidate_cv)
+        subject_text = GenericDataLoader.read_file(self.personality_config.subject_text)
+        self.step_end("Reading data")
+
+        self.step_start("Processing cv")
+        cv_chunks = DocumentDecomposer.decompose_document(cv_data,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize)
+        output += f"Found `{len(cv_chunks)}` chunks in cv\n"
+        self.full(output)
+        self.summeries = []
+        for i, cv_chunk in enumerate(cv_chunks):
+            self.step_start(f"Processing chunk : {i}")
+            summery = "```markdown\n"+ self.fast_gen(f"!@>instructuion: Summerize this CV chunk in form of bullet points. Keep only relevant information about the candidate.\nCV chunk {cv_chunk}\n!@>summary:```markdown\n")
+            output += f"Summery of chunk {i}:\n"+ summery
+            self.summeries.append(summery)
+            self.step_end(f"Processing chunk : {i}")
+            self.full(output)
+
+        self.step_end("Processing cv")
+
+
+
+
+
+    def start(self, prompt="", full_context=""):
+        self.new_message("")
+        self.process_cv()
+
+
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -82,13 +115,13 @@ class Processor(APScript):
         Returns:
             None
         """
-        if self.personality_config.album_folder_path!="":
+        self.callback = callback
+        if self.personality_config.candidate_cv!="" and self.personality_config.subject_text!="":
             ASCIIColors.info("Generating")
-            self.callback = callback
             self.step_start("Understanding request")
             if self.yes_no("Is the user asking for starting the process?", previous_discussion_text):
                 self.step_end("Understanding request")
-                self.process_images()
+                self.process_cv()
             else:
                 self.step_end("Understanding request")
                 self.fast_gen(previous_discussion_text, callback=self.callback)

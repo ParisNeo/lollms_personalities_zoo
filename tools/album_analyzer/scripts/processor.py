@@ -134,6 +134,7 @@ class Processor(APScript):
 
         if self.personality_config.save_in_csv_file:
             csv_file.close()
+            
     def start(self, prompt="", full_context=""):
         self.new_message("")
         self.process_images()
