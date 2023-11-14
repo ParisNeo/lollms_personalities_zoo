@@ -78,6 +78,6 @@ welcome_message: 'Welcome to Interview Agent AI! I am here to assist you in sele
   '
 
 commands:
-  - name: Start Scanning
-    value: start
-    help: Starts scanning files
+  - name: Start Processing cvs
+    value: start_processing_cvs
+    help: Starts scanning csv and processing them
