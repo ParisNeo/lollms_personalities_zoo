@@ -126,7 +126,7 @@ class Processor(APScript):
         self.step_end(f"summerizing position subject {subject_path.stem}")
         
         self.step_start(f"building evaluation grid {subject_path.stem}")
-        evaluation_grid = self.fast_gen(f"!@>instructions: Given the following position description, build a list of criteria that should be met for the subject to be fit for this position. use the following columns: Theme, Criteria, Importance, grade. Group the criterias by themes and classify them from important to nice to have. Put this in a table markdown format. Do not add tailing comments.\nPosition description:{subject_summary}\n!@>interview ai:Requested description in markdown format\n```markdown\n")
+        evaluation_grid = self.fast_gen(f"!@>instructions: Given the following position description, build a list of criteria that should be met for the subject to be fit for this position. Use the following columns: Theme, Criteria, Importance, grade. Leave the grade columns empty. Group the criterias by themes and classify them from important to nice to have. Put this in a table markdown format. Do not add tailing comments.\nPosition description:\n{subject_summary}\n!@>interview ai:Requested description in markdown format\n```markdown\n")
         evaluation_grid = evaluation_grid.replace("```","")
         self.save_text(evaluation_grid, output_path/("evaluation_grid.md"))
         self.step_end(f"building evaluation grid {subject_path.stem}")
@@ -171,6 +171,8 @@ class Processor(APScript):
         candidate_judgement.replace("```","")
         grade = self.fast_gen(f"!@>instructions: Given the following candidate judgement, give a mark from 0 to 10.\n!@>judgement: {candidate_judgement}\n!@>grade: ")
         candidate_judgement += "\n\n## grade: "+grade+"\n"
+        output += "\n## Candidate judgement:\n"+candidate_judgement        
+        self.full(output)
         try:
             grade = float(grade)
         except:
