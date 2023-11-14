@@ -97,19 +97,22 @@ class Processor(APScript):
         return "\n".join(summeries)
 
     def process_cvs(self):
-        output = ""
-        cv_list=[]
-        orig_cv_path = Path(self.personality_config.candidate_cv)
-        if orig_cv_path.is_dir():
-            subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path, output)
-            for cv_path in orig_cv_path.glob("*.pdf"):
-                output, grade = self.process_cv(cv_path,subject_summary, evaluation_grid, output)
-                cv_list.append([cv_path, grade])
-            self.save_text(str(cv_list),orig_cv_path/"grades.md")            
-        else:
-            subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path.parent, output)
-            self.process_cv(orig_cv_path, subject_summary, evaluation_grid, output)
-            
+        try:
+            output = ""
+            cv_list=[]
+            orig_cv_path = Path(self.personality_config.candidate_cv)
+            if orig_cv_path.is_dir():
+                subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path, output)
+                for cv_path in orig_cv_path.glob("*.pdf"):
+                    output, grade = self.process_cv(cv_path,subject_summary, evaluation_grid, output)
+                    cv_list.append([cv_path, grade])
+                self.save_text(str(cv_list),orig_cv_path/"grades.md")            
+            else:
+                subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path.parent, output)
+                self.process_cv(orig_cv_path, subject_summary, evaluation_grid, output)
+        except Exception as ex:
+            self.notify(str(ex), False)
+
     def preprocess_subject(self, output_path, output =""):
         subject_path = Path(self.personality_config.subject_text)
         subject_text = GenericDataLoader.read_file(subject_path)
