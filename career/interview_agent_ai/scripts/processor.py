@@ -87,15 +87,6 @@ class Processor(APScript):
             text= text[:-3]
         return text
 
-    def summerize(self, chunks, summary_instruction="summerize", chunk_name="chunk", answer_start=""):
-        summeries = []
-        for i, chunk in enumerate(chunks):
-            self.step_start(f"Processing chunk : {i+1}")
-            summery = self.remove_backticks(f"```markdown\n{answer_start}"+ self.fast_gen(f"!@>instruction: {summary_instruction}\n{chunk_name}:\n{chunk}\n!@>summary:\n```markdown\n{answer_start}"))
-            summeries.append(summery)
-            self.step_end(f"Processing chunk : {i+1}")
-        return "\n".join(summeries)
-
     def process_cvs(self):
         try:
             output = ""
@@ -103,7 +94,7 @@ class Processor(APScript):
             orig_cv_path = Path(self.personality_config.candidate_cv)
             if orig_cv_path.is_dir():
                 subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path, output)
-                for cv_path in orig_cv_path.glob("*.pdf"):
+                for cv_path in orig_cv_path.glob("*.pdf|*.docx"):
                     output, grade = self.process_cv(cv_path,subject_summary, evaluation_grid, output)
                     cv_list.append([cv_path, grade])
                 self.save_text(str(cv_list),orig_cv_path/"grades.md")            
@@ -142,7 +133,7 @@ class Processor(APScript):
         output_path = output_folder/"interview"/cv_path.stem
         output_path.mkdir(parents=True, exist_ok=True)
         
-        output += f"# {cv_path.stem}"
+        output += f"# {cv_path.stem}\n"
         
         self.step_start(f"Reading data {cv_path.stem}")
         cv_data = GenericDataLoader.read_file(cv_path)
