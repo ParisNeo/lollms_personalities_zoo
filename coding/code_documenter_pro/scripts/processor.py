@@ -3,6 +3,7 @@ from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
 from lollms.helpers import ASCIIColors, trace_exception
+from lollms.utilities import check_and_install_torch
 
 import numpy as np
 import json
@@ -457,17 +458,7 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Step 2: Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
-        try:
-            print("Checking pytorch")
-            import torch
-            import torchvision
-            if torch.cuda.is_available():
-                print("CUDA is supported.")
-            else:
-                print("CUDA is not supported. Reinstalling PyTorch with CUDA support.")
-                self.reinstall_pytorch_with_cuda()
-        except Exception as ex:
-            self.reinstall_pytorch_with_cuda()
+        check_and_install_torch(self.personality.config.enable_gpu, version=2.1)
 
         ASCIIColors.success("Installed successfully")
 
