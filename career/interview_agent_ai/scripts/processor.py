@@ -79,14 +79,6 @@ class Processor(APScript):
             f.write(text)
             
                     
-    def remove_backticks(self, text):
-        if text.startswith("```"):
-            split_text = text.split("\n")
-            text = "\n".join(split_text[1:])
-        if text.endswith("```"):
-            text= text[:-3]
-        return text
-
     def process_cvs(self):
         try:
             output = ""
