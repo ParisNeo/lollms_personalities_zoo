@@ -83,13 +83,15 @@ class Processor(APScript):
         if len(tk)<self.personality_config.zip_size:
                 document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
+            depth=0
             while len(tk)>self.personality_config.zip_size:
+                self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                output += f"- Found `{len(document_chunks)}` chunks of size {chunk_size} in document\n"
-                self.full(output)
-                document_text = self.summerize(document_chunks,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                document_text = self.summerize(document_chunks,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text. Reduce the length of the text. Keep the same language.","document chunk")
                 tk = self.personality.model.tokenize(document_text)
+                self.step_end(f"Comprerssing.. [depth {depth}]")
+                self.full(output+f"\n## summerized chunk text:\n{document_text}")
         self.step_end(f"summerizing {document_path.stem}")
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+"_summary.txt"))
