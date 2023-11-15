@@ -92,6 +92,7 @@ class Processor(APScript):
                 tk = self.personality.model.tokenize(document_text)
                 self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n## summerized chunk text:\n{document_text}")
+                depth += 1
         self.step_end(f"summerizing {document_path.stem}")
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+"_summary.txt"))
