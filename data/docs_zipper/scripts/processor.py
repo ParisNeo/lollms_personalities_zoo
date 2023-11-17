@@ -80,11 +80,11 @@ class Processor(APScript):
         document_text = GenericDataLoader.read_file(document_path)
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
-        if len(tk)<self.personality_config.zip_size:
+        if len(tk)<int(self.personality_config.zip_size):
                 document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
             depth=0
-            while len(tk)>self.personality_config.zip_size:
+            while len(tk)>int(self.personality_config.zip_size):
                 self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
