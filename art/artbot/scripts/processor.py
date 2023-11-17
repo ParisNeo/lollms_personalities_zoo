@@ -189,7 +189,7 @@ class Processor(APScript):
     
     def new_image(self, prompt="", full_context=""):
         self.image_files=[]
-        self.notify("Starting fresh :)")
+        self.notify("Starting fresh :)", True)
         
         
     def show_sd(self, prompt="", full_context=""):
