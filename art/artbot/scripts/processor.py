@@ -373,8 +373,13 @@ class Processor(APScript):
                     quality="standard",
                     size=f"{self.personality_config.width}x{self.personality_config.height}",
                     n=1,
+                    
                     )
-                infos = {}
+                infos = {
+                    "title":sd_title,
+                    "prompt":self.previous_sd_positive_prompt,
+                    "negative_prompt":""
+                }
                 # download image to outputs
                 output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
                 output_dir.mkdir(parents=True, exist_ok=True)
@@ -396,7 +401,7 @@ class Processor(APScript):
                 file = str(file_name)
 
                 url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem, url)
+                file_html = self.make_selectable_photo(Path(file).stem, url, infos)
                 files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                 ui += file_html
                 metadata_infos += f'\n![]({url})'
