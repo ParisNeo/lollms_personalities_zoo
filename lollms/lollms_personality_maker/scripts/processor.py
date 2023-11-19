@@ -7,6 +7,8 @@ from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
+from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
+
 import re
 import importlib
 import requests
@@ -428,6 +430,28 @@ Avoid text as the generative ai is not good at generating text.
             self.step_end("Creating default script")
 
         if self.personality_config.data_file_path!="":
+            text = []
+            data_path = self.personality_config.data_file_path
+            text_files = [file if file.exists() else "" for file in data_path.glob("*.txt")]
+            for file in text_files:
+                with open(str(file),"r") as f:
+                    text.append(f.read())
+            # Replace 'example_dir' with your desired directory containing .txt files
+            self._data = "\n".join(map((lambda x: f"\n{x}"), text))
+            print(self._data)
+            ASCIIColors.info("Building data ...",end="")
+            self.persona_data_vectorizer = TextVectorizer(
+                        self.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
+                        model=self.model, #needed in case of using model_embedding
+                        save_db=True,
+                        database_path=data_path/"db.json",
+                        data_visualization_method=VisualizationMethod.PCA,
+                        database_dict=None)
+            self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
+            self.persona_data_vectorizer.index()
+            self.persona_data_vectorizer.save_db()
+
+
             self.step_start("Copying data files")
             dfp = Path(self.personality_config.data_file_path)
             if dfp.exists():
