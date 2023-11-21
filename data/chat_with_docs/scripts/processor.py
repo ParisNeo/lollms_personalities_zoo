@@ -30,6 +30,9 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"use_batch_mode","type":"bool","value":False, "help":"if selected, the chatwith docs will takes a list of questions out of a text file and answers them all then writes a final report about the questions"},
+                {"name":"batch_mode_questions_file","type":"str","value":"", "help":"A path to a text file containing the list of questions"},
+                {"name":"batch_mode_report_file","type":"str","value":"", "help":"A path to a markdown file to be created."},
                 {"name":"custom_db_path","type":"str","value":"", "help":"if not empty, you can change this to the path of the database you want to create or use"},
                 {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
                 {"name":"load_db","type":"bool","value":False, "help":"If true, the vectorized database will be loaded at startup"},
@@ -68,7 +71,8 @@ class Processor(APScript):
                                         "show_database": self.show_database,
                                         "set_database": self.set_database,
                                         "clear_database": self.clear_database,
-                                        "show_files":self.show_files
+                                        "show_files":self.show_files,
+                                        "process_batch":self.process_batch,
                                     },
                                     "default": self.chat_with_doc
                                 },                           
@@ -95,6 +99,65 @@ class Processor(APScript):
 
     def help(self, prompt, full_context):
         self.full(self.personality.help, callback=self.callback)
+        
+    def process_batch(self, prompt, full_context):
+        output = ""
+        if self.personality_config.batch_mode_questions_file=="":
+            self.new_message("Please set a questions list file to my configuration to start batch qna")
+            return
+        self.new_message("")
+        questions = GenericDataLoader.read_file(self.personality_config.batch_mode_questions_file)
+        questions = questions.split("\n")
+        for i, question in enumerate(questions):
+            if len(question)>5:
+                output += "## Question:\n"+question+"\n"
+                self.full(output)
+                self.step_start(f"Analyzing request {i+1}/{len(questions)}")
+                if self.personality_config.build_keywords:
+                    query = self.personality.fast_gen("!@>prompt:"+question+"\n!@>instruction: Convert the prompt to a web search query."+"\nDo not answer the prompt. Do not add explanations. Use comma separated syntax to make a list of keywords in the same line.\nThe keywords should reflect the ideas written in the prompt so that a seach engine can process them efficiently.\n!@>query: ", max_generation_size=256, show_progress=True)
+                    preprocessed_prompt = self.fast_gen(query, int(self.personality_config["max_answer_size"]),show_progress=True).strip()
+                    output += "### Query:\n"+preprocessed_prompt+"\n"
+                    self.full(output)
+                else:
+                    preprocessed_prompt = question
+                if preprocessed_prompt=="":
+                    preprocessed_prompt = prompt
+                docs, sorted_similarities = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
+                docs = '\n'.join([f"!@>document {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
+                full_text =f"""{docs}
+{full_context}"""
+
+                tk = self.personality.model.tokenize(full_text)
+                # print(f"total: {len(tk)}")           
+                ASCIIColors.blue("-------------- Documentation -----------------------")
+                ASCIIColors.blue(full_text)
+                ASCIIColors.blue(f"Number of tokens :{len(tk)}")
+                ASCIIColors.blue("----------------------------------------------------")
+                tk = self.personality.model.tokenize(full_text)
+                ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
+                if self.personality.config.debug:
+                    ASCIIColors.yellow(full_text)
+                answer = self.fast_gen(full_text, self.personality_config["max_answer_size"],show_progress=True).strip()
+                output += "## Answer:\n"+answer+"\n"
+                self.full(output)
+                docs_sources=[]
+                for entry in sorted_similarities:
+                    e = "_".join(entry[0].replace("\\","/").split("/")[-1].split('_')[:-2])
+                    ci = "_".join(entry[0].replace("\\","/").split("/")[-1].split('_')[-2:])
+                    name = "/uploads/" + self.personality.personality_folder_name + "/" + e
+                    path = e + f" chunk id : {ci}"
+                    docs_sources.append([path, name])
+
+                output += "\n### Used References:\n" + "\n".join([f'[{v[0]}]({quote(v[1])})\n' for v in docs_sources])
+                ASCIIColors.yellow(output)
+
+                self.step_end(f"Analyzing request {i+1}/{len(questions)}")
+                self.full(output)                
+        self.step_start("Saving report")
+        if self.personality_config.batch_mode_report_file!="":
+            with open(self.personality_config.batch_mode_report_file, "w") as f:
+                f.write(output)
+        self.step_end("Saving report")
 
     def show_database(self, prompt, full_context):
         import random
@@ -143,9 +206,10 @@ class Processor(APScript):
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"document chunk {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
+            docs = '\n'.join([f"!@>document chunk {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
             full_text =f"""{docs}
-{full_context}"""
+{full_context}
+!@>chat_with_docs:"""
 
             tk = self.personality.model.tokenize(full_text)
             # print(f"total: {len(tk)}")           
@@ -154,7 +218,6 @@ class Processor(APScript):
             ASCIIColors.blue(f"Number of tokens :{len(tk)}")
             ASCIIColors.blue("----------------------------------------------------")
             ASCIIColors.blue("Thinking")
-            self.step_start("Thinking", callback=self.callback)
             tk = self.personality.model.tokenize(full_text)
             ASCIIColors.info(f"Documentation size in tokens : {len(tk)}")
             if self.personality.config.debug:
