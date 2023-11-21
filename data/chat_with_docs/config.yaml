@@ -37,12 +37,6 @@ help:  |
   - show_database : shows the vectorized database in cloud point format.
   
 commands:
-  - name: Send File
-    value: send_file
-    icon: send_file.svg
-    is_file: true
-    file_types: .doc,.docx,.pdf,.html
-    help: sends a file to the personality. Type send_file, then press enter. You will be prompted to give the file path. Then the file will be vectorized.
   - name: Clear database
     value: clear_database
     help: clears the vectorized database.
@@ -52,6 +46,9 @@ commands:
   - name: Show files
     value: show_files
     help: shows the file names.
+  - name: Process batch
+    value: process_batch
+    help: Start processing multiple questions
 
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower more deterministic
