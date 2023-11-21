@@ -112,7 +112,7 @@ Analyze the provided chunk of data and extract all potential security breach att
 Identify any suspicious patterns or anomalies that may indicate a security breach.
 Provide details about the breach attempt. If applicable mention the timestamp or ID of the log entry that triggers the detection and explain it.
 Be specific and provide explanations.
-If no breach detected, return an empty list [].
+If no breach detected, return an empty list []. Only report breaches and suspecious activities.
 Your analysis should be detailed and provide clear evidence to support your conclusion. Remember to consider both known and unknown security threats.
 Be attentive to the content of the logs and do not miss important information.
 Answer in valid json format.
