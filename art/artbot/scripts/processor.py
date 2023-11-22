@@ -177,7 +177,7 @@ class Processor(APScript):
             self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
-        model = self.sd.util_get_current_model()
+        model = self.sd.util_get_current_model().split(".")[0]
         if model!=self.personality_config.sd_model_name:
             self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
             self.sd.util_set_model(self.personality_config.sd_model_name,True)
@@ -434,7 +434,7 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                if not self.yes_no("Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate an image?", initial_prompt, self.personality_config.max_generation_prompt_size):
+                if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate {self.personality_config.production_type} or soùmething like that?", initial_prompt, self.personality_config.max_generation_prompt_size):
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
