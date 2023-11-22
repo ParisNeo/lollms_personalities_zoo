@@ -53,10 +53,14 @@ class Processor(APScript):
         self.previous_sd_positive_prompt = None
         self.sd_negative_prompt = None
 
+        self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
+        self.sd_models = [f.stem for f in self.sd_models_folder.iterdir()]
+
         personality_config_template = ConfigTemplate(
             [
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
                 
@@ -173,7 +177,12 @@ class Processor(APScript):
             self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
-        
+        model = self.sd.util_get_current_model()
+        if model!=self.personality_config.sd_model_name:
+            self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
+            self.sd.util_set_model(self.personality_config.sd_model_name,True)
+            self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
         image_link_pattern = r"!\[.*?\]\((.*?)\)"

@@ -46,6 +46,9 @@ class Processor(APScript):
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_file_path","type":"str","value":"", "help":"A path to a txt file containing data to augment the personality"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
+                {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
+                {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
+                
                 {"name":"sampler_name","type":"str","value":"Euler a", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
@@ -101,8 +104,13 @@ class Processor(APScript):
     def prepare(self):
         if self.sd is None:
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = LollmsSD(self.personality.app, "Personality maker", max_retries=-1)
+            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+        model = self.sd.util_get_current_model()
+        if model!=self.personality_config.sd_model_name:
+            self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
+            self.sd.util_set_model(self.personality_config.sd_model_name,True)
+            self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
 
     def get_sd(self):
         
