@@ -40,7 +40,10 @@ class Processor(APScript):
         self.word_callback = None
         self.sd = None
         self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
-        self.sd_models = [f.stem for f in self.sd_models_folder.iterdir()]
+        if self.sd_models_folder.exists():
+            self.sd_models = [f.stem for f in self.sd_models_folder.iterdir()]
+        else:
+            self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
