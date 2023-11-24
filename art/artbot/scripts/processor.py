@@ -181,11 +181,12 @@ class Processor(APScript):
             self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
         
-        model = self.sd.util_get_current_model().split(".")[0]
-        if model!=self.personality_config.sd_model_name:
-            self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
-            self.sd.util_set_model(self.personality_config.sd_model_name,True)
-            self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+        if self.personality_config.generation_engine=="stable_diffusion":
+            model = self.sd.util_get_current_model().split(".")[0]
+            if model!=self.personality_config.sd_model_name:
+                self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
+                self.sd.util_set_model(self.personality_config.sd_model_name,True)
+                self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
 
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
