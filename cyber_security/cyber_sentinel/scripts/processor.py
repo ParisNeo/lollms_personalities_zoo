@@ -34,6 +34,7 @@ class Processor(APScript):
                 {"name":"file_types","type":"str","value":"nips,xml,pcap,json", "help":"The extensions of files to read"},
                 {"name":"chunk_size","type":"int","value":3072, "help":"The size of the chunk to read each time"},
                 {"name":"chunk_overlap","type":"int","value":256, "help":"The overlap between blocs"},
+                {"name":"save_each_n_chunks","type":"int","value":0, "help":"The number of chunks to process before saving the file. If 0, then the report is built at the end and a soingle report will be built for all logs."},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -87,7 +88,8 @@ class Processor(APScript):
         files = folder.glob('*')
         extension_list = [v.strip() for v in extensions.split(',')]
 
-        output_file = open(self.personality_config.output_file_path,"w")
+        output_file_path = Path(self.personality_config.output_file_path)
+        output_file = open(output_file_path,"w")
 
         for file in files:
             if file.is_file() and file.suffix[1:] in extension_list:
@@ -148,6 +150,10 @@ Here is my report as a valid json:
                             output_file.write(f"{entry['breach_timestamp']}\n")
                             output_file.write(f"### description:\n")
                             output_file.write(f"{entry['breach_description']}\n")
+                        if self.personality_config.save_each_n_chunks>0 and i%self.personality_config.save_each_n_chunks==0:
+                            output_file.close()
+                            output_file = open(output_file_path.parent/(output_file_path.stem+f"_{i}"+output_file_path.suffix),"w")
+
                     except Exception as ex:
                         ASCIIColors.error(ex)
                     self.step_end(f"Processing {file.name} chunk {i+1}/{n_chunks}")
