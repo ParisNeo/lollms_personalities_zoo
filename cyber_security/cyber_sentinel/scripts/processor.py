@@ -150,6 +150,7 @@ Here is my report as a valid json:
                             output_file.write(f"{entry['breach_timestamp']}\n")
                             output_file.write(f"### description:\n")
                             output_file.write(f"{entry['breach_description']}\n")
+                            output_file.flush()
                         if self.personality_config.save_each_n_chunks>0 and i%self.personality_config.save_each_n_chunks==0:
                             output_file.close()
                             output_file = open(output_file_path.parent/(output_file_path.stem+f"_{i}"+output_file_path.suffix),"w")
