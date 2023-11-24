@@ -72,4 +72,4 @@ commands:
   - name: Stop monitoring Logs
     value: stop_logs_monitoring
     icon: 'feather:x'
-    help: Starts reading the new logs 
+    help: Stops reading the new logs 

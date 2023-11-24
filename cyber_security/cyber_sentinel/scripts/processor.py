@@ -68,6 +68,8 @@ class Processor(APScript, FileSystemEventHandler):
         # requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "watchdog"])      
+        subprocess.run(["pip", "install", "--upgrade", "dpkt"])      
+        
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
@@ -188,7 +190,7 @@ Here is my report as a valid json:
 
         for file in files:
             if file.is_file() and file.suffix[1:] in extension_list:
-                self.process_file(file, self.output_file, self.output_file_path)
+                self.process_file(file)
 
     
     def add_file(self, path, callback=None):
@@ -215,9 +217,11 @@ Here is my report as a valid json:
         if self.personality_config.output_file_path=="":
             out = self.fast_gen(previous_discussion_text + "Please set the output file path in my settings page.")
             self.full(out)
+            return
         if self.personality_config.logs_path=="":
             out = self.fast_gen(previous_discussion_text + "Please set the logs folder path in my settings page.")
             self.full(out)
+            return
 
         self.process_logs(
                             self.personality_config.logs_path, 
