@@ -77,6 +77,7 @@ class Processor(APScript, FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory:
             file_path = Path(event.src_path)
+            self.step(f"Detected modification in log file {file_path}")
             self.process_file(file_path)
     
     
