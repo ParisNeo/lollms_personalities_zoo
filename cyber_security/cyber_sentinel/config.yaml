@@ -65,3 +65,11 @@ commands:
     value: read_all_logs
     icon: 'feather:file'
     help: Starts reading the logs 
+  - name: Start monitoring Logs
+    value: start_logs_monitoring
+    icon: 'feather:aperture'
+    help: Starts reading the new logs 
+  - name: Stop monitoring Logs
+    value: stop_logs_monitoring
+    icon: 'feather:x'
+    help: Starts reading the new logs 

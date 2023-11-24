@@ -6,10 +6,11 @@ from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
 import json
-
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Helper functions
-class Processor(APScript):
+class Processor(APScript, FileSystemEventHandler):
     """
     A class that processes model inputs and outputs.
 
@@ -52,6 +53,8 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                         "read_all_logs":self.read_all_logs,
+                                        "start_logs_monitoring":self.start_logs_monitoring,
+                                        "stop_logs_monitoring":self.stop_logs_monitoring,
                                     },
                                     "default": None
                                 },                           
@@ -64,35 +67,20 @@ class Processor(APScript):
         
         # requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
-        # subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+        subprocess.run(["pip", "install", "--upgrade", "watchdog"])      
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
 
-    def read_all_logs(self, prompt="", full_context=""):
-        if self.personality_config.output_file_path=="":
-            self.notify("Please setup output file path first")
-            return
-        if self.personality_config.logs_path=="":
-            self.notify("Please setup logs folder path first")
-            return
-        self.new_message("")
-        self.process_logs(
-                            self.personality_config.logs_path, 
-                            self.personality_config.file_types
-                        )
 
-    def process_logs(self, folder_path, extensions):
-        folder = Path(folder_path)
-        files = folder.glob('*')
-        extension_list = [v.strip() for v in extensions.split(',')]
-
-        output_file_path = Path(self.personality_config.output_file_path)
-        output_file = open(output_file_path,"w")
-
-        for file in files:
-            if file.is_file() and file.suffix[1:] in extension_list:
+    def on_modified(self, event):
+        if not event.is_directory:
+            file_path = Path(event.src_path)
+            self.process_file(file_path)
+    
+    
+    def process_file(self, file):
                 self.step_start(f"Processing {file.name}")
                 data = GenericDataLoader.read_file(file)
                 dd = DocumentDecomposer()
@@ -145,21 +133,61 @@ Here is my report as a valid json:
                               output +="]"
                         json_output = json.loads(output)
                         for entry in json_output:
-                            output_file.write(f"## A {entry['severity']} breach detected chunk {i+1} of file {file}\n")
-                            output_file.write(f"### breach_timestamp:\n")
-                            output_file.write(f"{entry['breach_timestamp']}\n")
-                            output_file.write(f"### description:\n")
-                            output_file.write(f"{entry['breach_description']}\n")
-                            output_file.flush()
+                            self.output_file.write(f"## A {entry['severity']} breach detected chunk {i+1} of file {file}\n")
+                            self.output_file.write(f"### breach_timestamp:\n")
+                            self.output_file.write(f"{entry['breach_timestamp']}\n")
+                            self.output_file.write(f"### description:\n")
+                            self.output_file.write(f"{entry['breach_description']}\n")
+                            self.output_file.flush()
                         if self.personality_config.save_each_n_chunks>0 and i%self.personality_config.save_each_n_chunks==0:
-                            output_file.close()
-                            output_file = open(output_file_path.parent/(output_file_path.stem+f"_{i}"+output_file_path.suffix),"w")
+                            self.output_file.close()
+                            self.output_file = open(self.output_file_path.parent/(self.output_file_path.stem+f"_{i}"+self.output_file_path.suffix),"w")
 
                     except Exception as ex:
                         ASCIIColors.error(ex)
                     self.step_end(f"Processing {file.name} chunk {i+1}/{n_chunks}")
 
                 self.step_end(f"Processing {file.name}")
+
+    def read_all_logs(self, prompt="", full_context=""):
+        if self.personality_config.output_file_path=="":
+            self.notify("Please setup output file path first")
+            return
+        if self.personality_config.logs_path=="":
+            self.notify("Please setup logs folder path first")
+            return
+        self.new_message("")
+        self.process_logs(
+                            self.personality_config.logs_path, 
+                            self.personality_config.file_types
+                        )
+
+    def stop_logs_monitoring(self, prompt="", full_context=""):
+        self.observer.stop()
+
+    def start_logs_monitoring(self, prompt="", full_context=""):
+        if self.personality_config.output_file_path=="":
+            self.notify("Please setup output file path first")
+            return
+        if self.personality_config.logs_path=="":
+            self.notify("Please setup logs folder path first")
+            return
+        self.new_message("Starting continuous logs process...")
+        self.observer = Observer()
+        self.observer.schedule(self, self.personality_config.logs_path, recursive=True)
+        self.observer.start()
+    
+    def process_logs(self, folder_path, extensions):
+        folder = Path(folder_path)
+        files = folder.glob('*')
+        extension_list = [v.strip() for v in extensions.split(',')]
+
+        self.output_file_path = Path(self.personality_config.output_file_path)
+        self.output_file = open(self.output_file_path,"w")
+
+        for file in files:
+            if file.is_file() and file.suffix[1:] in extension_list:
+                self.process_file(file, self.output_file, self.output_file_path)
 
     
     def add_file(self, path, callback=None):
