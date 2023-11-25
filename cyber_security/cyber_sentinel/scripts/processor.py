@@ -98,7 +98,7 @@ class Processor(APScript, FileSystemEventHandler):
                 n_chunks = len(chunks)
                 for i, chunk in enumerate(chunks):
                     self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}")
-                    output = "[" + self.fast_gen(
+                    str_json = "[" + self.fast_gen(
                         f"""!@>log chunk:
 {chunk}
 """+"""
@@ -119,29 +119,58 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 
 !@>JSON format:
 [
+    A list of entries.
+    Each entry represents a suspicious breach that should only be reported if you understand the problem and can qualify it with arguments
     {
         "severity": "high","medium" or "low",
-        "breach_timestamp": the timestamp of the suspicious entry,
-        "breach_description": "a description of the breach"
+        "breach_timestamp": the timestamp of the suspicious entry if exists in the log chunk else leave blank,
+        "breach_description": a detailed and argued description of the breach,
+        "breach_detection_arguments": explain why do you think the breach exists using arguments from the log,
+        "proposed_fix": If you know a counter measure to avoid this, report it here or just say, I have no idea.
     }
 ]
 !@>cyber_sentinel_AI:
 Here is my report as a valid json:
 ["""
                     )
-                    self.full(output)
                     try:
-                        output = output.replace('\n', '').replace('\r', '').strip()
-                        if not output.endswith(']'):
-                              output +="]"
-                        json_output = json.loads(output)
+                        str_json = str_json.replace('\n', '').replace('\r', '').strip()
+                        if not str_json.endswith(']'):
+                              str_json +="]"
+                        json_output = json.loads(str_json)
                         for entry in json_output:
+                            breach_timestamp = entry.get('breach_timestamp','')
+                            breach_description = entry.get('breach_description','')
+                            breach_detection_arguments = entry.get('breach_detection_arguments','')
+                            proposed_fix = entry.get('proposed_fix','')
+
                             self.output_file.write(f"## A {entry['severity']} breach detected chunk {i+1} of file {file}\n")
-                            self.output_file.write(f"### breach_timestamp:\n")
-                            self.output_file.write(f"{entry['breach_timestamp']}\n")
-                            self.output_file.write(f"### description:\n")
-                            self.output_file.write(f"{entry['breach_description']}\n")
+                            self.output += f"## A {entry['severity']} breach detected chunk {i+1} of file {file}\n"
+                            if breach_timestamp:
+                                self.output_file.write(f"### breach_timestamp:\n")
+                                self.output_file.write(f"{breach_timestamp}\n")
+                                self.output += f"### breach_timestamp:\n"
+                                self.output += f"{entry.get('breach_timestamp','')}\n"
+                            if breach_description:
+                                self.output_file.write(f"### description:\n")
+                                self.output_file.write(f"{breach_description}\n")
+                                self.output += f"### description:\n"
+                                self.output += f"{breach_description}\n"
+                            if breach_detection_arguments:
+                                self.output_file.write(f"### arguments:\n")
+                                self.output_file.write(f"{breach_detection_arguments}\n")
+                                self.output += f"### arguments:\n"
+                                self.output += f"{entry.get('breach_detection_arguments','')}\n"
+                            if proposed_fix:
+                                self.output_file.write(f"### proposed fix:\n")
+                                self.output_file.write(f"{proposed_fix}\n")
+                                self.output += f"### proposed fix:\n"
+                                self.output += f"{entry.get('proposed_fix','')}\n"
+                            
+
                             self.output_file.flush()
+
+
                         if self.personality_config.save_each_n_chunks>0 and i%self.personality_config.save_each_n_chunks==0:
                             self.output_file.close()
                             self.output_file = open(self.output_file_path.parent/(self.output_file_path.stem+f"_{i}"+self.output_file_path.suffix),"w")
@@ -149,6 +178,7 @@ Here is my report as a valid json:
                     except Exception as ex:
                         ASCIIColors.error(ex)
                     self.step_end(f"Processing {file.name} chunk {i+1}/{n_chunks}")
+                    self.full(self.output)
 
                 self.step_end(f"Processing {file.name}")
 
@@ -159,6 +189,7 @@ Here is my report as a valid json:
         if self.personality_config.logs_path=="":
             self.notify("Please setup logs folder path first")
             return
+        self.output = ""
         self.new_message("")
         self.process_logs(
                             self.personality_config.logs_path, 

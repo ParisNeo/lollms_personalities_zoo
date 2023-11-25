@@ -439,7 +439,7 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate {self.personality_config.production_type} or soùmething like that?", initial_prompt, self.personality_config.max_generation_prompt_size):
+                if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate or modify or do some update?", initial_prompt, self.personality_config.max_generation_prompt_size):
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
