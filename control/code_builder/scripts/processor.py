@@ -25,6 +25,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"max_coding_attempts","type":"int","value":10, "help":"The maximum number of iteration over the code before give up"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -80,6 +81,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        self.output=""
+        self.callback = callback
         operation = self.multichoice_question(
                                     "Classify the last prompt from the user.",
                                     [
@@ -93,7 +96,6 @@ class Processor(APScript):
         if operation == 0: #Generic stuff
             ASCIIColors.info("Generating")
             self.step("Detected a generic ")
-            self.callback = callback
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
         elif operation == 1: # Giving information about the software to build
@@ -101,7 +103,6 @@ class Processor(APScript):
             self.step("Detected a software information")
             title = self.make_title(prompt)
             self.data_base.add_document(title,prompt, add_to_index=True)
-            self.callback = callback
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
         elif operation == 2: #build the software
@@ -112,15 +113,28 @@ class Processor(APScript):
             self.data_base.add_document(title,prompt, add_to_index=True)
             self.step_end("Saving the information to long term memory")
             self.callback = callback
-            self.step_start("Building the code")
-            out = self.build_python_code(previous_discussion_text)
-            if out!="":
-                self.step_end("Building the code")
-                self.full("```python\n"+out+"```")
-                exec(out)
-            else:
-                self.step_end("Building the code", False)
-            ASCIIColors.yellow(out)
-            
+
+            attempt =0
+            while attempt<self.personality_config.max_coding_attempts:
+                self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
+                code = self.build_python_code(previous_discussion_text)
+                if code!="":
+                    self.output += "```python\n"+code+"\n```"
+                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
+                    previous_discussion_text += code
+                    try:
+                        self.execute_python(code)
+                        break
+                    except Exception as ex:
+                        self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
+                        previous_discussion_text += str(ex)
+                        attempt +=1 
+                        self.output += "```exception\n"+str(ex)+"\n```"
+                else:
+                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
+                    attempt +=1 
+                self.full(self.output)
+            self.full(self.output)
+            ASCIIColors.yellow(code)
         return ""
 
