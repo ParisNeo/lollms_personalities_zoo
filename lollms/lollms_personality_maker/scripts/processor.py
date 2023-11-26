@@ -47,7 +47,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-                {"name":"data_file_path","type":"str","value":"", "help":"A path to a txt file containing data to augment the personality"},
+                {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
@@ -180,6 +180,7 @@ class Processor(APScript):
         Returns:
             None
         """
+        output_text = ""
         self.callback = callback
         self.prepare()
         output_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
@@ -195,6 +196,8 @@ If the request contains already the name, then use that.
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
+        output_text+=f"`- `name`: {name}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -203,9 +206,13 @@ If the request contains already the name, then use that.
         except:
             author = "lollms_personality_maker"
         # ----------------------------------------------------------------
+        output_text+=f"`- `author`: {author}\n"
+        self.full(output_text)
         
         # ----------------------------------------------------------------
         version = "1.0" 
+        output_text+=f"`- `version`: {version}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -218,6 +225,8 @@ If the request contains already the name, then use that.
 author name:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the category")
         ASCIIColors.yellow(f"Category:{category}")
+        output_text+=f"`- `category`: {category}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -229,6 +238,8 @@ author name:""",256,0.1,10,0.98).strip().split("\n")[0]
 language:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the language")
         ASCIIColors.yellow(f"Language:{language}")
+        output_text+=f"`- `language`: {language}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -242,6 +253,8 @@ Use detailed description of the most important traits of the personality
 description:""",256,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description:{description}")
+        output_text+=f"`- `description`: {description}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -254,6 +267,8 @@ description:""",256,0.1,10,0.98).strip()
 disclaimer:""",256,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
+        output_text+=f"`- `disclaimer`: {disclaimer}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
@@ -267,6 +282,8 @@ Act as""",256,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning:{conditioning}")
+        output_text+=f"`- `conditioning`: {conditioning}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -279,6 +296,8 @@ Act as""",256,0.1,10,0.98).strip()
 welcome message:""",256,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message:{welcome_message}")
+        output_text+=f"`- `welcome_message`: {welcome_message}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------
@@ -362,6 +381,8 @@ Avoid text as the generative ai is not good at generating text.
 !@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
+        output_text+=f"`- `icon sd_prompt`: {sd_prompt}\n"
+        self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -370,6 +391,7 @@ Avoid text as the generative ai is not good at generating text.
         assets_path= path/"assets"
         self.assets_path = assets_path
         personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
+        self.new_message("")
         self.step_start("Painting Icon")
         try:
             files = []
@@ -405,8 +427,6 @@ Avoid text as the generative ai is not good at generating text.
             files=[]
         self.step_end("Painting Icon")
 
-        output = f"```yaml\n{yaml_data}\n```\n# Icon:\n## Description:\n" + sd_prompt.strip()+"\n"
-
         ui = ""
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
@@ -416,11 +436,10 @@ Avoid text as the generative ai is not good at generating text.
             ui += file_path
             print(f"Generated file in here : {files[i]}")
         server_path = "/outputs/"+personality_path
-        output += f"\nYou can find your personality files here : [{personality_path}]({server_path})"
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
-        
-        self.full(output, callback)
+        output_text+=f"`- `personality path`: [{personality_path}]({server_path})\n"
+        self.full(output_text)
         self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
         path.mkdir(parents=True, exist_ok=True)
@@ -440,31 +459,33 @@ Avoid text as the generative ai is not good at generating text.
             shutil.copy(template_fn, scripts_path/"processor.py")
             self.step_end("Creating default script")
 
-        if self.personality_config.data_file_path!="":
+        if self.personality_config.data_folder_path!="":
             text = []
-            data_path = self.personality_config.data_file_path
-            text_files = [file if file.exists() else "" for file in data_path.glob("*.txt")]
+            data_path = Path(self.personality_config.data_folder_path)
+            text_files = []
+            extensions = ["*.txt","*.pdf","*.pptx","*.docx","*.md"]
+            for extension in extensions:
+                text_files += [file if file.exists() else "" for file in data_path.glob(extension)]
             for file in text_files:
-                with open(str(file),"r") as f:
-                    text.append(f.read())
+                text.append(GenericDataLoader.read_file(file))
             # Replace 'example_dir' with your desired directory containing .txt files
             self._data = "\n".join(map((lambda x: f"\n{x}"), text))
             print(self._data)
             ASCIIColors.info("Building data ...",end="")
             self.persona_data_vectorizer = TextVectorizer(
-                        self.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
-                        model=self.model, #needed in case of using model_embedding
+                        self.personality.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
+                        model=self.personality.model, #needed in case of using model_embedding
                         save_db=True,
                         database_path=data_path/"db.json",
                         data_visualization_method=VisualizationMethod.PCA,
                         database_dict=None)
             self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
             self.persona_data_vectorizer.index()
-            self.persona_data_vectorizer.save_db()
+            self.persona_data_vectorizer.save_to_json()
 
 
             self.step_start("Copying data files")
-            dfp = Path(self.personality_config.data_file_path)
+            dfp = Path(self.personality_config.data_folder_path)
             if dfp.exists():
                 data_path = path/"data"
                 data_path.mkdir(exist_ok=True, parents=True)
@@ -475,6 +496,6 @@ Avoid text as the generative ai is not good at generating text.
                     shutil.copy(str(dfp), data_path/dfp.name)
             self.step_end("Copying data files")
 
-        return output
+        return output_text
 
 
