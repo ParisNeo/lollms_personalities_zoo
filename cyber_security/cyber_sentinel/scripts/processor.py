@@ -218,6 +218,8 @@ Here is my report as a valid json:
 
         self.output_file_path = Path(self.personality_config.output_file_path)
         self.output_file = open(self.output_file_path,"w")
+        
+        self.output = ""
 
         for file in files:
             if file.is_file() and file.suffix[1:] in extension_list:
