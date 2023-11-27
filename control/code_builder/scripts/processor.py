@@ -100,16 +100,21 @@ class Processor(APScript):
         ASCIIColors.yellow(operation)
         if operation == 0: #Generic stuff
             ASCIIColors.info("Generating")
-            self.step("Detected a generic ")
+            self.step("Detected a generic communication")
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
+            self.step("Detected a generic communication")
         elif operation == 1: # Giving information about the software to build
             ASCIIColors.info("Generating")
             self.step("Detected a software information")
+            self.step_start("Saving the information to long term memory")
             title = self.make_title(prompt)
             self.data_base.add_document(title,prompt, add_to_index=True)
-            out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            self.step_end("Saving the information to long term memory")
+            self.step_start(f"Assimilating the Data")
+            out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
+            self.step_end(f"Assimilating the Data")
+            self.full(out+"\nReady to start building, please say Start building when you think that you have input all data required.")
         elif operation == 2: #build the software
             ASCIIColors.info("Generating")
             self.step("Detected a software build request")
@@ -140,5 +145,36 @@ class Processor(APScript):
                 self.full(self.output)
             self.full(self.output)
             ASCIIColors.yellow(code)
+        elif operation == 3: # updates to the software
+            ASCIIColors.info("Generating")
+            self.step("Detected a software update request")
+            self.step_start("Saving the information to long term memory")
+            title = self.make_title(prompt)
+            self.data_base.add_document(title,prompt, add_to_index=True)
+            self.step_end("Saving the information to long term memory")
+            self.step_start(f"Assimilating the Data")
+            out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
+            self.step_end(f"Assimilating the Data")
+            self.full(out)
+            attempt =0
+            while attempt<self.personality_config.max_coding_attempts:
+                self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
+                code = self.build_python_code(previous_discussion_text)
+                if code!="":
+                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
+                    previous_discussion_text += code
+                    try:
+                        self.execute_python(code, self.personality_config.project_folder_path, "main.py")
+                        break
+                    except Exception as ex:
+                        self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
+                        previous_discussion_text += str(ex)
+                        attempt +=1 
+                        self.output += "```exception\n"+str(ex)+"\n```"
+                else:
+                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
+                    attempt +=1 
+                self.full(self.output)
+            self.full(self.output)            
         return ""
 
