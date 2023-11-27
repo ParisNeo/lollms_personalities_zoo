@@ -25,6 +25,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"project_folder_path","type":"str","value":"", "help":"A path to a folder where "},
                 {"name":"max_coding_attempts","type":"int","value":10, "help":"The maximum number of iteration over the code before give up"},
             ]
             )
@@ -81,6 +82,10 @@ class Processor(APScript):
         Returns:
             None
         """
+        if self.personality_config.project_folder_path=="":
+            self.full("Before starting to talk to me, please define a project folder path in my configuration settings then we can start building the app.")
+            return
+        
         self.output=""
         self.callback = callback
         operation = self.multichoice_question(
@@ -123,7 +128,7 @@ class Processor(APScript):
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
                     previous_discussion_text += code
                     try:
-                        self.execute_python(code)
+                        self.execute_python(code, self.personality_config.project_folder_path, "main.py")
                         break
                     except Exception as ex:
                         self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)

@@ -196,7 +196,7 @@ If the request contains already the name, then use that.
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
-        output_text+=f"`- `name`: {name}\n"
+        output_text+=f"`- `name`: {name}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -206,12 +206,12 @@ If the request contains already the name, then use that.
         except:
             author = "lollms_personality_maker"
         # ----------------------------------------------------------------
-        output_text+=f"`- `author`: {author}\n"
+        output_text+=f"`- `author`: {author}\n\n"
         self.full(output_text)
         
         # ----------------------------------------------------------------
         version = "1.0" 
-        output_text+=f"`- `version`: {version}\n"
+        output_text+=f"`- `version`: {version}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -225,7 +225,7 @@ If the request contains already the name, then use that.
 author name:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the category")
         ASCIIColors.yellow(f"Category:{category}")
-        output_text+=f"`- `category`: {category}\n"
+        output_text+=f"`- `category`: {category}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -238,7 +238,7 @@ author name:""",256,0.1,10,0.98).strip().split("\n")[0]
 language:""",256,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Coming up with the language")
         ASCIIColors.yellow(f"Language:{language}")
-        output_text+=f"`- `language`: {language}\n"
+        output_text+=f"`- `language`: {language}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -252,8 +252,8 @@ Use detailed description of the most important traits of the personality
 {self.personality.ai_message_prefix}
 description:""",256,0.1,10,0.98).strip() 
         self.step_end("Coming up with the description")
-        ASCIIColors.yellow(f"Description:{description}")
-        output_text+=f"`- `description`: {description}\n"
+        ASCIIColors.yellow(f"Description: {description}")
+        output_text+=f"`- `description`: {description}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -266,8 +266,8 @@ description:""",256,0.1,10,0.98).strip()
 {self.personality.ai_message_prefix}
 disclaimer:""",256,0.1,10,0.98).strip()  
         self.step_end("Coming up with the disclaimer")
-        ASCIIColors.yellow(f"Disclaimer:{disclaimer}")
-        output_text+=f"`- `disclaimer`: {disclaimer}\n"
+        ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
+        output_text+=f"`- `disclaimer`: {disclaimer}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
 
@@ -281,8 +281,8 @@ disclaimer:""",256,0.1,10,0.98).strip()
 Act as""",256,0.1,10,0.98).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning")
-        ASCIIColors.yellow(f"Conditioning:{conditioning}")
-        output_text+=f"`- `conditioning`: {conditioning}\n"
+        ASCIIColors.yellow(f"Conditioning: {conditioning}")
+        output_text+=f"`- `conditioning`: {conditioning}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -295,8 +295,8 @@ Act as""",256,0.1,10,0.98).strip()
 {self.personality.ai_message_prefix}
 welcome message:""",256,0.1,10,0.98).strip()          
         self.step_end("Coming up with the welcome message")
-        ASCIIColors.yellow(f"Welcome message:{welcome_message}")
-        output_text+=f"`- `welcome_message`: {welcome_message}\n"
+        ASCIIColors.yellow(f"Welcome message: {welcome_message}")
+        output_text+=f"`- `welcome_message`: {welcome_message}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
                          
@@ -381,7 +381,7 @@ Avoid text as the generative ai is not good at generating text.
 !@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
-        output_text+=f"`- `icon sd_prompt`: {sd_prompt}\n"
+        output_text+=f"`- `icon sd_prompt`: {sd_prompt}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -438,7 +438,7 @@ Avoid text as the generative ai is not good at generating text.
         server_path = "/outputs/"+personality_path
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
-        output_text+=f"`- `personality path`: [{personality_path}]({server_path})\n"
+        output_text+=f"`- `personality path`: [{personality_path}]({server_path})\n\n"
         self.full(output_text)
         self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
@@ -454,6 +454,7 @@ Avoid text as the generative ai is not good at generating text.
         if self.personality_config.make_scripted:
             self.step_start("Creating default script")
             scripts_path = path/"scripts"
+            database_path = path/"data"
             scripts_path.mkdir(exist_ok=True, parents=True)
             template_fn = Path(__file__).parent/"script_template.py"
             shutil.copy(template_fn, scripts_path/"processor.py")
@@ -476,7 +477,7 @@ Avoid text as the generative ai is not good at generating text.
                         self.personality.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                         model=self.personality.model, #needed in case of using model_embedding
                         save_db=True,
-                        database_path=data_path/"db.json",
+                        database_path=database_path/"db.json",
                         data_visualization_method=VisualizationMethod.PCA,
                         database_dict=None)
             self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
