@@ -124,7 +124,6 @@ class Processor(APScript):
                 self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
                 code = self.build_python_code(previous_discussion_text)
                 if code!="":
-                    self.output += "```python\n"+code+"\n```"
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
                     previous_discussion_text += code
                     try:
