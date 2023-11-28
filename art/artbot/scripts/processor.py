@@ -227,6 +227,8 @@ class Processor(APScript):
         
     def add_file(self, path, callback=None):
         self.new_message("")
+        output = f"## Image:\n![]({pth})\n\n"
+        self.full(output)
         if callback is None and self.callback is not None:
             callback = self.callback
 
@@ -235,17 +237,21 @@ class Processor(APScript):
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
-            description = self.sd.interrogate(str(path)).info
+            from PIL import Image
+            img = Image.open(str(path))
+            # Convert the image to RGB mode
+            img = img.convert("RGB")
+            description = self.personality.model.interrogate_blip([img])[0]
+            # description = self.sd.interrogate(str(path)).info
             self.print_prompt("Blip description",description)
             self.step_end("Understanding the image", callback=callback)
             pth = str(path).replace("\\","/").split('/')
             idx = pth.index("uploads")
             pth = "/".join(pth[idx:])
-
-
             
             file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
-            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
+            output += f"##  Image description :\n{description}\n"
+            self.full(output, callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
