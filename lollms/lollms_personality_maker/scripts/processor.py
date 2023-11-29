@@ -189,10 +189,10 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_start("Coming up with the personality name")
         name = self.generate(f"""{self.personality.personality_conditioning}
-!@>user request:{prompt}
+{previous_discussion_text}
 !@>task: What is the name of the personality requested by the user?
 If the request contains already the name, then use that.
-{self.personality.ai_message_prefix} The chozen personality name is: """,50,0.1,10,0.98).strip().split("\n")[0]
+{self.personality.ai_message_prefix} The chozen personality name is: """,50,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
@@ -217,12 +217,11 @@ If the request contains already the name, then use that.
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the category")
-        category = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        category = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: Infer the category of the personality
 {self.personality.ai_message_prefix}
-author name:""",256,0.1,10,0.98).strip().split("\n")[0]
+author name:""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the category")
         ASCIIColors.yellow(f"Category:{category}")
         output_text+=f"`- `category`: {category}\n\n"
@@ -231,11 +230,10 @@ author name:""",256,0.1,10,0.98).strip().split("\n")[0]
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the language")
-        language = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        language = self.generate(f"""{previous_discussion_text}
 !@>task: Infer the language of the request (english, french, chinese etc)
 {self.personality.ai_message_prefix}
-language:""",256,0.1,10,0.98).strip().split("\n")[0]
+language:""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the language")
         ASCIIColors.yellow(f"Language:{language}")
         output_text+=f"`- `language`: {language}\n\n"
@@ -244,13 +242,12 @@ language:""",256,0.1,10,0.98).strip().split("\n")[0]
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description")
-        description = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        description = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: Write a description of the personality
 Use detailed description of the most important traits of the personality
 {self.personality.ai_message_prefix}
-description:""",256,0.1,10,0.98).strip() 
+description:""",256,0.1,10,0.98, debug=True).strip() 
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
         output_text+=f"`- `description`: {description}\n\n"
@@ -259,12 +256,11 @@ description:""",256,0.1,10,0.98).strip()
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the disclaimer")
-        disclaimer = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        disclaimer = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: Write a disclaimer about the ai personality infered from the request
 {self.personality.ai_message_prefix}
-disclaimer:""",256,0.1,10,0.98).strip()  
+disclaimer:""",256,0.1,10,0.98, debug=True).strip()  
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
         output_text+=f"`- `disclaimer`: {disclaimer}\n\n"
@@ -273,12 +269,12 @@ disclaimer:""",256,0.1,10,0.98).strip()
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
-        conditioning = self.generate(f"""!@>request:{prompt}
+        conditioning = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request. Do not write more than three sentences max.
 {self.personality.ai_message_prefix}
 !@>lollms_personality_maker: Here is the conditionning text for the personality {name}:
-Act as""",256,0.1,10,0.98).strip()
+Act as""",256,0.1,10,0.98, debug=True).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
@@ -288,12 +284,11 @@ Act as""",256,0.1,10,0.98).strip()
         
         # ----------------------------------------------------------------
         self.step_start("Coming up with the welcome message")
-        welcome_message = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
+        welcome_message = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: Write a welcome message text that {name} sends to the user at startup. Keep it short and sweet.
 {self.personality.ai_message_prefix}
-welcome message:""",256,0.1,10,0.98).strip()          
+welcome message:""",256,0.1,10,0.98, debug=True).strip()          
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
         output_text+=f"`- `welcome_message`: {welcome_message}\n\n"
@@ -351,7 +346,7 @@ recommended_model: ''
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
+anti_prompts: ["!@>"]
         """
         personality_path:Path = output_path/(name.lower().replace(" ","_").replace("\n","").replace('"',''))
         personality_path.mkdir(parents=True, exist_ok=True)
@@ -371,14 +366,14 @@ anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
         # ----------------------------------------------------------------
         self.step_start("Imagining Icon")
         # 1 first ask the model to formulate a query
-        sd_prompt = self.generate(f"""!@>request: {prompt}
+        sd_prompt = self.generate(f"""{previous_discussion_text}
 !@>task: Write a prompt to describe an icon to the personality being built to be generated by a text2image ai. 
 The prompt should be descriptive and include stylistic information in a single paragraph.
 Try to show the face of the personality in the icon if it is not an abstract concept.
 Try to write detailed description of the icon as well as stylistic elements like rounded corners or glossy and try to invoke a particular style or artist to help the generrator ai build an accurate icon.
 Avoid text as the generative ai is not good at generating text.
 !@>personality name: {name}
-!@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
+!@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98, debug=True).strip()
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=f"`- `icon sd_prompt`: {sd_prompt}\n\n"
@@ -454,13 +449,14 @@ Avoid text as the generative ai is not good at generating text.
         if self.personality_config.make_scripted:
             self.step_start("Creating default script")
             scripts_path = path/"scripts"
-            database_path = path/"data"
             scripts_path.mkdir(exist_ok=True, parents=True)
             template_fn = Path(__file__).parent/"script_template.py"
             shutil.copy(template_fn, scripts_path/"processor.py")
             self.step_end("Creating default script")
 
         if self.personality_config.data_folder_path!="":
+            database_path = path/"data"
+            database_path.mkdir(exist_ok=True, parents=True)
             text = []
             data_path = Path(self.personality_config.data_folder_path)
             text_files = []
@@ -483,19 +479,6 @@ Avoid text as the generative ai is not good at generating text.
             self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
             self.persona_data_vectorizer.index()
             self.persona_data_vectorizer.save_to_json()
-
-
-            self.step_start("Copying data files")
-            dfp = Path(self.personality_config.data_folder_path)
-            if dfp.exists():
-                data_path = path/"data"
-                data_path.mkdir(exist_ok=True, parents=True)
-                if dfp.is_dir():
-                    for f in dfp.glob("*.txt"):
-                        shutil.copy(str(f), data_path/f.name)
-                else:
-                    shutil.copy(str(dfp), data_path/dfp.name)
-            self.step_end("Copying data files")
 
         return output_text
 
