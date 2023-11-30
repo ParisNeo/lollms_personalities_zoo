@@ -136,7 +136,7 @@ class Processor(APScript):
                         break
                     except Exception as ex:
                         self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                        previous_discussion_text += str(ex)
+                        previous_discussion_text += f"!@> Exception detected:\n{ex}\n!@>request:Fix the bug.\n"
                         attempt +=1 
                         self.output += "```exception\n"+str(ex)+"\n```"
                 else:
