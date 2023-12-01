@@ -63,6 +63,8 @@ class Processor(APScript):
 
 
     def process(self, text, message_type:MSG_TYPE):
+        if text is None:
+            return
         bot_says = self.bot_says + text
         ASCIIColors.success(f"generated:{len(bot_says)} words", end='\r')
         if self.personality.detect_antiprompt(bot_says):
