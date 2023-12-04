@@ -125,20 +125,33 @@ class Processor(APScript):
         self.step_start("Summoning collective")
         while attempts<self.personality_config.nb_attempts:
             try:
-                selection = int(self.fast_gen(q_prompt, 3,show_progress=True).split()[0].split(",")[0])
+                selection = int(self.fast_gen(q_prompt, 3, show_progress=True).split()[0].split(",")[0])
+                q_prompt += f"{selection}\n"
                 self.step_end("Summoning collective")
                 self.step(f"Selected drone {collective[selection]}")
                 collective[selection].callback=callback
-                collective[selection].new_message("")
 
-                if collective[selection].processor:
+                if collective[selection].processor and collective[selection].name!="Queen of the Borg":
+                    q_prompt += f"!@>stsrem:Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"
+                    reformulated_request=self.fast_gen(q_prompt, show_progress=True)
+                    self.full(f"{collective[selection].name},{reformulated_request}")
+                    previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
+                    collective[selection].new_message("")
+                    collective[selection].full(f"At your service my queen.\n")
                     collective[selection].processor.text_files = self.text_files
                     collective[selection].processor.image_files = self.image_files
-                    collective[selection].processor.run_workflow(prompt, previous_discussion_text, callback)
+                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
                 else:
+                    if collective[selection].name!="Queen of the Borg":
+                        q_prompt += f"!@>system: Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"
+                        reformulated_request=self.fast_gen(q_prompt, show_progress=True)
+                        self.full(f"{collective[selection].name}, {reformulated_request}")
+                        previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
+                        collective[selection].new_message("")
+                        collective[selection].full(f"At your service my queen.\n")
                     collective[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
                 break
-            except:
+            except Exception as ex:
                 self.step_end("Summoning collective", False)
                 attempts += 1
         return answer

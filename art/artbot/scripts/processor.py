@@ -438,14 +438,16 @@ class Processor(APScript):
     def main_process(self, initial_prompt, full_context):
         sd_title = "unnamed"    
         metadata_infos=""
-        self.prepare()
         try:
             full_context = full_context[:full_context.index(initial_prompt)]
         except:
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate or modify or do some update?", initial_prompt, self.personality_config.max_generation_prompt_size):
+
+                classification = self.multichoice_question("Classify the user prompt.", ["The user is making an affirmation","The user is asking a question","The user is requesting to generate an artwork","The user is requesting to modify the artwork"], "!@>user: "+initial_prompt)
+
+                if classification<=1:
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
 !@>discussion:
 {{previous_discussion}}{{initial_prompt}}
@@ -464,7 +466,6 @@ class Processor(APScript):
                     response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                     self.full(response)
                     return
-
 
 
             if self.personality_config.automatic_resolution_selection:
@@ -590,6 +591,7 @@ Given this image description prompt and negative prompt, make a consize title
         output = metadata_infos
 
         if self.personality_config.paint:
+            self.prepare()
             infos = self.paint(sd_positive_prompt, sd_negative_prompt, sd_title, metadata_infos)
             self.full(output.strip())
 
