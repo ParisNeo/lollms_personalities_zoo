@@ -134,7 +134,7 @@ class Processor(APScript):
                 if collective[selection].processor and collective[selection].name!="Queen of the Borg":
                     q_prompt += f"!@>stsrem:Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"
                     reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                    self.full(f"{collective[selection].name},{reformulated_request}")
+                    self.full(f"{collective[selection].name}, {reformulated_request}")
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     collective[selection].new_message("")
                     collective[selection].full(f"At your service my queen.\n")
