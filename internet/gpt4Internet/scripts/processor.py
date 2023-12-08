@@ -3,91 +3,9 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 
-from pathlib import Path
+from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
+
 import subprocess
-
-def format_url_parameter(value:str):
-    encoded_value = value.strip().replace("\"","")
-    return encoded_value
-
-def extract_results(url, max_num, chromedriver_path=None):
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from bs4 import BeautifulSoup
-
-    # Configure Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
-
-    # Set path to chromedriver executable (replace with your own path)
-    if chromedriver_path is None: 
-        chromedriver_path = ""#"/snap/bin/chromium.chromedriver"    
-
-    # Create a new Chrome webdriver instance
-    try:
-        driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
-    except:
-        driver = webdriver.Chrome(options=chrome_options)
-
-    # Load the webpage
-    driver.get(url)
-
-    # Wait for JavaScript to execute and get the final page source
-    html_content = driver.page_source
-
-    # Close the browser
-    driver.quit()
-
-    # Parse the HTML content
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Detect that no outputs are found
-    Not_found = soup.find("No results found")
-
-    if Not_found : 
-        return []    
-
-    # Find the <ol> tag with class="react-results--main"
-    ol_tag = soup.find("ol", class_="react-results--main")
-
-    # Initialize an empty list to store the results
-    results_list = []
-
-    # Find all <li> tags within the <ol> tag
-    li_tags = ol_tag.find_all("li")
-
-    # Loop through each <li> tag, limited by max_num
-    for index, li_tag in enumerate(li_tags):
-        if index > max_num:
-            break
-
-        try:
-            # Find the three <div> tags within the <article> tag
-            div_tags = li_tag.find_all("div")
-
-            # Extract the link, title, and content from the <div> tags
-            links = div_tags[0].find_all("a")
-            href_value = links[1].get('href')
-            span = links[1].find_all("span")
-            link = span[0].text.strip()
-
-            title = div_tags[2].text.strip()
-            content = div_tags[3].text.strip()
-
-            # Add the extracted information to the list
-            results_list.append({
-                "link": link,
-                "href": href_value,
-                "title": title,
-                "content": content
-            })
-        except Exception:
-            pass
-
-    return results_list
 
    
 class Processor(APScript):
@@ -107,27 +25,29 @@ class Processor(APScript):
         self.summaries=[]
         self.word_callback = None
         self.generate_fn = None
-        
-        personality_config = TypedConfig(
-            ConfigTemplate([
+        template = ConfigTemplate([
+                {"name":"craft_search_query","type":"bool","value":False},
                 {"name":"chromedriver_path","type":"str","value":""},
-                {"name":"num_results","type":"int","value":3, "min":2, "max":100},
+                {"name":"chunk_size","type":"int","value":512, "min":128, "max":personality.model.config["ctx_size"]//2},
+                {"name":"chunk_overlap","type":"int","value":128, "min":0, "max":personality.model.config["ctx_size"]//2},
+                {"name":"num_results","type":"int","value":5, "min":2, "max":100},
+                {"name":"num_relevant_chunks","type":"int","value":2, "min":1, "max":100},
+
                 {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
-                
-            ]),
-            BaseConfig(config={
-                'chromedriver_path'         : "",
-                'num_results'               : 3,
-                'max_query_size'            : 50,
-                'max_summery_size'          : 256
-            })
+            ])
+        config = BaseConfig.from_template(template)
+        personality_config = TypedConfig(
+            template,
+            config
         )
         super().__init__(
                             personality,
                             personality_config,
                             callback=callback
                         )
+        
+        
         
     def install(self):
         super().install()
@@ -136,9 +56,101 @@ class Processor(APScript):
         subprocess.run(["pip", "install", "--upgrade", "--no-cache-dir", "-r", str(requirements_file)])        
         ASCIIColors.success("Installed successfully")
 
+    def uninstall(self):
+        super().uninstall()
 
+
+    def format_url_parameter(self, value:str):
+        encoded_value = value.strip().replace("\"","")
+        return encoded_value
+
+
+    def get_relevant_text_block(
+                                    self, 
+                                    url,
+                                    driver,
+                                ):
+        from bs4 import BeautifulSoup    
+        # Load the webpage
+        driver.get(url)
+
+        # Wait for JavaScript to execute and get the final page source
+        html_content = driver.page_source
+
+        # Parse the HTML content
+        soup = BeautifulSoup(html_content, "html.parser")
+        # Example: Remove all <script> and <style> tags
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        all_text = soup.get_text()
+        # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
+        self.step_end("Recovering data")
+        self.vectorizer.add_document(url,all_text, self.personality_config.chunk_size, self.personality_config.chunk_overlap)
+        self.vectorizer.index()
+        self.step_end("Vectorizing data")
+
+
+    def extract_results(self, url, max_num, driver=None):
+        from bs4 import BeautifulSoup    
+
+        # Load the webpage
+        driver.get(url)
+
+        # Wait for JavaScript to execute and get the final page source
+        html_content = driver.page_source
+
+        # Parse the HTML content
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Detect that no outputs are found
+        Not_found = soup.find("No results found")
+
+        if Not_found : 
+            return []    
+
+        # Find the <ol> tag with class="react-results--main"
+        ol_tag = soup.find("ol", class_="react-results--main")
+
+        # Initialize an empty list to store the results
+        results_list = []
+
+        try:
+            # Find all <li> tags within the <ol> tag
+            li_tags = ol_tag.find_all("li")
+
+            # Loop through each <li> tag, limited by max_num
+            for index, li_tag in enumerate(li_tags):
+                if index > max_num*3:
+                    break
+
+                try:
+                    # Find the three <div> tags within the <article> tag
+                    div_tags = li_tag.find_all("div")
+
+                    # Extract the link, title, and content from the <div> tags
+                    links = div_tags[0].find_all("a")
+                    href_value = links[1].get('href')
+                    span = links[1].find_all("span")
+                    link = span[0].text.strip()
+
+                    title = div_tags[2].text.strip()
+                    content = div_tags[3].text.strip()
+
+                    # Add the extracted information to the list
+                    results_list.append({
+                        "link": link,
+                        "href": href_value,
+                        "title": title,
+                        "brief": content
+                    })
+                except Exception:
+                    pass
+        except:
+            pass
+        return results_list
      
-    def internet_search(self, query):
+    def internet_search(self, query, chromedriver_path):
         """
         Perform an internet search using the provided query.
 
@@ -148,18 +160,43 @@ class Processor(APScript):
         Returns:
             dict: The search result as a dictionary.
         """
+
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
         formatted_text = ""
-        results = extract_results(f"https://duckduckgo.com/?q={format_url_parameter(query)}&t=h_&ia=web", self.personality_config.num_results, self.personality_config.chromedriver_path)
+        nb_non_empty = 0
+        # Configure Chrome options
+        chrome_options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--remote-debugging-port=9222")
+        chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+
+        # Set path to chromedriver executable (replace with your own path)
+        if chromedriver_path is None: 
+            chromedriver_path = ""#"/snap/bin/chromium.chromedriver"    
+
+        # Create a new Chrome webdriver instance
+        try:
+            driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
+        except:
+            driver = webdriver.Chrome(options=chrome_options)
+
+        results = self.extract_results(
+                                    f"https://duckduckgo.com/?q={self.format_url_parameter(query)}&t=h_&ia=web",
+                                    self.personality_config.num_results,
+                                    driver
+                                )
         for i, result in enumerate(results):
             title = result["title"]
-            content = result["content"]
-            link = result["link"]
+            brief = result["brief"]
             href = result["href"]
-            formatted_text += f"index: {i+1}\nsource: {href}\ntitle: {title}\n"
-
-        print("Searchengine results : ")
-        print(formatted_text)
-        return formatted_text, results
+            self.get_relevant_text_block(href, driver)
+            nb_non_empty += 1
+            if nb_non_empty>=self.personality_config.num_results:
+                break
+        # Close the browser
+        driver.quit()
 
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
@@ -176,46 +213,46 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.word_callback = callback
+        self.callback = callback
+        self.vectorizer = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
 
-        # 1 first ask the model to formulate a query
-        search_formulation_prompt = f"""!@>instructions:
-Formulate a search query text out of the user prompt.
-Keep all important information in the query and do not add unnecessary text.
-Write a short query.
-Do not explain the query.
-## question:
+        if self.personality_config.craft_search_query:
+            # 1 first ask the model to formulate a query
+            search_formulation_prompt = f"""!@>instructions:
+Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
+!@> question:
 {prompt}
-### search query:
-"""
-        search_query = format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
-        if search_query=="":
-            search_query=prompt
-        if callback is not None:
-            callback("Crafted search query :"+search_query+"\nSearching...", MSG_TYPE.MSG_TYPE_FULL)
-        search_result, results = self.internet_search(search_query)
-        if callback is not None:
-            callback("Crafted search query :"+search_query+"\nSearching... OK\nSummerizing...", MSG_TYPE.MSG_TYPE_FULL)
+!@> search query:
+    """
+            self.step_start("Crafting search query")
+            search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
+            if search_query=="":
+                search_query=prompt
+            self.step_end("Crafting search query")
+        else:
+            search_query = prompt
+            
+        self.internet_search(search_query, self.personality_config.chromedriver_path)
+        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
         prompt = f"""!@>instructions:
-Use Search engine results to answer user question by summerizing the results in a single coherant paragraph in form of a markdown text with sources citation links in the format [index](source).
-Place the citation links in front of each relevant information.
-### search results:
+Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
+!@> search results:
 {search_result}
-### question:
+!@> user:
 {prompt}
-## answer:
+!@> answer:
 """
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"
-        for result in results:
-            link = result["link"]
-            href = result["href"]
-            sources_text += f"[source : {link}]({href})\n\n"
+        for i,s in enumerate(sorted_similarities):
+            link = "_".join(s[0].split('_')[:-2]) + f"  chunk number {s[0].split('_')[-1]}"
+            href = "_".join(s[0].split('_')[:-2])
+            sources_text += f"[ [{i+1}] : {link}]({href})\n\n"
 
         output = output+sources_text
-        if callback is not None:
-            callback(output, MSG_TYPE.MSG_TYPE_FULL)
+        self.full(output)
 
         return output
 

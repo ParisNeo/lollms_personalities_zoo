@@ -5,10 +5,7 @@ from lollms.personality import APScript, AIPersonality
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 
-from pathlib import Path
 import subprocess
-import re
-
 
    
 class Processor(APScript):
