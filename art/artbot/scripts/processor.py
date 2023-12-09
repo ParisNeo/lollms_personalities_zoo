@@ -388,9 +388,9 @@ class Processor(APScript):
                 self.personality_config.width = closest_resolution[0]
                 self.personality_config.height = closest_resolution[1]                    
 
-                if len(self.image_files)>0:
+                if len(self.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
                     # Read the image file from disk and resize it
-                    image = Image.open("image.png")
+                    image = Image.open(self.image_files[0])
                     width, height = self.personality_config.width, self.personality_config.height
                     image = image.resize((width, height))
 
@@ -401,7 +401,7 @@ class Processor(APScript):
                     response = openai.images.create_variation(
                         image=byte_array,
                         n=1,
-                        model="dall-e-2",# self.personality_config.generation_engine, # for now only dalle 2 supports variations
+                        model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
                         size=f"{self.personality_config.width}x{self.personality_config.height}"
                     )
                 else:
