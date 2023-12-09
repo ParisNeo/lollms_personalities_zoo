@@ -25,16 +25,20 @@ class Processor(APScript):
         self.summaries=[]
         self.word_callback = None
         self.generate_fn = None
+        try:
+            self.ctx_size = personality.model.config["ctx_size"]
+        except:
+            self.ctx_size = 4096
         template = ConfigTemplate([
                 {"name":"craft_search_query","type":"bool","value":False},
                 {"name":"chromedriver_path","type":"str","value":""},
-                {"name":"chunk_size","type":"int","value":512, "min":128, "max":personality.model.config["ctx_size"]//2},
-                {"name":"chunk_overlap","type":"int","value":128, "min":0, "max":personality.model.config["ctx_size"]//2},
+                {"name":"chunk_size","type":"int","value":512, "min":128, "max":self.ctx_size//2},
+                {"name":"chunk_overlap","type":"int","value":128, "min":0, "max":self.ctx_size//2},
                 {"name":"num_results","type":"int","value":5, "min":2, "max":100},
                 {"name":"num_relevant_chunks","type":"int","value":2, "min":1, "max":100},
 
-                {"name":"max_query_size","type":"int","value":50, "min":10, "max":personality.model.config["ctx_size"]},
-                {"name":"max_summery_size","type":"int","value":256, "min":10, "max":personality.model.config["ctx_size"]},
+                {"name":"max_query_size","type":"int","value":50, "min":10, "max":self.ctx_size},
+                {"name":"max_summery_size","type":"int","value":256, "min":10, "max":self.ctx_size},
             ])
         config = BaseConfig.from_template(template)
         personality_config = TypedConfig(
