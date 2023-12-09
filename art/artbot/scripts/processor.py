@@ -13,6 +13,8 @@ from tqdm import tqdm
 import webbrowser
 from typing import Dict, Any
 from pathlib import Path
+from PIL import Image
+from io import BytesIO
 
 # Helper functions
 def find_next_available_filename(folder_path, prefix):
@@ -227,6 +229,10 @@ class Processor(APScript):
         
     def add_file(self, path, callback=None):
         self.new_message("")
+        pth = str(path).replace("\\","/").split('/')
+        idx = pth.index("uploads")
+        pth = "/".join(pth[idx:])
+
         output = f"## Image:\n![]({pth})\n\n"
         self.full(output)
         if callback is None and self.callback is not None:
@@ -237,18 +243,13 @@ class Processor(APScript):
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
-            from PIL import Image
             img = Image.open(str(path))
             # Convert the image to RGB mode
             img = img.convert("RGB")
             description = self.personality.model.interrogate_blip([img])[0]
             # description = self.sd.interrogate(str(path)).info
             self.print_prompt("Blip description",description)
-            self.step_end("Understanding the image", callback=callback)
-            pth = str(path).replace("\\","/").split('/')
-            idx = pth.index("uploads")
-            pth = "/".join(pth[idx:])
-            
+            self.step_end("Understanding the image", callback=callback)           
             file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
             output += f"##  Image description :\n{description}\n"
             self.full(output, callback=callback)
@@ -387,14 +388,32 @@ class Processor(APScript):
                 self.personality_config.width = closest_resolution[0]
                 self.personality_config.height = closest_resolution[1]                    
 
-                response = openai.images.generate(
-                    model=self.personality_config.generation_engine,
-                    prompt=sd_positive_prompt.strip(),
-                    quality="standard",
-                    size=f"{self.personality_config.width}x{self.personality_config.height}",
-                    n=1,
-                    
+                if len(self.image_files)>0:
+                    # Read the image file from disk and resize it
+                    image = Image.open("image.png")
+                    width, height = self.personality_config.width, self.personality_config.height
+                    image = image.resize((width, height))
+
+                    # Convert the image to a BytesIO object
+                    byte_stream = BytesIO()
+                    image.save(byte_stream, format='PNG')
+                    byte_array = byte_stream.getvalue()
+                    response = openai.images.create_variation(
+                        image=byte_array,
+                        n=1,
+                        model="dall-e-2",# self.personality_config.generation_engine, # for now only dalle 2 supports variations
+                        size=f"{self.personality_config.width}x{self.personality_config.height}"
                     )
+                else:
+
+                    response = openai.images.generate(
+                        model=self.personality_config.generation_engine,
+                        prompt=sd_positive_prompt.strip(),
+                        quality="standard",
+                        size=f"{self.personality_config.width}x{self.personality_config.height}",
+                        n=1,
+                        
+                        )
                 infos = {
                     "title":sd_title,
                     "prompt":self.previous_sd_positive_prompt,
@@ -445,7 +464,13 @@ class Processor(APScript):
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
 
-                classification = self.multichoice_question("Classify the user prompt.", ["The user is making an affirmation","The user is asking a question","The user is requesting to generate an artwork","The user is requesting to modify the artwork"], "!@>user: "+initial_prompt)
+                classification = self.multichoice_question("Classify the user prompt.", 
+                                                           [
+                                                               "The user is making an affirmation",
+                                                               "The user is asking a question",
+                                                               "The user is requesting to generate an artwork",
+                                                               "The user is requesting to modify the artwork"
+                                                            ], "!@>user: "+initial_prompt)
 
                 if classification<=1:
                     pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
@@ -572,7 +597,6 @@ Given this image description prompt and negative prompt, make a consize title
                 self.step_end("Making up a title")
                 metadata_infos += f"### title:\n{sd_title}\n"
                 self.full(f"{metadata_infos}")
-
         else:
             self.width=self.personality_config.width
             self.height=self.personality_config.height

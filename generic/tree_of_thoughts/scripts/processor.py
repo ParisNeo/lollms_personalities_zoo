@@ -73,20 +73,7 @@ class Processor(APScript):
         else:
             self.bot_says = bot_says
             return True
-
-    def generate(self, prompt, max_size, temperature = None, top_k = None, top_p=None, repeat_penalty=None ):
-        self.bot_says = ""
-        ASCIIColors.info("Text generation started: Warming up")
-        return self.personality.model.generate(
-                                prompt, 
-                                max_size, 
-                                self.process,
-                                temperature=self.personality.model_temperature if temperature is None else temperature,
-                                top_k=self.personality.model_top_k if top_k is None else top_k,
-                                top_p=self.personality.model_top_p if top_p is None else top_p,
-                                repeat_penalty=self.personality.model_repeat_penalty if repeat_penalty is None else repeat_penalty,
-                                ).strip()     
-
+        
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -153,7 +140,7 @@ class Processor(APScript):
                     final_ideas.append(local_ideas[idea_id]) 
                 else:
                     final_ideas.append(local_ideas[0]) 
-            output += f"Best idea : {idea_id}"
+            output += f"Best idea : {idea_id}\n\n"
             self.full(output)
             layers.append(local_ideas)
             selections.append(idea_id)
@@ -170,7 +157,7 @@ class Processor(APScript):
 
         ASCIIColors.success("Summary built successfully")
         self.step_end(f"Building final summary")
-        output += f"## Final summary:\n{summary_prompt}"
+        output += f"## Final summary:\n{final_summary}"
         self.full(output)
         
         
