@@ -111,7 +111,7 @@ class Processor(APScript):
 
     def done(self):
         print("Congrats!")
-        self.notify("Done")
+        self.personality.success("Done")
 
 
     def analyze_screenshot_and_replan(self, prompt, previous_discussion_text,sc_path):

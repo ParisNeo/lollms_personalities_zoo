@@ -205,14 +205,14 @@ class Processor(APScript):
     
     def new_image(self, prompt="", full_context=""):
         self.image_files=[]
-        self.notify("Starting fresh :)", True)
+        self.personality.info("Starting fresh :)")
         
         
     def show_sd(self, prompt="", full_context=""):
         self.prepare()
         
         webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
-        self.notify("Showing Stable diffusion UI")
+        self.personality.info("Showing Stable diffusion UI")
         
         
     def show_settings(self, prompt="", full_context=""):
@@ -652,8 +652,7 @@ Given this image description prompt and negative prompt, make a consize title
             self.new_image()
             ASCIIColors.info("Building new image")
             self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
-            ASCIIColors.info("Regenerating")
-            self.personality.app.notify("Regenerating",True)
+            self.personality.info("Regenerating")
             self.previous_sd_positive_prompt = prompt
             self.previous_sd_negative_prompt = negative_prompt
             self.new_message(f"Generating {self.personality_config.num_images} variations")

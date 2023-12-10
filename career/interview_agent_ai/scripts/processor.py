@@ -94,7 +94,7 @@ class Processor(APScript):
                 subject_summary, evaluation_grid, output = self.preprocess_subject(orig_cv_path.parent, output)
                 self.process_cv(orig_cv_path, subject_summary, evaluation_grid, output)
         except Exception as ex:
-            self.notify(str(ex), False)
+            self.error(str(ex))
 
     def preprocess_subject(self, output_path, output =""):
         subject_path = Path(self.personality_config.subject_text)

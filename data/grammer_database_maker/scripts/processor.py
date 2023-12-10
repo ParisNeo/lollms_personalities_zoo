@@ -89,12 +89,12 @@ class Processor(APScript):
         self.new_message("")
         self.step_start("Scraping data")
         if self.personality_config.url=="":
-            self.notify("Please set a url into my configuration before asking me to scrape a url!", False)
+            self.personality.info("Please set a url into my configuration before asking me to scrape a url!", False)
             return
         if self.personality_config.data_folder=="":
-            self.notify("Please set a data_folder into my configuration before asking me to scrape a url!", False)
+            self.personality.info("Please set a data_folder into my configuration before asking me to scrape a url!", False)
             return
-        self.notify("Starting data processing", True)
+        self.personality.info("Starting data processing", True)
         text = convert_webpage_to_markdown(self.personality_config.url)
         index = find_first_available_file_index(self.personality_config.data_folder,"data_",".txt")
         data_folder = Path(self.personality_config.data_folder)
@@ -105,7 +105,7 @@ class Processor(APScript):
             
     def build_db(self, prompt="", full_context=""):
         if self.personality_config.data_folder == "":
-            self.notify("Please set a data_folder into my configuration before asking me to build the database!")
+            self.personality.info("Please set a data_folder into my configuration before asking me to build the database!")
             return
         self.new_message("")
         self.step_start("Building database")

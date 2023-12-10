@@ -184,10 +184,10 @@ Here is my report as a valid json:
 
     def read_all_logs(self, prompt="", full_context=""):
         if self.personality_config.output_file_path=="":
-            self.notify("Please setup output file path first")
+            self.personality.info("Please setup output file path first")
             return
         if self.personality_config.logs_path=="":
-            self.notify("Please setup logs folder path first")
+            self.personality.info("Please setup logs folder path first")
             return
         self.output = ""
         self.new_message("")
@@ -201,10 +201,10 @@ Here is my report as a valid json:
 
     def start_logs_monitoring(self, prompt="", full_context=""):
         if self.personality_config.output_file_path=="":
-            self.notify("Please setup output file path first")
+            self.personality.info("Please setup output file path first")
             return
         if self.personality_config.logs_path=="":
-            self.notify("Please setup logs folder path first")
+            self.personality.info("Please setup logs folder path first")
             return
         self.new_message("Starting continuous logs process...")
         self.observer = Observer()
