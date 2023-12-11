@@ -1,8 +1,13 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.utilities import PackageManager
 import subprocess
 
+if not PackageManager.check_package_installed("elasticsearch"):
+    PackageManager.install_package("elasticsearch")
+
+from elasticsearch import Elasticsearch
 # Helper functions
 class Processor(APScript):
     """
@@ -24,6 +29,10 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"server_id","type":"str","value":'[localhost:9200]', "help":"List of addresses of the server in form of ip or host name: port"},
+                {"name":"search_index","type":"str","value":"your_index", "help":"The index to be used for querying"},
+                
+                # Specify the host and port of the Elasticsearch server
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -77,7 +86,15 @@ class Processor(APScript):
         Returns:
             None
         """
-        ASCIIColors.info("Generating")
+        es = Elasticsearch(eval(self.personality_config.server_id))
+        query = self.fast_gen(previous_discussion_text+"!@>system: make an elastic search query to answer the user.\nelasticsearch_ai:\n")
+        # Perform the search query
+        res = es.search(index=self.personality_config.search_index, body=eval(query))
+
+        # Process the search results
+        for hit in res['hits']['hits']:
+            print(hit['_source'])
+        self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
         self.full(out)
