@@ -33,9 +33,8 @@ class Processor(APScript):
         # str, int, float, bool, list
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
-            [
-                
-                {"name":"nb_attempts","type":"int","value":5, "help":"Maximum number of attempts to summon a drone"},
+            [                
+                {"name":"nb_attempts","type":"int","value":5, "help":"Maximum number of attempts to summon a member"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -104,7 +103,7 @@ class Processor(APScript):
         self.callback = callback
         self.personality.info("Generating")
         members:List[AIPersonality] = self.personality.app.mounted_personalities
-
+        output = ""
 
         q_prompt = "!@instructions>Act as a highly efficient and organized AI that excels in problem-solving and task management. It possesses excellent communication skills and can effectively coordinate and delegate tasks to a team of mounted AIs. It is proactive, adaptable, and results-oriented, ensuring that projects are executed smoothly and efficiently.\nTeam members:\n"
         collective_infos = ""
@@ -114,7 +113,7 @@ class Processor(APScript):
             collective_infos +=  f"member description: {drone.personality_description[:126]}...\n"
         q_prompt += collective_infos
         answer = ""
-        q_prompt += f"Using the skills of some members, elaborate a plan to solve the problem exposed by the user:\n"
+        q_prompt += f"Using the skills of some members, elaborate a plan to solve the problem exposed by the user\nSome members are useless to your plan, so only use the minimum necessary members"
         q_prompt += f"!@>user:{prompt}\n"
         q_prompt += "!@>project_manager_ai: To reach the objective set by the user, here is a comprehensive plan using some of the available project members.\n1. Member id "
         attempts = 0
@@ -122,7 +121,8 @@ class Processor(APScript):
         answer = self.fast_gen(q_prompt, 1024, show_progress=True)
         q_prompt += answer
         answer = "1. Member id " +answer
-        self.full(answer)
+        output += answer
+        self.full(output)
 
         plan_steps = answer.split("\n")
         self.step_end("Making plan")
@@ -140,7 +140,8 @@ class Processor(APScript):
                     q_prompt += f"!@>sytsem:Starting task by {members[selection].name}, provide details\n!@>project_manager_ai: "
                     reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                     members[selection].new_message("")
-                    self.full(f"{members[selection].name}, {reformulated_request}")
+                    output = ""
+                    self.full(output)
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     members[selection].new_message("")
                     members[selection].processor.text_files = self.text_files
@@ -150,11 +151,11 @@ class Processor(APScript):
                     if members[selection].name!="project_manager":
                         q_prompt += f"!@>system: Reformulate the question for the member.\n!@>project_manager: {members[selection].name},"
                         reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                        self.full(f"{members[selection].name}, {reformulated_request}")
+                        members[selection].processor.full(f"{members[selection].name}, {reformulated_request}")
                         previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                         members[selection].new_message("")
-                        members[selection].full(f"At your service my queen.\n")
-                    members[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
+                    output = members[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
+                    members[selection].processor.full(output)
                 break
             self.step_end(step)
 

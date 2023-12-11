@@ -68,9 +68,9 @@ class Processor(APScript):
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
-                {"name":"sampler_name","type":"str","value":"DPM++ 2M Karras", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS","UniPC"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
-                {"name":"steps","type":"int","value":50, "min":10, "max":1024},
-                {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
+                {"name":"sampler_name","type":"str","value":"DPM++ 3M SDE", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS", "UniPC", "DPM++ 3M SDE", "DPM++ 3M SDE Karras", "DPM++ 3M SDE Exponential"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
+                {"name":"steps","type":"int","value":40, "min":10, "max":1024},
+                {"name":"scale","type":"float","value":5, "min":0.1, "max":100.0},
                 
                 {"name":"install_sd","type":"btn","value":"Install Stable diffusion","help":"Installs stable diffusion"},
 
@@ -374,15 +374,23 @@ class Processor(APScript):
                         [512, 512],
                         [1024, 1024],
                     ]
+                    # Find the closest resolution
+                    closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
+                    
                 else:
                     supported_resolutions = [
                         [1024, 1024],
                         [1024, 1792],
                         [1792, 1024]
                     ]
+                    # Find the closest resolution
+                    if self.personality_config.width>self.personality_config.height:
+                        closest_resolution = [1792, 1024]
+                    elif self.personality_config.width<self.personality_config.height: 
+                        closest_resolution = [1024, 1792]
+                    else:
+                        closest_resolution = [1024, 1024]
 
-                # Find the closest resolution
-                closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
 
                 # Update the width and height
                 self.personality_config.width = closest_resolution[0]

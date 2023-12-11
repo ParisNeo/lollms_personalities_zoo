@@ -29,6 +29,10 @@ class Processor(APScript):
             [
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
                 {"name":"zip_size","type":"str","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
+                {"name":"preserve_authors_name","type":"bool","value":True, "help":"Force the algorithm to preserve the authors names as an important information"},
+                {"name":"preserve_results","type":"bool","value":True, "help":"Force the algorithm to preserve the document results the authors names as an important information"},
+                {"name":"maximum_compression","type":"bool","value":False, "help":"Force the algorithm to compress the document as much as possible. Useful for what is this document talking about kind of summary"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -88,10 +92,19 @@ class Processor(APScript):
                 self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize(document_chunks,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text. Reduce the length of the text. Keep the same language.","document chunk")
+                document_text = self.summerize(document_chunks,f"""
+Summerize this document chunk and do not add any comments after the summary.
+Only extract the information from the provided chunk.
+Do not invent anything outside the provided text.
+Reduce the length of the text.
+{'Keep the same language.' if self.personality_config.keep_same_language else ''}
+{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}
+{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}
+{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}
+""","document chunk")
                 tk = self.personality.model.tokenize(document_text)
                 self.step_end(f"Comprerssing.. [depth {depth}]")
-                self.full(output+f"\n## summerized chunk text:\n{document_text}")
+                self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
         self.step_end(f"summerizing {document_path.stem}")
         if output_path:
@@ -106,7 +119,7 @@ class Processor(APScript):
             output=""
             file = Path(file)
             summary, output = self.zip_document(file, file.parent, output)
-            output +=f"## Summary of {file.stem}\n{summary}"
+            output +=f"\n## Summary of {file.stem}\n{summary}"
             self.full(output)
 
 

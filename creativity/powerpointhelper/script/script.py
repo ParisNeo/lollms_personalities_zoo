@@ -19,12 +19,13 @@ class Processor(APScript):
         self.callback = None
         # Example entries
         #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-        #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
+        #       {"name":"output_file_path","type":"str","value":"", "help":"The path to an output file"},
         # Supported types:
         # str, int, float, bool, list
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"output_file_path","type":"str","value":"", "help":"The path to an output file"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)

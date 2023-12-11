@@ -123,7 +123,7 @@ class Processor(APScript):
             self.step_start("Building Keywords...")
             self.full("")
             keywords = self.fast_gen("""!@>Instructions:
-Act as keywords extractor. Your job is to extract a coma separated list of keywords from the user prompt to be ysed by the search engine. The keywords should be tightly related to the subject.
+Act as keywords extractor. Your job is to extract a coma separated list of keywords from the user prompt to be used by the search engine. The keywords should be tightly related to the subject.
 !@>user prompt: {{initial_prompt}}
 !@>keywords: """, self.personality_config.max_generation_prompt_size, {
                     "previous_discussion":full_context,
