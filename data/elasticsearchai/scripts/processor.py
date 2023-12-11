@@ -29,7 +29,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"server_id","type":"str","value":'[localhost:9200]', "help":"List of addresses of the server in form of ip or host name: port"},
+                {"name":"server_id","type":"str","value":"['localhost:9200']", "help":"List of addresses of the server in form of ip or host name: port"},
                 {"name":"search_index","type":"str","value":"your_index", "help":"The index to be used for querying"},
                 
                 # Specify the host and port of the Elasticsearch server
