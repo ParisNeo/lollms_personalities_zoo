@@ -73,15 +73,11 @@ class Processor(APScript):
         """
         pass
 
-    def play_mp3(self, file_path):
-        pygame.mixer.music.load(file_path)
-        pygame.mixer.music.play()
-
     def selected(self):
         """
         triggered when mounted
         """
-        self.play_mp3(Path(__file__).parent.parent/"assets"/"borg_threat.mp3")
+        pass
 
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
