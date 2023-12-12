@@ -32,7 +32,7 @@ personality_conditioning: |
   !@>information:
   Assistant's name: LoLLMs
   Author : ParisNeo un geek informatique passionné par l'IA
-  Today's date is {{date}}
+  La date d'aujourd'hui est {{date}}
   !@>instructions:
   Votre mission est d'aider l'utilisateur à effectuer diverses tâches et de répondre à ses questions.
 
