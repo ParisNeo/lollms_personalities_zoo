@@ -16,7 +16,7 @@ from functools import partial
 import os
 from lollms.utilities import PromptReshaper
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
-
+from urllib.parse import quote
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -128,7 +128,7 @@ Act as keywords extractor. Your job is to extract a coma separated list of keywo
 !@>keywords: """, self.personality_config.max_generation_prompt_size, {
                     "previous_discussion":full_context,
                     "initial_prompt":query
-                    },self.personality.config.debug)
+                    }, ["previous_discussion"], self.personality.config.debug)
             self.step_end("Building Keywords...")
             self.full(keywords)
             if keywords=="":
@@ -143,18 +143,19 @@ Act as keywords extractor. Your job is to extract a coma separated list of keywo
         search_results = self.arxiv.Search(query=query, max_results=self.personality_config.num_results).results()
         self.step_end(f"Searching articles on arxiv")
         
-
+        relevant_file_paths = []
         # Download and save articles
         for i, result in enumerate(search_results):
             pdf_url = result.pdf_url
             if pdf_url:
                 relevance_explanation = ""
-                self.step_start(f"Processing document {i+1}/{self.personality_config.num_results}")
+                document_file_name = result.entry_id.split('/')[-1]
+                self.step_start(f"Processing document {i+1}/{self.personality_config.num_results}: {document_file_name}")
                 # Get the PDF content
                 response = requests.get(pdf_url)
                 if response.status_code == 200:
                     # Create the filename for the downloaded article
-                    filename = download_folder/f"{result.entry_id.split('/')[-1]}.pdf"
+                    filename = download_folder/f"{document_file_name}.pdf"
                     # Save the PDF to the specified folder
                     with open(filename, "wb") as file:
                         file.write(response.content)
@@ -175,7 +176,7 @@ content: {{content}}
                                 "content":result.summary,
                                 "initial_prompt":query,
                                 "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                                },self.personality.config.debug)
+                                }, debug=self.personality.config.debug)
                         if "yes" in is_relevant.lower():
                             self.abstract_vectorizer.add_document(result.entry_id.split('/')[-1], f"title:{result.title}\nauthors:{authors}\nabstract:{result.summary}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
                             relevance = "relevant"
@@ -190,8 +191,8 @@ content: {{content}}
                                 "content":result.summary,
                                 "initial_prompt":query,
                                 "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                                },self.personality.config.debug)
-
+                                }, debug=self.personality.config.debug)
+                            relevant_file_paths.append(filename)
                         else:
                             relevance = "irrelevant"
                     else:
@@ -205,20 +206,20 @@ content: {{content}}
                         "relevance":relevance,
                         "explanation":relevance_explanation,
                         "url":pdf_url,
-                        "file path":str(filename)
+                        "file_path":str(filename)
                     }
                     
                     relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b>\n{relevance_explanation}'  if relevance=="relevant" else f'<p style="color: gray;">{relevance}</p>' 
 
-                    articles_checking_text+=f"---\n\n<b>Title</b>: {result.title}\n\n<b>Authors</b>: {authors}\n{relevance}\n"
+                    articles_checking_text+=f"\n\n---\n\n<b>Title</b>: {result.title}\n\n<b>Authors</b>: {authors}\n{relevance}\n\n<b>File</b>: <a href='/open_file?path={quote(filename)}'>{document_file_name}</a>"
                     self.full(articles_checking_text)
                     report.append(report_entry)
-                    self.step_end(f"Processing document {i+1}/{self.personality_config.num_results}")
+                    self.step_end(f"Processing document {i+1}/{self.personality_config.num_results}: {document_file_name}")
 
                 else:
                     ASCIIColors.red(f"Failed to download {result.title}")
                     self.step_start(f"{i}/{self.personality_config.num_results} {result.title}")
-                    self.step_end(f"Processing document {i+1}/{self.personality_config.num_results}", False)
+                    self.step_end(f"Processing document {i+1}/{self.personality_config.num_results}: {document_file_name}", False)
         
         self.json("Report",report)
         self.step_end(f"Searching and processing {self.personality_config.num_results} documents")
@@ -249,6 +250,8 @@ content: {{content}}
         self.print_prompt("Ask to build keywords",discussion_messages)
         output = self.generate(discussion_messages, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end(f"Building answer")
-        articles_checking_text+=f"\n<b>Summary</b>:\n{output}"
+        
         ASCIIColors.yellow(output)
-        self.full(articles_checking_text)
+        self.new_message(summary_text)
+        summary_text=f"\n<b>Summary</b>:\n{output}"
+        self.full(summary_text)

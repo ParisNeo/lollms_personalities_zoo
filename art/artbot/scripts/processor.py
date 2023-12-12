@@ -94,8 +94,7 @@ class Processor(APScript):
                 {"name":"width","type":"int","value":512, "min":10, "max":2048},
                 {"name":"height","type":"int","value":512, "min":10, "max":2048},
 
-                {"name":"thumbneil_width","type":"int","value":256, "min":10, "max":2048},
-                {"name":"thumbneil_height","type":"int","value":256, "min":10, "max":2048},
+                {"name":"thumbneil_ratio","type":"int","value":2, "min":1, "max":5},
 
                 {"name":"automatic_image_size","type":"bool","value":False,"help":"If true, artbot will select the image resolution"},
                 {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
@@ -147,8 +146,8 @@ class Processor(APScript):
         reshaper = PromptReshaper(str_data)
         str_data = reshaper.replace({
             "{image_id}":f"{image_id}",
-            "{thumbneil_width}":f"{self.personality_config.thumbneil_width}",
-            "{thumbneil_height}":f"{self.personality_config.thumbneil_height}",
+            "{thumbneil_width}":f"{self.personality_config.width/self.personality_config.thumbneil_ratio}",
+            "{thumbneil_height}":f"{self.personality_config.height/self.personality_config.thumbneil_ratio}",
             "{image_source}":image_source,
             "{__infos__}":str(image_infos).replace("True","true").replace("False","false").replace("None","null")
         })
@@ -529,8 +528,8 @@ Act as artbot, the art prompt generation AI. Use the previous discussion to come
 {stl}
 !@>art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
-                    "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
+                    "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     }, 
                     self.personality.model.tokenize, 
                     self.personality.model.detokenize, 
