@@ -210,8 +210,8 @@ content: {{content}}
                     }
                     
                     relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b>\n{relevance_explanation}'  if relevance=="relevant" else f'<p style="color: gray;">{relevance}</p>' 
-
-                    articles_checking_text+=f"\n\n---\n\n<b>Title</b>: {result.title}\n\n<b>Authors</b>: {authors}\n{relevance}\n\n<b>File</b>: <a href='/open_file?path={quote(filename)}'>{document_file_name}</a>"
+                    fn = str(filename).replace('\\','/')
+                    articles_checking_text+=f"\n\n---\n\n<b>Title</b>: {result.title}\n\n<b>Authors</b>: {authors}\n{relevance}\n\n<b>File</b>: <a href='/open_file?path={fn}'>{document_file_name}</a>"
                     self.full(articles_checking_text)
                     report.append(report_entry)
                     self.step_end(f"Processing document {i+1}/{self.personality_config.num_results}: {document_file_name}")
@@ -252,6 +252,6 @@ content: {{content}}
         self.step_end(f"Building answer")
         
         ASCIIColors.yellow(output)
-        self.new_message(summary_text)
+        self.new_message("")
         summary_text=f"\n<b>Summary</b>:\n{output}"
         self.full(summary_text)
