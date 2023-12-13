@@ -260,7 +260,7 @@ class Processor(APScript):
     def regenerate(self, prompt="", full_context=""):
         if self.previous_sd_positive_prompt:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
-            output0 = f"## Positive prompt:\n{self.previous_sd_positive_prompt}\n## negative prompt:\n{self.previous_sd_negative_prompt}"
+            output0 = f"### Positive prompt:\n{self.previous_sd_positive_prompt}\n\n### Negative prompt:\n{self.previous_sd_negative_prompt}"
             output = output0
             self.full(output)
 
@@ -519,11 +519,11 @@ class Processor(APScript):
             stl = f"!@>style_choice: {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
-            past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
+            past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-1])
             pr  = PromptReshaper(f"""!@>discussion:                                 
 {past if self.personality_config.continuous_discussion else ''}
 !@>instructions:
-Act as artbot, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
+Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
 {initial_prompt}
 {stl}
 !@>art_generation_prompt: Create {self.personality_config.production_type}""")
