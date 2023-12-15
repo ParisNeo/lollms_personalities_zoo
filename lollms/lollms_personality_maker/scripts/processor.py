@@ -196,7 +196,7 @@ If the request contains already the name, then use that.
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
-        output_text+=f"`- `name`: {name}\n\n"
+        output_text+=f"- `name`: {name}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -206,12 +206,12 @@ If the request contains already the name, then use that.
         except:
             author = "lollms_personality_maker"
         # ----------------------------------------------------------------
-        output_text+=f"`- `author`: {author}\n\n"
+        output_text+=f"- `author`: {author}\n\n"
         self.full(output_text)
         
         # ----------------------------------------------------------------
         version = "1.0" 
-        output_text+=f"`- `version`: {version}\n\n"
+        output_text+=f"- `version`: {version}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -224,7 +224,7 @@ If the request contains already the name, then use that.
 author name:""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the category")
         ASCIIColors.yellow(f"Category:{category}")
-        output_text+=f"`- `category`: {category}\n\n"
+        output_text+=f"- `category`: {category}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -236,7 +236,7 @@ author name:""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
 language:""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the language")
         ASCIIColors.yellow(f"Language:{language}")
-        output_text+=f"`- `language`: {language}\n\n"
+        output_text+=f"- `language`: {language}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -250,7 +250,7 @@ Use detailed description of the most important traits of the personality
 description:""",256,0.1,10,0.98, debug=True).strip() 
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
-        output_text+=f"`- `description`: {description}\n\n"
+        output_text+=f"- `description`:\n{description}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -263,7 +263,7 @@ description:""",256,0.1,10,0.98, debug=True).strip()
 disclaimer:""",256,0.1,10,0.98, debug=True).strip()  
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
-        output_text+=f"`- `disclaimer`: {disclaimer}\n\n"
+        output_text+=f"- `disclaimer`:\n{disclaimer}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
 
@@ -278,7 +278,7 @@ Act as""",256,0.1,10,0.98, debug=True).strip()
         conditioning = "Act as "+conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
-        output_text+=f"`- `conditioning`: {conditioning}\n\n"
+        output_text+=f"- `conditioning`:\n{conditioning}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -291,7 +291,7 @@ Act as""",256,0.1,10,0.98, debug=True).strip()
 welcome message:""",256,0.1,10,0.98, debug=True).strip()          
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
-        output_text+=f"`- `welcome_message`: {welcome_message}\n\n"
+        output_text+=f"- `welcome_message`:\n{welcome_message}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
                          
@@ -376,7 +376,7 @@ Avoid text as the generative ai is not good at generating text.
 !@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98, debug=True).strip()
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
-        output_text+=f"`- `icon sd_prompt`: {sd_prompt}\n\n"
+        output_text+=f"- `icon sd_prompt`:\n{sd_prompt}\n\n"
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -406,6 +406,9 @@ Avoid text as the generative ai is not good at generating text.
                                 height = 512,
                                 restore_faces = True,
                             )
+                if file is None:
+                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
+                    continue
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file = str(file)
 
