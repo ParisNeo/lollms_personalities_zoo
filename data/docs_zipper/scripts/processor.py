@@ -28,9 +28,12 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
-                {"name":"zip_size","type":"str","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"contextual_zipping_text","type":"str","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
-                {"name":"preserve_authors_name","type":"bool","value":True, "help":"Force the algorithm to preserve the authors names as an important information"},
+                {"name":"translate_to","type":"str","value":"", "help":"Force the algorithm to summarize the document in a specific language. If none is provided then it won't do any translation"},
+                {"name":"preserve_document_title","type":"bool","value":False, "help":"Force the algorithm to preserve the document title as an important information"},
+                {"name":"preserve_authors_name","type":"bool","value":False, "help":"Force the algorithm to preserve the authors names as an important information"},
                 {"name":"preserve_results","type":"bool","value":True, "help":"Force the algorithm to preserve the document results the authors names as an important information"},
                 {"name":"maximum_compression","type":"bool","value":False, "help":"Force the algorithm to compress the document as much as possible. Useful for what is this document talking about kind of summary"},
             ]
@@ -98,9 +101,12 @@ Only extract the information from the provided chunk.
 Do not invent anything outside the provided text.
 Reduce the length of the text.
 {'Keep the same language.' if self.personality_config.keep_same_language else ''}
+{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}
 {'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}
 {'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}
 {'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}
+{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}
+{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}
 ""","document chunk")
                 tk = self.personality.model.tokenize(document_text)
                 self.step_end(f"Comprerssing.. [depth {depth}]")
