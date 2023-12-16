@@ -1,13 +1,8 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PackageManager
 import subprocess
 
-if not PackageManager.check_package_installed("elasticsearch"):
-    PackageManager.install_package("elasticsearch")
-
-from elasticsearch import Elasticsearch
 # Helper functions
 class Processor(APScript):
     """
@@ -22,17 +17,14 @@ class Processor(APScript):
                 ) -> None:
         
         self.callback = None
-        # Example entry
+        # Example entries
+        #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
         #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
         # Supported types:
         # str, int, float, bool, list
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"servers","type":"dict","value":"[{'host':'localhost','port':9200}]", "help":"List of addresses of the server in form of ip or host name: port"},
-                {"name":"search_index","type":"str","value":"your_index", "help":"The index to be used for querying"},
-                
-                # Specify the host and port of the Elasticsearch server
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -47,7 +39,7 @@ class Processor(APScript):
                             [
                                 {
                                     "name": "idle",
-                                    "commands": { # list of commands
+                                    "commands": { # list of commands (don't forget to add these to your config.yaml file)
                                         "help":self.help,
                                     },
                                     "default": None
@@ -73,10 +65,6 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
-
-    def prepare(self):
-        if self.es is None:
-            self.es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -90,17 +78,9 @@ class Processor(APScript):
         Returns:
             None
         """
-        es = Elasticsearch(eval(self.personality_config.server_id))
-        query = self.fast_gen(previous_discussion_text+"!@>system: make an elastic search query to answer the user.\nelasticsearch_ai:\n")
-        # Perform the search query
-        res = es.search(index=self.personality_config.search_index, body=eval(query))
-
-        # Process the search results
-        for hit in res['hits']['hits']:
-            print(hit['_source'])
         self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
         self.full(out)
-        return ""
+        return out
 
