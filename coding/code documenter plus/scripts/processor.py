@@ -71,18 +71,51 @@ class Processor(APScript):
         
         
     def idle(self, prompt, full_context):
-        structure = self.parse_python_code(prompt)
-        text=f"""Json structure of the code:
-{json.dumps(structure)}
-!@>instruction: Document this python code by describing the used libraries, the classes and their use, how to use the methods etc. 
-Please use markdown format for your output.
-!@>documentation:
-# Introduction:"""
-        out = "# Introduction:"+ self.generate(text,self.personality_config.layout_max_size)
+        ASCIIColors.info("Generating")
+        out = self.fast_gen(full_context)
         self.full(out)
-        self.new_message("document structure", MSG_TYPE.MSG_TYPE_JSON_INFOS,structure)
-        
+
+    def path_to_ascii_tree(self, path, indent=""):
+        """
+        Converts a directory structure to an ASCII tree representation.
+
+        Args:
+            path (Path): The path to the directory.
+            indent (str, optional): The string used for indentation. Defaults to "".
+
+        Returns:
+            str: The ASCII tree representation of the directory structure.
+        """
+        if not isinstance(path, Path):
+            raise ValueError("Input must be a pathlib.Path object.")
+
+        result = ""
+
+        if path.is_file():
+            return f"{indent}- {path.name}\n"
+
+        if path.is_dir():
+            result += f"{indent}+ {path.name}\n"
+
+            for item in path.iterdir():
+                result += self.path_to_ascii_tree(item, indent=indent + "\t")
+
+        return result
+
+
     def path_to_json(self, path):
+        """
+        Converts a directory structure to a JSON representation.
+
+        Args:
+            path (Path): The path to the directory.
+
+        Returns:
+            Union[str, dict]: The JSON representation of the directory structure.
+                If the path is a file, returns the name of the file.
+                If the path is a directory, returns a dictionary with the directory name as the key
+                and a nested dictionary representing the subdirectories and files as the value.
+        """        
         if not isinstance(path, Path):
             raise ValueError("Input must be a pathlib.Path object.")
 
@@ -97,8 +130,7 @@ Please use markdown format for your output.
             for item in path.iterdir():
                 result[path.name][item.name] = self.path_to_json(item)
 
-        return result
-    
+        return result    
     def process_python_files(self, path, file_function, project_path):
         if not isinstance(path, Path):
             raise ValueError("Input 'path' must be a pathlib.Path object.")
@@ -124,7 +156,7 @@ Please use markdown format for your output.
             self.step_start(f"Started documentation of {project_path} --")
             docs_dir=project_path/"docs"/"code"
             docs_dir.mkdir(parents=True, exist_ok=True)
-            structure = self.path_to_json(project_path)
+            structure = self.path_to_ascii_tree(project_path)
             text=f"""Json structure of the project folder:
 {json.dumps(structure)}
 !@>instruction: Create a description of the project structure.
@@ -195,21 +227,19 @@ Please use markdown format for your output.
             try:
                 with open(file_path, 'r') as file:
                     source_code = file.read()
+                summary = self.summerize([source_code],"Summerize the objective of this code. Keep the main idea of the functionality of the code in the summary",Path(file_path).stem,"Here is a summary of the provided code:\n")
                 doc =  self.parse_python_code(source_code)
                 extra_path1 = file_path.relative_to(str(project_path))
                 output_file_path = docs_dir / extra_path1
                 output_file_path = Path(".".join(str(output_file_path).split(".")[:-1])+".md")
                 output_file_path.parent.mkdir(parents=True, exist_ok=True)
-                out = self.fast_gen("""!@>instruction: Create a description of the file.
-!@>documentation:
-!@>filename:{{fn}}
-{{doc}}
-# Global description: """,self.personality_config.layout_max_size, {"fn":file_path.name,"doc":str(doc)})
+                out = f"# Documentation of file : {file_path.name}\n# Summary:\n"+summary+"\n"
                 out += "# functions\n" + self.fast_gen("""!@>instruction: Create a description of the file.
 !@>documentation:
 !@>filename:{{fn}}
 {{doc}}
-# functions: """,self.personality_config.layout_max_size, {"fn":file_path.name,"doc":str(doc)})
+{{summary}}
+# functions: """,self.personality_config.layout_max_size, {"fn":file_path.name,"summary":summary,"doc":str(doc)})
                 with open(output_file_path,"w") as f:
                     f.write(out)
             except:
