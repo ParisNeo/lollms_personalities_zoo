@@ -239,6 +239,7 @@ class Processor(APScript):
 
         self.prepare()
         super().add_file(path)
+        self.image_files.append(path)
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
