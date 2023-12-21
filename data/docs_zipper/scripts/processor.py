@@ -112,6 +112,21 @@ Reduce the length of the text.
                 self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
+        self.step_start(f"Last composition")
+        document_text = self.summerize(document_chunks,f"""
+Summerize this document chunk and do not add any comments after the summary.
+Only extract the information from the provided chunk.
+Do not invent anything outside the provided text.
+Reduce the length of the text.
+{'Keep the same language.' if self.personality_config.keep_same_language else ''}
+{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}
+{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}
+{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}
+{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}
+{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}
+{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}
+""","document chunk")
+        self.step_end(f"Last composition")
         self.step_end(f"summerizing {document_path.stem}")
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+"_summary.txt"))
