@@ -81,3 +81,8 @@ welcome_message: 'Welcome to lollms Personality Maker! I am here to help you cre
   embark on this exciting journey of self-discovery and creativity together!
 
   '
+
+commands:
+  - name: Regenerate icons
+    value: regenerate_icons
+    help: Regenerates the icons after creating the AI

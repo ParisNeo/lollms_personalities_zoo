@@ -200,7 +200,7 @@ class Processor(APScript):
 
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.personality.InfoMessage(self.personality.help)
     
     def new_image(self, prompt="", full_context=""):
         self.image_files=[]

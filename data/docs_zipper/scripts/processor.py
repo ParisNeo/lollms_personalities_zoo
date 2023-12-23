@@ -71,7 +71,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.personality.InfoMessage(self.personality.help)
     
     def add_file(self, path, callback=None):
         """
