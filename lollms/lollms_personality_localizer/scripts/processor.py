@@ -117,10 +117,10 @@ class Processor(APScript):
         language = self.generate(f"""{self.personality.personality_conditioning}
 !@>user request:{prompt}
 !@>task: What is the language of the personality requested by the user?
-{self.personality.ai_message_prefix}
-name:""",50,0.1,10,0.98).strip().split("\n")[0]
+!@>{self.personality.ai_message_prefix}: The requested language to translate to is """,50,0.1,10,0.98).strip().split("\n")[0]
         self.step_end("Fetching language")
         language = re.sub(r'[\\/:*?"<>|]', '', language)
+        language = language.lower().replace(".","").replace(",","")
         ASCIIColors.yellow(f"language:{language}")
         # ----------------------------------------------------------------        
         author = personality.author
@@ -180,12 +180,12 @@ conditionning translation: !@>instruction:"""
         # ----------------------------------------------------------------
         self.step_start("Translating welcome message")
         welcome_message = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{prompt}
 !@>personality name:{name}
 !@>task: Translate the welcome message to {language}.
-welcome message: {personality.personality_conditioning}
-{self.personality.ai_message_prefix}
-translated welcome message:""",256,0.1,10,0.98).strip()          
+!@>welcome message: {personality.welcome_message}
+!@>{self.personality.ai_message_prefix}:
+translated welcome message:
+""",256,0.1,10,0.98).strip()          
         self.step_end("Translating welcome message")
         ASCIIColors.yellow(f"Welcome message:{welcome_message}")
         # ----------------------------------------------------------------

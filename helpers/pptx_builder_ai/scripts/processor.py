@@ -1,9 +1,156 @@
 from lollms.helpers import ASCIIColors
+from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 import subprocess
-
+if not PackageManager.check_package_installed("pptx"):
+    PackageManager.install_package("pptx")
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.dml.color import RGBColor
 # Helper functions
+class PowerPointBuilder:
+    """
+    A class for building PowerPoint slides programmatically using the python-pptx library.
+
+    Attributes:
+        presentation (Presentation): The PowerPoint presentation object.
+
+    Methods:
+        add_slide(layout=0): Adds a new slide to the presentation.
+        add_text(slide, text, left, top, width, height, font_size=18, font_name="Arial", bold=False, italic=False, color=RGBColor(0, 0, 0)): Adds a text box with formatted text to a slide.
+        add_image(slide, image_path, left, top, width=None, height=None): Adds an image to a slide.
+        set_background_color(slide, color): Sets the background color of a slide.
+        add_shape(slide, shape_type, left, top, width, height): Adds a shape to a slide.
+        add_transition(slide, transition_type): Adds a transition to a slide.
+        save(file_name): Saves the presentation to a file.
+
+    """
+
+    def __init__(self):
+        self.presentation = Presentation()
+
+    def add_slide(self, layout=0):
+        """
+        Adds a new slide to the presentation.
+
+        Args:
+            layout (int): The index of the slide layout to use. Default is 0.
+
+        Returns:
+            Slide: The newly added slide object.
+
+        """
+        slide_layout = self.presentation.slide_layouts[layout]
+        slide = self.presentation.slides.add_slide(slide_layout)
+        return slide
+
+    def add_text(self, slide, text, left, top, width, height, font_size=18, font_name="Arial", bold=False, italic=False, color=RGBColor(0, 0, 0)):
+        """
+        Adds a text box with formatted text to a slide.
+
+        Args:
+            slide (Slide): The slide to add the text box to.
+            text (str): The text to add.
+            left (float): The left position of the text box in inches.
+            top (float): The top position of the text box in inches.
+            width (float): The width of the text box in inches.
+            height (float): The height of the text box in inches.
+            font_size (int): The font size of the text. Default is 18.
+            font_name (str): The font name of the text. Default is "Arial".
+            bold (bool): Whether the text should be bold. Default is False.
+            italic (bool): Whether the text should be italic. Default is False.
+            color (RGBColor): The color of the text. Default is black (RGBColor(0, 0, 0)).
+
+        Returns:
+            TextBox: The newly added text box object.
+
+        """
+        textbox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
+        text_frame = textbox.text_frame
+        p = text_frame.paragraphs[0]
+        run = p.add_run()
+        run.text = text
+
+        font = run.font
+        font.size = Pt(font_size)
+        font.name = font_name
+        font.bold = bold
+        font.italic = italic
+        font.color.rgb = color
+
+        return textbox
+
+    def add_image(self, slide, image_path, left, top, width=None, height=None):
+        """
+        Adds an image to a slide.
+
+        Args:
+            slide (Slide): The slide to add the image to.
+            image_path (str): The path to the image file.
+            left (float): The left position of the image in inches.
+            top (float): The top position of the image in inches.
+            width (float): The width of the image in inches. Default is None (original width).
+            height (float): The height of the image in inches. Default is None (original height).
+
+        """
+        slide.shapes.add_picture(image_path, Inches(left), Inches(top), width=Inches(width) if width else None, height=Inches(height) if height else None)
+
+    def set_background_color(self, slide, color):
+        """
+        Sets the background color of a slide.
+
+        Args:
+            slide (Slide): The slide to set the background color of.
+            color (tuple): The RGB color values as a tuple (e.g., (255, 255, 255) for white).
+
+        """
+        background = slide.background
+        fill = background.fill
+        fill.solid()
+        fill.fore_color.rgb = RGBColor(color[0], color[1], color[2])
+
+    def add_shape(self, slide, shape_type, left, top, width, height):
+        """
+        Adds a shape to a slide.
+
+        Args:
+            slide (Slide): The slide to add the shape to.
+            shape_type (MSO_SHAPE): The type of shape to add (e.g., MSO_SHAPE.RECTANGLE).
+            left (float): The left position of the shape in inches.
+            top (float): The top position of the shape in inches.
+            width (float): The width of the shape in inches.
+            height (float): The height of the shape in inches.
+
+        Returns:
+            Shape: The newly added shape object.
+
+        """
+        shape = slide.shapes.add_shape(shape_type, Inches(left), Inches(top), Inches(width), Inches(height))
+        return shape
+
+    def add_transition(self, slide, transition_type):
+        """
+        Adds a transition to a slide.
+
+        Args:
+            slide (Slide): The slide to add the transition to.
+            transition_type (str): The type of transition to add (e.g., "fade", "wipe").
+
+        """
+        # Note: Transitions are limited in python-pptx and may not be as flexible as PowerPoint's native transitions
+        slide.slide_show_transition.type = transition_type
+
+    def save(self, file_name):
+        """
+        Saves the presentation to a file.
+
+        Args:
+            file_name (str): The name of the file to save the presentation to.
+
+        """
+        self.presentation.save(file_name)
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -65,6 +212,27 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
+    def get_description(self):
+        return """
+# PowerPointBuilder
+
+A class for building PowerPoint slides programmatically using the python-pptx library.
+
+## Attributes
+
+- `presentation (Presentation)`: The PowerPoint presentation object.
+
+## Methods
+
+- `add_slide(layout=0)`: Adds a new slide to the presentation.
+- `add_text(slide, text, left, top, width, height, font_size=18, font_name="Arial", bold=False, italic=False, color=RGBColor(0, 0, 0))`: Adds a text box with formatted text to a slide.
+- `add_image(slide, image_path, left, top, width=None, height=None)`: Adds an image to a slide.
+- `set_background_color(slide, color)`: Sets the background color of a slide.
+- `add_shape(slide, shape_type, left, top, width, height)`: Adds a shape to a slide.
+- `add_transition(slide, transition_type)`: Adds a transition to a slide.
+- `save(file_name)`: Saves the presentation to a file.
+"""
+
     def run_workflow(self, prompt, previous_discussion_text="", callback=None):
         """
         Runs the workflow for processing the model input and output.
@@ -79,6 +247,8 @@ class Processor(APScript):
             None
         """
         self.personality.info("Generating")
+        answer = self.multichoice_question("classify the user message",["The user is providing information about the document to build","The user is asking to start building the document","The user is updating information about the document","The user is asking for clarification","The user is asking a question not related to the document"],prompt)
+        print(answer)
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
         self.full(out)
