@@ -3,7 +3,6 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
-from lollms.utilities import git_pull, TextVectorizer
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
 import re
@@ -101,21 +100,11 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_start("Fetching personality")
         options = [p.personality_folder_name.lower() for p in self.personality.app.mounted_personalities]
-        name = self.generate(f"""
-!@>user request:{prompt}
-!@>task: What is the name of the personality requested by the user in english out of the following:
-{options}   
-!@>choice:""",50,0.1,10,0.98).strip().split("\n")[0]
+        choice_index = self.multichoice_question(f"What is the name of the personality requested by the user in english out of the provided ones?", options, f"!@>user request:{prompt}")
+        name = self.personality.app.mounted_personalities[choice_index].personality_folder_name.lower()
         self.step_end("Fetching personality")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
-
-        self.vectorizer = TextVectorizer("ftidf_vectorizer", self.personality.model)
-        for i,option in enumerate(options):
-            self.vectorizer.add_document(i,option,10000,0,add_as_a_bloc=True)
-        self.vectorizer.index()
-
-        name = self.vectorizer.recover_text(self.vectorizer.embed_query(name))[0][0].strip()
 
         if name.lower() in options:
             personality:AIPersonality = self.personality.app.mounted_personalities[options.index(name)]
