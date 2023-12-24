@@ -48,6 +48,7 @@ class Processor(APScript):
             [
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
+                {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
@@ -109,8 +110,11 @@ class Processor(APScript):
         self.personality.InfoMessage(self.personality.help)
 
     def regenerate_icons(self, prompt="", full_context=""):
-        self.build_icon(full_context)
-
+        try:
+            index = full_context.index("name:")
+            self.build_icon(full_context,full_context[index:].split("\n")[0].strip())
+        except:
+            self.warning("Couldn't find name")
     def handle_request(self, data): # selects the image for the personality
         imageSource = data['imageSource']
         assets_path= data['assets_path']
@@ -457,6 +461,7 @@ anti_prompts: ["!@>"]
         self.assets_path = self.personality_path/"assets"
         self.assets_path.mkdir(parents=True, exist_ok=True)
         self.scripts_path = self.personality_path/"scripts"
+        self.audio_path = self.personality_path/"audio"
         self.data_path = self.personality_path/"data"
         self.step_end("Preparing paths")
 
@@ -502,6 +507,14 @@ anti_prompts: ["!@>"]
             self.persona_data_vectorizer.index()
             self.persona_data_vectorizer.save_to_json()
             self.step_end("Creating vector database")
+
+        if self.personality_config.audio_sample_path!="":
+            audio_sample_path=Path(self.personality_config.audio_sample_path)
+            self.audio_path.mkdir(exist_ok=True, parents=True)
+            self.step_start("Creating a voice for the AI")
+            shutil.copy(audio_sample_path, self.audio_path/audio_sample_path.name)
+            self.step_end("Creating a voice for the AI")
+        
 
         return output_text
 
