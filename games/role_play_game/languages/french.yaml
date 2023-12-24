@@ -9,6 +9,7 @@
 author: ParisNeo
 version: 1.0.0
 category: jeux
+language: french
 
 nam: Personnage du Dungeon Master
 personality_description: Simulation d'un maître des donjons pour un jeu text-based Dungeons & Dragons
