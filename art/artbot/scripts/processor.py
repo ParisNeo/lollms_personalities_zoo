@@ -259,6 +259,7 @@ class Processor(APScript):
             self.full(f"File added successfully\n", callback=callback)
         
     def regenerate(self, prompt="", full_context=""):
+        self.prepare()
         if self.previous_sd_positive_prompt:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
             output0 = f"### Positive prompt:\n{self.previous_sd_positive_prompt}\n\n### Negative prompt:\n{self.previous_sd_negative_prompt}"
