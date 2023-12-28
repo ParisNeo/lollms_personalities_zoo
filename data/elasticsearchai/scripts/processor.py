@@ -3,6 +3,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
 import subprocess
+import ssl
 
 if not PackageManager.check_package_installed("elasticsearch"):
     PackageManager.install_package("elasticsearch")
@@ -113,7 +114,11 @@ class Processor(APScript):
         if self.personality_config.servers=="":
             self.error("Please set a server")
         if self.es is None:
-            self.es = Elasticsearch(self.personality_config.servers.replace(" ", "").replace(".","").split(","), ssl=True)
+            # Create a default SSL context
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            self.es = Elasticsearch(self.personality_config.servers.replace(" ", "").replace(".","").split(","), ssl_context=ssl_context)
 
     def get_index_name(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
