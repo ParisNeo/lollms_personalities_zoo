@@ -352,7 +352,7 @@ Write a description of the personality
 Use detailed description of the most important traits of the personality
 !@>{self.personality.ai_message_prefix}:
 here is the description of this persona:
-""",256,0.1,10,0.98, debug=True).strip() 
+""",1024,0.1,10,0.98, debug=True).strip() 
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
         output_text+=f"- `description`:\n{description}\n\n"
@@ -366,7 +366,7 @@ here is the description of this persona:
 !@>task: Write a disclaimer about the ai personality infered from the request
 !@>{self.personality.ai_message_prefix}:
 Here is the disclaimer for this persona:
-""",256,0.1,10,0.98, debug=True).strip()  
+""",1024,0.1,10,0.98, debug=True).strip()  
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
         output_text+=f"- `disclaimer`:\n{disclaimer}\n\n"
