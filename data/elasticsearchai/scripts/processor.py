@@ -9,6 +9,7 @@ if not PackageManager.check_package_installed("elasticsearch"):
     PackageManager.install_package("elasticsearch")
 
 from elasticsearch import Elasticsearch
+
 import json
 # Helper functions
 class Processor(APScript):
@@ -34,6 +35,8 @@ class Processor(APScript):
             [
                 {"name":"servers","type":"str","value":"https://localhost:9200", "help":"List of addresses of the server in form of ip or host name: port"},
                 {"name":"index_name","type":"str","value":"", "help":"The index to be used for querying"},
+                {"name":"user","type":"str","value":"", "help":"The user name to connect to the database"},
+                {"name":"password","type":"str","value":"", "help":"The password to connect to the elastic search database"},
                 
                 # Specify the host and port of the Elasticsearch server
             ]
@@ -91,20 +94,35 @@ class Processor(APScript):
 
     # ============================ Elasticsearch stuff
     def create_index(self, index_name):
-        self.es.indices.create(index=index_name)
-        self.personality_config.index_name = index_name
-        self.personality_config.save()
+        try:
+            self.es.indices.create(index=index_name)
+            self.personality_config.index_name = index_name
+            self.personality_config.save()
+            return True
+        except Exception as ex:
+            self.personality.error(str(ex))
+            return False
 
     def set_index(self, index_name):
         self.personality_config.index_name = index_name
         self.personality_config.save()
 
     def create_mapping(self, mapping):
-        self.es.indices.put_mapping(index=self.personality_config.index_name, body=mapping)
+        try:
+            self.es.indices.put_mapping(index=self.personality_config.index_name, body=mapping)
+            return True
+        except Exception as ex:
+            self.personality.error(str(ex))
+            return False
     
     def read_mapping(self):
-        mapping = self.es.indices.get_mapping(index=self.personality_config.index_name)
-        return mapping
+        try:
+            mapping = self.es.indices.get_mapping(index=self.personality_config.index_name)
+            return mapping
+
+        except Exception as ex:
+            self.personality.error(str(ex))
+            return None
     
     def perform_query(self, query):
         results = self.es.search(index=self.personality_config.index_name, body=query)
@@ -118,17 +136,20 @@ class Processor(APScript):
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-            self.es = Elasticsearch(self.personality_config.servers.replace(" ", "").replace(".","").split(","), ssl_context=ssl_context)
+            self.es = Elasticsearch(
+                self.personality_config.servers.replace(" ", "").replace(".","").split(","), 
+                http_auth=(self.personality_config.user, self.personality_config.password),
+                verify_certs=False)
 
     def get_index_name(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
-        index_name=self.fast_gen(f"!@>instruction: extract the index name from the prompt?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n").strip()
-        self.operation(index_name)
+        index_name=self.fast_gen(f"!@>instruction: extract the index name from the prompt?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
+        self.operation(index_name.replace("\"","").replace(".",""))
         self.full("Index created successfully")
 
     def get_mapping(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
-        output="```json"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json")
+        output="```json\n{\n    \"properties\": {"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
         output=self.remove_backticks(output.strip())
         self.create_mapping(json.loads(output))
         self.full("Mapping created successfully")
@@ -143,17 +164,20 @@ class Processor(APScript):
                                                     "asking a question about an entry"
                                                 ],
                                                 prompt)
-        if index==0:
+        if index==0:# "The prompt is asking for creating a new index"
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
-                self.create_index(index_name)
-                self.full("Index created successfully")
+                if self.create_index(index_name.replace("\"","").replace(".","")):
+                    self.full("Index created successfully")
+                else:
+                    self.full("Unfortunately an error occured and I couldn't build the index. please check the connection to the database as well as the certificate")
+
             else:
                 self.full("Please provide the index name")
                 self.operation = self.create_index
                 self.goto_state("waiting_for_index_name")
                 return
-        elif index==1:
+        elif index==1:# "The prompt is asking for changing index"
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
                 self.set_index(index_name)
@@ -163,17 +187,20 @@ class Processor(APScript):
                 self.operation = self.set_index
                 self.goto_state("waiting_for_index_name")
                 return
-        elif index==2:
-            if self.yes_no("does the prompt contain the mapping information?",prompt):
-                output="```json"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json")
+        elif index==2:# "creating a mapping"
+            if self.yes_no("does the prompt contain the mapping information required to build a mapping json out of it?",prompt):
+                output="```json\n{\n    \"properties\": {"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
                 output=self.remove_backticks(output.strip())
                 self.create_mapping(json.loads(output))
                 self.full("Mapping created successfully")
             else:
-                self.full("Please provide the index name")
+                self.full("Please provide the mapping")
                 self.operation = self.set_index
-                self.goto_state("waiting_for_index_name")
+                self.goto_state("waiting_for_mapping")
                 return
+        elif index==3:# "reading a mapping"
+            mapping = self.read_mapping()
+            self.full("```json\n"+json.dumps(mapping.body,indent=4)+"```\n")
         else:
 
             query = self.fast_gen(previous_discussion_text+"!@>system: make an elastic search query to answer the user.\nelasticsearch_ai:\n")
@@ -204,9 +231,11 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        self.prepare()
-        self.process_state(prompt, previous_discussion_text)
-
+        if self.personality_config.user=="" or self.personality_config.servers=="":
+            self.full("Sorry, but before talking, I need to get access to your elasticsearch server.\nTo do this:\n- Got to my settings and set the server(s) names in hte format https://server name or ip address:port number. You can give multiple servers separated by coma.\n- Set your user name and password.\n- come back here and we can start to talk.")
+        else:
+            self.prepare()
+            self.process_state(prompt, previous_discussion_text)
 
         return ""
 
