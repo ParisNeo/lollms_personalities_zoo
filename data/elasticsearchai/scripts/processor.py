@@ -200,7 +200,7 @@ class Processor(APScript):
                 return
         elif index==3:# "reading a mapping"
             mapping = self.read_mapping()
-            self.full("```json\n"+json.dumps(mapping.body,indent=4)+"```\n")
+            self.full("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
         else:
 
             query = self.fast_gen(previous_discussion_text+"!@>system: make an elastic search query to answer the user.\nelasticsearch_ai:\n")
