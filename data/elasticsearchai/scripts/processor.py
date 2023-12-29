@@ -93,6 +93,18 @@ class Processor(APScript):
         super().add_file(path, callback)
 
     # ============================ Elasticsearch stuff
+    def ping(self):
+        # Ping the Elasticsearch server
+        response = self.es.ping()
+
+        # Check if the server is reachable
+        if response:
+            print("Elasticsearch server is reachable")
+            return True
+        else:
+            print("Elasticsearch server is not reachable")
+            return False
+        
     def create_index(self, index_name):
         try:
             self.es.indices.create(index=index_name)
@@ -202,8 +214,9 @@ class Processor(APScript):
             mapping = self.read_mapping()
             self.full("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
         else:
-
-            query = self.fast_gen(previous_discussion_text+"!@>system: make an elastic search query to answer the user.\nelasticsearch_ai:\n")
+            query = "```python\ndef query(es:ElasticSearch):\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be in form of a dictionary.\nelasticsearch_ai:Here is the query function that you are asking for:\n```python\ndef query(es:ElasticSearch):\n")
+            query=self.remove_backticks(query)
+            
             # Perform the search query
             res = self.es.search(index=self.personality_config.index_name, body=eval(query))
 
@@ -234,8 +247,11 @@ class Processor(APScript):
         if self.personality_config.user=="" or self.personality_config.servers=="":
             self.full("Sorry, but before talking, I need to get access to your elasticsearch server.\nTo do this:\n- Got to my settings and set the server(s) names in hte format https://server name or ip address:port number. You can give multiple servers separated by coma.\n- Set your user name and password.\n- come back here and we can start to talk.")
         else:
-            self.prepare()
-            self.process_state(prompt, previous_discussion_text)
+            if self.ping():
+                self.prepare()
+                self.process_state(prompt, previous_discussion_text)
+            else:
+                self.full("I couldn't connect to the server. Please make sure it is on and reachable and that your user name and password are correct")
 
         return ""
 
