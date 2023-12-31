@@ -455,6 +455,7 @@ dependencies: []
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>"]
         """
+        self.step_end("Building the yaml file")
         self.step_start("Preparing paths")
         self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_").replace("\n","").replace('"','')
         self.personality_path.mkdir(parents=True, exist_ok=True)
