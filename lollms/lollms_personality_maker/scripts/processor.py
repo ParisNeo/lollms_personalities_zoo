@@ -295,6 +295,7 @@ Avoid text as the generative ai is not good at generating text.
         name = self.generate(f"""{previous_discussion_text}
 !@>task: What is the name of the personality requested by the user?
 If the request contains already the name, then use that.
+Answer only with the personality name, do not explain. If you try to explain, you loose 1000$. If you only provide the name, you gain 1000$.
 !@>{self.personality.ai_message_prefix}: The chosen personality name is """,50,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|]', '', name)
