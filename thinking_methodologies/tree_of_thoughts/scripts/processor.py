@@ -41,7 +41,9 @@ class Processor(APScript):
                 {"name":"max_judgement_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"max_summary_size","type":"int","value":512, "min":10, "max":personality.model.config["ctx_size"]},
                 {"name":"nb_samples_per_idea","type":"int","value":3, "min":2, "max":100},
-                {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100}
+                {"name":"nb_ideas","type":"int","value":3, "min":2, "max":100},
+                {"name":"idea_temperature","type":"float","value":0.8, "min":0, "max":2, "help":"The temperature of the idea generation controls the creativily level.\nA higher temperature yields more original ideas and more variety and lower temperatures yield more logical ideas."},
+                {"name":"thinking_method","type":"str","value":"synthesize", "options":["synthesize","pick_best","develop"], "min":2, "max":100}
             ])
         personality_config = BaseConfig.from_template(personality_config_template)
         personality_config = TypedConfig(
@@ -110,17 +112,17 @@ class Processor(APScript):
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
                     final_ideas_text = "\n".join([f'Idea {n}:{i}' for n,i in enumerate(final_ideas)])
-                    idea_prompt = f"""!@>instructions: given the following discussion and previous ideas, try to give another idea to solve the proposed problem or to enritch the discussion. 
+                    idea_prompt = f"""!@>instructions: Given the following discussion and previous ideas, try to give another idea to solve the proposed problem. 
 !@>discussion:
 {previous_discussion_text}
 !@>previous ideas: {final_ideas_text}
 !@>idea:"""
                 else:
-                    idea_prompt = f"""!@>instructions: given the following discussion, try to give an original idea to solve the proposed problem or to enritch the discussion. 
+                    idea_prompt = f"""!@>instructions: Given the following discussion, try to give an original idea to solve the proposed problem. 
 !@>discussion:
 {previous_discussion_text}
 !@>idea:"""
-                idea = self.generate(idea_prompt,self.personality_config.max_thought_size)
+                idea = self.generate(idea_prompt,self.personality_config.max_thought_size,temperature=self.personality_config.idea_temperature)
                 output += f"\n## Idea {i+1}:\n {idea}\n"
                 self.full(output)
                 local_ideas.append(idea.strip())
@@ -131,16 +133,15 @@ class Processor(APScript):
             if idea_id>=0 and idea_id<len(local_ideas):
                 print(f"Chosen thought n:{idea_id}")
                 final_ideas.append(local_ideas[idea_id])
-                self.step(f"Best local idea:\n{local_ideas[idea_id]}")
             else:
-                print("Warning, the model made a wrong answer, taking random idea as the best")
+                self.warning("Warning, the model made a wrong answer, taking random idea as the best")
                 idea_id = random.randint(0,self.personality_config["nb_samples_per_idea"])
                 print(f"Chosen thought n:{idea_id+1}")
                 if idea_id>=0 and idea_id<len(local_ideas):
                     final_ideas.append(local_ideas[idea_id]) 
                 else:
                     final_ideas.append(local_ideas[0]) 
-            output += f"Best idea : {idea_id}\n\n"
+            output += f"\n<b>Best level idea:</b>\n{local_ideas[idea_id]}\n"
             self.full(output)
             layers.append(local_ideas)
             selections.append(idea_id)
@@ -148,12 +149,26 @@ class Processor(APScript):
             self.step_end(f"Processing Level {j+1} of the tree")
 
         self.step_start(f"Building final summary")
-        summary_prompt += "!@>Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
-        for idea in final_ideas:
-            summary_prompt += f">Idea: {idea}\n"
-        summary_prompt += "!@>Ideas summary:"
+        if self.personality_config.thinking_method=="synthesize":
+            summary_prompt += "!@>Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
+            for idea in final_ideas:
+                summary_prompt += f">Idea: {idea}\n"
+            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += "!@>Synthesis:"
+        if self.personality_config.thinking_method=="pick_best":
+            summary_prompt += "!@>Instructions: Pick the best idea out of the proposed ones and rewrite it in a comprehensive paragraph. Give a detailed explanation.\nDo not mention its number, just its full description"
+            for idea in final_ideas:
+                summary_prompt += f">Idea: {idea}\n"
+            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += "!@>Best idea :"
+        if self.personality_config.thinking_method=="develop":
+            summary_prompt += "!@>Instructions: Out of the above ideas, write an essai inspired from the ideas in order to answer the user request.\n"
+            for idea in final_ideas:
+                summary_prompt += f">Idea: {idea}\n"
+            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += "!@>Essai:"
 
-        final_summary = self.generate(summary_prompt, self.personality_config.max_summary_size)
+        final_summary = self.fast_gen(summary_prompt)
 
         ASCIIColors.success("Summary built successfully")
         self.step_end(f"Building final summary")
