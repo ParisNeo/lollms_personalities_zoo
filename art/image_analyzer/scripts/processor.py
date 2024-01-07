@@ -41,7 +41,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"device","type":"str","value":"cuda" if personality.config.enable_gpu else "cpu",'options':['cpu','cuda'],"help":"Imagine the images"},
+                {"name":"device","type":"str","value":"cuda" if personality.config.hardware_mode=="nvidia-tensorcores" or personality.config.hardware_mode=="nvidia" else "cpu",'options':['cpu','cuda'],"help":"Imagine the images"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
