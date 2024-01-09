@@ -485,6 +485,7 @@ anti_prompts: ["!@>"]
             self.step_end("Creating default script")
 
         if self.personality_config.data_folder_path!="":
+            self.data_path.mkdir()
             self.step_start("Creating vector database")
             text = []
             data_path = Path(self.personality_config.data_folder_path)
