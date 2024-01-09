@@ -162,7 +162,7 @@ class Processor(APScript):
                  personality: AIPersonality,
                  callback = None,
                 ) -> None:
-        
+        self.memory = []
         self.callback = None
         # Example entries
         #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
@@ -246,11 +246,29 @@ A class for building PowerPoint slides programmatically using the python-pptx li
         Returns:
             None
         """
-        self.personality.info("Generating")
-        answer = self.multichoice_question("classify the user message",["The user is providing information about the document to build","The user is asking to start building the document","The user is updating information about the document","The user is asking for clarification","The user is asking a question not related to the document"],prompt)
-        print(answer)
         self.callback = callback
-        out = self.fast_gen(previous_discussion_text)
-        self.full(out)
+        self.personality.info("Generating")
+        answer = self.multichoice_question("classify the user message",[
+                                                "The user is providing information about the document to build",
+                                                "The user is asking to start building the document",
+                                                "The user is updating information about the document",
+                                                "The user is asking for clarification",
+                                                "The user is asking a question not related to the document"
+                                            ],prompt)
+        if answer==0:# providing information about the document to build
+            # ask the ai to reformulate the promptelif answer==1: # ask the ai to start building the document
+            self.memory.append(self.fastgen(f"Reformulate the user prompt in form of a list of entries that describe the request.\nprompt:{prompt}"))
+            self.full("Information assimilated and stored to the memory. Do you want to add more information or do you want me to start generating the document?")            
+        elif answer==1:
+            if self.multichoice_question("classify the prompt",[
+                                                "The prompt is do not contain useful information for the generation",
+                                                "The prompt contains useful information for the generation",
+                                            ],prompt):
+                self.memory.append(self.fastgen(f"Reformulate the user prompt in form of a list of entries that describe the request.\nprompt:{prompt}"))
+
+            
+        else:
+            out = self.fast_gen(previous_discussion_text)
+            self.full(out)
         return out
 
