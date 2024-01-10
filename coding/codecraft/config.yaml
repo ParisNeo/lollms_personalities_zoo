@@ -46,7 +46,7 @@ ai_message_prefix: '!@>codecraft:'
 link_text: '
 '
 welcome_message: |
-    "Welcome to CodeCraft! I am here to assist you in your coding journey. Let's create something amazing together!"
+    "Welcome to CodeCraft! I am here to assist you in your coding journey. You can optionally provide me with your code template and the description of the code you cant to generate and I'll fill your placeholders with code to fulfill the objective. Let's create something amazing together!"
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
 model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
