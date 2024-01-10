@@ -128,7 +128,7 @@ class Processor(APScript):
                                     context_details["negative_boost"],
                                     context_details["force_language"],
                                     context_details["ai_prefix"],
-            ],5)
+            ],4)
 
         out = self.fast_gen(crafted_prompt)
         self.full(out)

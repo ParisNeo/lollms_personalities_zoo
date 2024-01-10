@@ -5,7 +5,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
-from lollms.image_gen_modules.lollms_sd import LollmsSD
+from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
 import requests
