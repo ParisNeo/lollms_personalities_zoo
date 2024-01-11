@@ -287,6 +287,7 @@ Avoid text as the generative ai is not good at generating text.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
                 - force_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
             client_id: The client ID for code generation.

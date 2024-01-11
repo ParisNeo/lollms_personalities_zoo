@@ -463,11 +463,11 @@ class Processor(APScript):
         self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)        
         return infos
 
-    def main_process(self, initial_prompt, full_context):
+    def main_process(self, initial_prompt, full_context,context_details:dict=None):
         sd_title = "unnamed"    
         metadata_infos=""
         try:
-            full_context = full_context[:full_context.index(initial_prompt)]
+            full_context = context_details["discussion_messages"]
         except:
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
@@ -482,19 +482,13 @@ class Processor(APScript):
                                                             ], "!@>user: "+initial_prompt)
 
                 if classification<=1:
-                    pr  = PromptReshaper("""!@>instructions>Artbot is an art generation AI that discusses with humains about art.
-!@>discussion:
-{{previous_discussion}}{{initial_prompt}}
-!@>artbot:""")
-                    prompt = pr.build({
-                            "previous_discussion":full_context,
-                            "initial_prompt":initial_prompt
-                            }, 
-                            self.personality.model.tokenize, 
-                            self.personality.model.detokenize, 
-                            self.personality.model.config.ctx_size,
-                            ["previous_discussion"]
-                            )
+                    prompt = self.build_prompt([
+                                    "!@>instructions>Artbot is an art generation AI that discusses with humains about art.", #conditionning
+                                    "!@>discussion:",
+                                    full_context,
+                                    initial_prompt,
+                                    context_details["ai_prefix"],
+                    ],2)
                     self.print_prompt("Discussion",prompt)
 
                     response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
@@ -522,22 +516,16 @@ class Processor(APScript):
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-1])
-            pr  = PromptReshaper(f"""!@>discussion:                                 
-{past if self.personality_config.continuous_discussion else ''}
-!@>instructions:
-Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
-{initial_prompt}
-{stl}
-!@>art_generation_prompt: Create {self.personality_config.production_type}""")
-            prompt = pr.build({
-                    "initial_prompt":initial_prompt,
-                    "previous_discussion":past if self.personality_config.continuous_discussion else '',
-                    }, 
-                    self.personality.model.tokenize, 
-                    self.personality.model.detokenize, 
-                    self.personality.model.config.ctx_size,
-                    ["previous_discussion"]
-                    )
+            prompt = self.build_prompt([
+                            "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                            "!@>discussion:",
+                            {past if self.personality_config.continuous_discussion else ''},
+                            {stl},
+                            f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
+            ],2)
+            
+
+
             self.print_prompt("Positive prompt",prompt)
 
             sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
@@ -549,6 +537,14 @@ Act as artbot, the art prompt generation AI. Use the previous discussion informa
             if not self.personality_config.use_fixed_negative_prompts:
                 self.step_start("Imagining negative prompt")
                 # 1 first ask the model to formulate a query
+                prompt = self.build_prompt([
+                                "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                                "!@>discussion:",
+                                {past if self.personality_config.continuous_discussion else ''},
+                                {stl},
+                                f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
+                ],2)
+
                 pr  = PromptReshaper("""!@>instructions:
     Generate negative prompt based on the discussion with the user.
     The negative prompt is a list of keywords that should not be present in our image.
@@ -696,6 +692,7 @@ Given this image description prompt and negative prompt, make a consize title
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
                 - force_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
             client_id: The client ID for code generation.
@@ -705,7 +702,7 @@ Given this image description prompt and negative prompt, make a consize title
             None
         """
         self.callback = callback
-        self.main_process(prompt, previous_discussion_text)
+        self.main_process(prompt, previous_discussion_text,context_details)
 
         return ""
 
