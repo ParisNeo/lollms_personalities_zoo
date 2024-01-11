@@ -25,6 +25,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"template_file","type":"str","value":"", "help":"A template file is a file that contains example of the structure of the code to generate. Just link to a file. The file should contain a structuire and placeholders put as comments. # Placeholder: Here you do this thing. You can place multiple placeholders in your code. Make sure the code is not very long as you may envounter context size problems."},
+                {"name":"documentation_file","type":"str","value":"", "help":"A documentation file is a file that contains some documentation that can be used to fill in the placeholders in the template."},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -57,6 +58,12 @@ class Processor(APScript):
                 self.template = f.read()
         else:
             self.template=None
+        if self.personality_config.documentation_file!="":
+            with open(self.personality_config.documentation_file,"r") as f:
+                self.documentation = f.read()
+        else:
+            self.documentation=None
+            
         
     def install(self):
         super().install()

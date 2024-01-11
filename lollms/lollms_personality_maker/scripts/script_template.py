@@ -1,3 +1,9 @@
+"""
+project: lollms
+personality: # Place holder: Personality name 
+Author: # Place holder: creator name 
+description: # Place holder: personality description
+"""
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
