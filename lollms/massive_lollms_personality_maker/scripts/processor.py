@@ -15,7 +15,7 @@ import yaml
 import urllib.parse
 # Flask is needed for ui functionalities
 from flask import request, jsonify
-
+from typing import Callable
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.

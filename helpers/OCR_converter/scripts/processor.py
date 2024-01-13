@@ -8,6 +8,7 @@ from lollms.utilities import PromptReshaper, git_pull
 import re
 import importlib
 import requests
+from typing import Callable
 from tqdm import tqdm
 import webbrowser
 try:

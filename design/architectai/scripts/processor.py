@@ -12,6 +12,7 @@ from tqdm import tqdm
 import webbrowser
 from typing import Dict, Any
 from pathlib import Path
+from typing import Callable
 
 
 import requests

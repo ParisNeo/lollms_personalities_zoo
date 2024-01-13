@@ -5,7 +5,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 import json
-
+from typing import Callable
 import shutil
 import yaml
 

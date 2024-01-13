@@ -9,6 +9,7 @@ import importlib
 import requests
 from tqdm import tqdm
 import webbrowser
+from typing import Callable
 
 def git_pull(folder_path):
     try:

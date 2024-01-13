@@ -6,7 +6,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from lollms.services.sd.lollms_sd import LollmsSD
 import subprocess
-
+from typing import Callable
 # Helper functions
 class Processor(APScript):
     """

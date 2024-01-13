@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 import subprocess
-
+from typing import Callable
 # Helper functions
 class Processor(APScript):
     """
