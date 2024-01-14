@@ -6,7 +6,7 @@ from lollms.services.sd.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 
 import re
@@ -238,11 +238,11 @@ Avoid text as the generative ai is not good at generating text.
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file = str(file)
 
-                url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem, url, self.assets_path)
-                files.append(file)
+                escaped_url =  files.append(file)
+                file_path_to_url(file)
+                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                 ui += file_html
-                self.full(f'\n![]({urllib.parse.quote(url, safe="")})')
+                self.full(f'\n![]({escaped_url})')
 
         except Exception as ex:
             self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
