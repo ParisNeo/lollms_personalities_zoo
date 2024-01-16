@@ -238,8 +238,8 @@ Avoid text as the generative ai is not good at generating text.
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file = str(file)
 
-                escaped_url =  files.append(file)
-                file_path_to_url(file)
+                files.append(file)
+                escaped_url =  file_path_to_url(file)
                 file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                 ui += file_html
                 self.full(f'\n![]({escaped_url})')
