@@ -519,8 +519,8 @@ class Processor(APScript):
             prompt = self.build_prompt([
                             "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                             "!@>discussion:",
-                            {past if self.personality_config.continuous_discussion else ''},
-                            {stl},
+                            past if self.personality_config.continuous_discussion else '',
+                            stl,
                             f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
             ],2)
             
@@ -540,8 +540,8 @@ class Processor(APScript):
                 prompt = self.build_prompt([
                                 "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                                 "!@>discussion:",
-                                {past if self.personality_config.continuous_discussion else ''},
-                                {stl},
+                                past if self.personality_config.continuous_discussion else '',
+                                stl,
                                 f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
                 ],2)
 
