@@ -4,7 +4,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url
 from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
@@ -360,9 +360,10 @@ class Processor(APScript):
                 infos["title"]=sd_title
                 file = str(file)
 
-                url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem, url, infos)
-                files.append("/"+file[file.index("outputs"):].replace("\\","/"))
+                escaped_url =  file_path_to_url(file)
+
+                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
+                files.append(escaped_url)
                 ui += file_html
                 metadata_infos += f'\n![]({url})'
                 self.full(metadata_infos)
