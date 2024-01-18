@@ -365,7 +365,7 @@ class Processor(APScript):
                 file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
                 files.append(escaped_url)
                 ui += file_html
-                metadata_infos += f'\n![]({url})'
+                metadata_infos += f'\n![]({escaped_url})'
                 self.full(metadata_infos)
                 
             elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
