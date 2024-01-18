@@ -518,11 +518,11 @@ class Processor(APScript):
             # 1 first ask the model to formulate a query
             past = self.remove_image_links(full_context)
             prompt = self.build_prompt([
-                            "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                            f"@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                             "!@>discussion:",
                             past if self.personality_config.continuous_discussion else '',
                             stl,
-                            f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
+                            f"!@>art_generation_prompt: Create {self.personality_config.production_type} ",
             ],2)
             
 
@@ -539,37 +539,18 @@ class Processor(APScript):
                 self.step_start("Imagining negative prompt")
                 # 1 first ask the model to formulate a query
                 prompt = self.build_prompt([
-                                "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                                "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with a negative generation prompt.", #conditionning
+                                "The negative prompt is a list of keywords that should not be present in our image.",
+                                "Try to force the generator not to generate text or extra fingers or deformed faces.",
+                                "Use as many words as you need depending on the context.",
+                                "To give more importance to a term put it ibti multiple brackets ().",
                                 "!@>discussion:",
                                 past if self.personality_config.continuous_discussion else '',
                                 stl,
-                                f"!@>art_generation_prompt: Create {self.personality_config.production_type}",
-                ],2)
+                                f"!@>positive prompt: {sd_positive_prompt}",
+                                f"!@>negative prompt: ((morbid)),",
+                ],6)
 
-                pr  = PromptReshaper("""!@>instructions:
-    Generate negative prompt based on the discussion with the user.
-    The negative prompt is a list of keywords that should not be present in our image.
-    Try to force the generator not to generate text or extra fingers or deformed faces.
-    Use as many words as you need depending on the context.
-    To give more importance to a term put it ibti multiple brackets ().
-    example: {{fixed_negative_prompts}}
-    !@>discussion:
-    {{previous_discussion}}{{initial_prompt}}
-    !@>artbot:
-    prompt:{{sd_positive_prompt}}{{styles}}
-    negative_prompt: ((morbid)),""")
-                prompt = pr.build({
-                        "previous_discussion":self.remove_image_links(full_context),
-                        "initial_prompt":initial_prompt,
-                        "sd_positive_prompt":sd_positive_prompt,
-                        "styles":','+styles if styles!='' else '',
-                        "fixed_negative_prompts": self.personality_config.fixed_negative_prompts
-                        }, 
-                        self.personality.model.tokenize, 
-                        self.personality.model.detokenize, 
-                        self.personality.model.config.ctx_size,
-                        ["previous_discussion"]
-                        )
                 self.print_prompt("Generate negative prompt", prompt)
                 sd_negative_prompt = "((morbid)),"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Imagining negative prompt")
