@@ -516,7 +516,7 @@ class Processor(APScript):
             stl = f"!@>style_choice: {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
-            past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-1])
+            past = self.remove_image_links(full_context)
             prompt = self.build_prompt([
                             "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                             "!@>discussion:",
