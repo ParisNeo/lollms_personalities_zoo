@@ -98,19 +98,20 @@ class Processor(APScript):
                 self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize(document_chunks,f"""
-Summerize this document chunk and do not add any comments after the summary.
-Only extract the information from the provided chunk.
-Do not invent anything outside the provided text.
-Reduce the length of the text.
-{'Keep the same language.' if self.personality_config.keep_same_language else ''}
-{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}
-{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}
-{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}
-{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}
-{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}
-{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}
-""","document chunk")
+                document_text = self.summerize(document_chunks,"\n".join([
+                        f"Summerize the document chunk and do not add any comments after the summary.",
+                        "The summary should contain exclusively information from the document chunk.",
+                        "Do not provide opinions nor extra information that is not in the document chunk",
+                        f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                        f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                        f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                        f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                        f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                        f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                        f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                    ]),
+                    "!@>Document chunk"
+                    )
                 tk = self.personality.model.tokenize(document_text)
                 self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
