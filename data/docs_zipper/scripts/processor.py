@@ -8,6 +8,7 @@ from safe_store.generic_data_loader import GenericDataLoader
 from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
+import threading
 
 # Helper functions
 class Processor(APScript):
@@ -140,13 +141,15 @@ Reduce the length of the text.
 
     def start_zipping(self, prompt="", full_context=""):
         self.new_message("")
-        for file in self.text_files:
-            output=""
-            file = Path(file)
-            summary, output = self.zip_document(file, file.parent, output)
-            output +=f"\n## Summary of {file.stem}\n{summary}"
-            self.full(output)
-
+        def summerize_doc():
+            for file in self.text_files:
+                output=""
+                file = Path(file)
+                summary, output = self.zip_document(file, file.parent, output)
+                output +=f"\n## Summary of {file.stem}\n{summary}"
+                self.full(output)
+        thrd = threading.Thread(target=summerize_doc)
+        thrd.start()
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
