@@ -523,21 +523,33 @@ anti_prompts: ["!@>"]
             for extension in extensions:
                 text_files += [file if file.exists() else "" for file in data_path.glob(extension)]
             for file in text_files:
-                text.append(GenericDataLoader.read_file(file))
+                self.step_start(f"Adding file: {file}")
+                try:
+                    text.append(GenericDataLoader.read_file(file))
+                    self.step_end(f"Adding file: {file}")
+                except Exception as ex:
+                    trace_exception(ex)
+                    self.step_end(f"Adding file: {file}",False)
+
             # Replace 'example_dir' with your desired directory containing .txt files
             self._data = "\n".join(map((lambda x: f"\n{x}"), text))
-            print(self._data)
-            ASCIIColors.info("Building data ...",end="")
-            self.persona_data_vectorizer = TextVectorizer(
-                        self.personality.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
-                        model=self.personality.model, #needed in case of using model_embedding
-                        save_db=True,
-                        database_path=self.data_path/"db.json",
-                        data_visualization_method=VisualizationMethod.PCA,
-                        database_dict=None)
-            self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
-            self.persona_data_vectorizer.index()
-            self.persona_data_vectorizer.save_to_json()
+            self.step_start("Building data ...")
+            try:
+                self.persona_data_vectorizer = TextVectorizer(
+                            self.personality.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
+                            model=self.personality.model, #needed in case of using model_embedding
+                            save_db=True,
+                            database_path=self.data_path/"db.json",
+                            data_visualization_method=VisualizationMethod.PCA,
+                            database_dict=None)
+                self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
+                self.persona_data_vectorizer.index()
+                self.persona_data_vectorizer.save_to_json()
+                self.step_end("Building data ...")
+            except Exception as ex:
+                trace_exception(ex)
+                self.step_end("Building data ...",False)
+
             self.step_end("Creating vector database")
 
         if self.personality_config.audio_sample_path!="":
