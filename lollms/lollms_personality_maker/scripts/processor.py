@@ -50,6 +50,9 @@ class Processor(APScript):
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
+
+
+                {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
@@ -493,13 +496,16 @@ anti_prompts: ["!@>"]
         self.step_end("Saving configuration file")
 
 
-        self.step_start("Building icon")
-        try:
-            self.build_icon(previous_discussion_text, name, output_text)
-        except:
-            ASCIIColors.red("failed to generate icons.\nUsing default icon")
-        self.step_end("Building icon")
-
+        if self.personality_config.generate_icon:
+            self.step_start("Building icon")
+            try:
+                self.build_icon(previous_discussion_text, name, output_text)
+            except:
+                ASCIIColors.red("failed to generate icons.\nUsing default icon")
+            self.step_end("Building icon")
+        else:
+            shutil.copy("assets/logo.png",self.assets_path)
+            
         if self.personality_config.make_scripted:
             self.scripts_path.mkdir(parents=True, exist_ok=True)
             self.step_start("Creating default script")
