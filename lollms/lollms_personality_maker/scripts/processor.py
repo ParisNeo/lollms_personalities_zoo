@@ -321,7 +321,7 @@ If the request contains already the name, then use that.
 Answer only with the personality name, do not explain. If you try to explain, you loose 1000$. If you only provide the name, you gain 1000$.
 !@>{self.personality.ai_message_prefix}: The chosen personality name is """,50,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
-        name = re.sub(r'[\\/:*?"<>|]', '', name)
+        name = re.sub(r'[\\/:*?"<>|.]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
         output_text+=f"- `name`: {name}\n\n"
         self.full(output_text)
@@ -329,9 +329,9 @@ Answer only with the personality name, do not explain. If you try to explain, yo
         
         # ----------------------------------------------------------------
         try:
-            author = "lollms_personality_maker prompted by "+self.personality.config.user_name
+            author = "lpm prompted by "+self.personality.config.user_name
         except:
-            author = "lollms_personality_maker"
+            author = "lpm"
         # ----------------------------------------------------------------
         output_text+=f"- `author`: {author}\n\n"
         self.full(output_text)
@@ -350,6 +350,7 @@ Answer only with the personality name, do not explain. If you try to explain, yo
 !@>{self.personality.ai_message_prefix}:
 author name is """,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the category")
+        category = re.sub(r'[\\/:*?"<>|.]', '', category)
         ASCIIColors.yellow(f"Category:{category}")
         output_text+=f"- `category`: {category}\n\n"
         self.full(output_text)
@@ -362,6 +363,7 @@ author name is """,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
 !@>{self.personality.ai_message_prefix}:
 the language is""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Coming up with the language")
+        language = re.sub(r'[\\/:*?"<>|.]', '', language)
         ASCIIColors.yellow(f"Language:{language}")
         output_text+=f"- `language`: {language}\n\n"
         self.full(output_text)
@@ -372,7 +374,7 @@ the language is""",256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         description = self.generate(f"""{previous_discussion_text}
 !@>personality name:{name}
 !@>task: 
-Write a description of the personality
+Write a short description of the personality
 Use detailed description of the most important traits of the personality
 !@>{self.personality.ai_message_prefix}:
 here is the description of this persona:
@@ -453,9 +455,9 @@ disclaimer: |
 
 # Actual useful stuff
 personality_conditioning: |
-    !@>Instructions: 
+    !@>system: 
     {conditioning}  
-user_message_prefix: '!@>User:'
+user_message_prefix: '!@>user:'
 ai_message_prefix: '!@>{name.lower().replace(' ','_')}:'
 # A text to put between user and chatbot messages
 link_text: '\n'
