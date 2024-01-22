@@ -245,9 +245,15 @@ Avoid text as the generative ai is not good at generating text.
                 self.full(f'\n![]({escaped_url})')
 
         except Exception as ex:
-            self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
-            ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
-            trace_exception(ex)
+            try:
+                self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
+                ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
+                shutil.copy("assets/logo.png",self.assets_path)
+                files.append(self.assets_path/"logo.png")
+                trace_exception(ex)
+            except Exception as ex:
+                trace_exception(ex)
+
             files=[]
         self.step_end("Painting Icon")
 
@@ -488,7 +494,10 @@ anti_prompts: ["!@>"]
 
 
         self.step_start("Building icon")
-        self.build_icon(previous_discussion_text, name, output_text)
+        try:
+            self.build_icon(previous_discussion_text, name, output_text)
+        except:
+            ASCIIColors.red("failed to generate icons.\nUsing default icon")
         self.step_end("Building icon")
 
         if self.personality_config.make_scripted:
