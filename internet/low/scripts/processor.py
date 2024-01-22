@@ -3,6 +3,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.helpers import trace_exception
 from lollms.personality import APScript, AIPersonality
+from typing import Callable
 
 
 from pathlib import Path
@@ -22,7 +23,7 @@ class Processor(APScript):
     """
 
     def __init__(
-                 self, 
+                 self,
                  personality: AIPersonality,
                  callback = None,
                 ) -> None:
@@ -49,55 +50,55 @@ class Processor(APScript):
                             personality_config,
                             callback=callback
                         )
-        
+
         #Now try to import stuff to verify that installation succeeded
         import wikipedia
-        
+
     def install(self):
         super().install()
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # install requirements
-        subprocess.run(["pip", "install", "--upgrade", "--no-cache-dir", "-r", str(requirements_file)])        
+        subprocess.run(["pip", "install", "--upgrade", "--no-cache-dir", "-r", str(requirements_file)])
         ASCIIColors.success("Installed successfully")
 
     def uninstall(self):
         super().uninstall()
 
-    def data_driven_qa(self, 
-                            data, 
-                            question, 
+    def data_driven_qa(self,
+                            data,
+                            question,
                             answer_motivational_text="",
                             max_size=128,
-                            instruction = None, 
-                            temperature = None, 
-                            top_k = None, 
-                            top_p=None, 
-                            repeat_penalty=None 
+                            instruction = None,
+                            temperature = None,
+                            top_k = None,
+                            top_p=None,
+                            repeat_penalty=None
                         ):
         if instruction is not None:
             instruction = 'instructions>'+instruction
             search_formulation_prompt = f"""{instruction}
-data> {data}
-question> {question}
-answer> {answer_motivational_text}"""
+                                        data> {data}
+                                        question> {question}
+                                        answer> {answer_motivational_text}"""
         else:
             search_formulation_prompt = f"""> data:
-{data}
-question>
-{question}
-answer>
-{answer_motivational_text}"""
+                                        {data}
+                                        question>
+                                        {question}
+                                        answer>
+                                        {answer_motivational_text}"""
         self.step_start(f"Asking AI: "+question)
         answer = format_url_parameter(
             self.generate(
                         search_formulation_prompt,
                         max_size,
-                        temperature = temperature, top_k = top_k, top_p=top_p, repeat_penalty=repeat_penalty 
+                        temperature = temperature, top_k = top_k, top_p=top_p, repeat_penalty=repeat_penalty
                         )
             ).strip()
         self.step_end(f"Asking AI: "+question)
         return answer
-    
+
     def wiki_search(self, query, nb_sentences=3):
         """
         Perform an internet search using the provided query.
@@ -116,10 +117,10 @@ answer>
         except wikipedia.DisambiguationError as ex:
             summary = str(ex)
             is_ambiguous = True
-            
+
         return summary, is_ambiguous
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable[[str, MSG_TYPE, dict, list], bool] = None, context_details: dict = None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -140,14 +141,14 @@ answer>
             if self.personality_config.craft_search_query:
                 # 1 first ask the model to formulate a query
                 search_formulation_prompt = f"""Instructions>
-Formulate a wikipedia search query text out of the user prompt.
-Do not use underscores in names. Use spaces instead.
-Keep all important information in the query and do not add unnecessary text.
-The query is in the form of keywords.
-Do not explain the query.
-question>
-{prompt}
-query>"""
+                                            Formulate a wikipedia search query text out of the user prompt.
+                                            Do not use underscores in names. Use spaces instead.
+                                            Keep all important information in the query and do not add unnecessary text.
+                                            The query is in the form of keywords.
+                                            Do not explain the query.
+                                            question>
+                                            {prompt}
+                                            query>"""
                 self.step_start("Crafting search query")
                 search_query = self.generate(search_formulation_prompt, self.personality_config.max_query_size).strip()
                 if search_query=="":
@@ -156,39 +157,44 @@ query>"""
             else:
                 search_query = prompt
             results, stat = wikipedia.search(search_query, results = self.personality_config.num_results, suggestion = True)
-            
+
             #select entry
-            output = "### Results:\n"+'\n- '.join(results)
-            output += "### Analysis:\n"
-            self.full(output)
+            output = "#Results:\n"+'\n- '.join(results)
+            output += "#Analysis:\n"
             search_results = ""
+            sources_text = "\n--\n"
+            sources_text += "\n#Source :\n"
+            #self.full(output)
+
             for entry in results:
                 self.step_start(f"Entry: {entry}")
                 try:
                     page = wikipedia.page(entry)
+                    sources_text += f"{entry}:\n{page.url}\n"
                     search_results += f"{entry}:\n{page.summary}\n"
+                    sources_text += f"[{page.title}]({page.url})\n\n"
                     images = [img for img in page.images if img.split('.')[-1].lower() in ["gif","png","jpg","webp","svg"]]
                     # cap images
                     images = images[:self.personality_config.max_nb_images]
                     images = '\n'.join([f'<img src="{im}" alt="image {i}" style="max-width: 200px; height: auto;">' for i,im in enumerate(images)])
-                    self.step_end(f"### Entry: {entry}")
-                    output += f"{entry}:\n"+search_results+"\n"+images
+                    self.step_end(f"# Entry: {entry}")
+                    output += f"{entry}:\n"+search_results+"\n"+images+"\n"+sources_text
+
                     self.full(output)
                 except:
                     if len(entry)<=0:
                         raise Exception("Couldn't find relevant data")
                     self.step_end(f"Entry: {entry}",False)
+
             if self.personality_config.synthesize:
                 prompt = f"""{previous_discussion_text}
-    Use this data and images to answer the user
-    !@>wikipedia data:
-    {search_results}
-    answer>"""
+                        Use this data and images to answer the user
+                        !@>wikipedia data:
+                        {search_results}
+                        answer>"""
                 self.step_start("Generating response")
                 summary = self.generate(prompt, self.personality_config.max_summery_size)
-                sources_text = "\n--\n"
-                sources_text += "\n### Source :\n"
-                sources_text += f"[{page.title}]({page.url})\n\n"
+
                 self.step_end("Generating response")
                 output += summary + sources_text
                 self.full(output)
