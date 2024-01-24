@@ -87,7 +87,6 @@ class Processor(APScript):
         # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
         self.step_end("Recovering data")
         self.vectorizer.add_document(url,all_text, self.personality_config.chunk_size, self.personality_config.chunk_overlap)
-        self.vectorizer.index()
         self.step_end("Vectorizing data")
 
 
@@ -195,6 +194,8 @@ class Processor(APScript):
             nb_non_empty += 1
             if nb_non_empty>=self.personality_config.num_results:
                 break
+        self.vectorizer.index()
+
         # Close the browser
         driver.quit()
 
@@ -263,28 +264,30 @@ class Processor(APScript):
         prompt =  self.build_prompt([
                 "!@>instructions:",
                 "Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text",
-                "Sources must be  cited after each fact in the format [index](source).",
+                "Sources must be  cited after each fact in the format [index].",
                 "Place the citation links in front of each relevant information. Only use citation to the provided sources.",
                 "If the information required by the user does not exist in the data recovered from the search engine, please notify the user.",
                 "Citation is mandatory.",
+                "Do not write the sources, just use their index. The sources will be added in a future query."
                 "!@> previous discussion:",
                 context_details["discussion_messages"],
                 "!@> search results:",
                 f"{search_result}",              
                 "!@> question:",
                 f"{prompt}",
-                "!@> search query:"
+                "!@> answer:"
                 ],
                 7
             )
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
+        self.full(output)
         sources_text = "\n# Sources :\n"
         for i,s in enumerate(sorted_similarities):
-            crafted_link = craft_a_tag_to_specific_text(s[0].split('_')[:-2],docs[i][0:2])
-            link = "_".join(s[0].split('_')[:-2])
-            href = "_".join(s[0].split('_')[:-2])
-            sources_text += f"[ [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
+            crafted_link = craft_a_tag_to_specific_text("_".join(s[0].split('_')[:-2]),docs[i][0:2],"_".join(s[0].split('_')[:-2]))
+            # link = "_".join(s[0].split('_')[:-2])
+            # href = "_".join(s[0].split('_')[:-2])
+            sources_text += f"- [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
 
         output = output+sources_text
         self.full(output)
