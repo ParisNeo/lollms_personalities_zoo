@@ -228,12 +228,19 @@ class Processor(APScript):
 
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
-            search_formulation_prompt = f"""!@>instructions:
-Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
-!@> question:
-{prompt}
-!@> search query:
-    """
+            search_formulation_prompt = self.build_prompt([
+                "!@>instructions:",
+                "Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise.",
+                "Avoid unnecessary text and explanations.",
+                "!@> previous discussion:",
+                context_details["discussion_messages"],
+                "!@> question:",
+                f"{prompt}",
+                "!@> search query:"
+                ],
+                4
+            )
+
             self.step_start("Crafting search query")
             search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
             if search_query=="":
@@ -242,17 +249,34 @@ Formulate a search query text based on the user prompt. Include all relevant inf
         else:
             search_query = prompt
             
+        self.step_start("Performing internet search")
         self.internet_search(search_query, self.personality_config.chromedriver_path)
+        self.step_end("Performing internet search")
+
+        self.step_start("Organizing data")
         docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        self.step_end("Organizing data")
+
         search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
-        prompt = f"""!@>instructions:
-Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
-!@> search results:
-{search_result}
-!@> user:
-{prompt}
-!@> answer:
-"""
+        self.step_start("Building summary")
+        
+        prompt =  self.build_prompt([
+                "!@>instructions:",
+                "Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text",
+                "Sources must be  cited after each fact in the format [index](source).",
+                "Place the citation links in front of each relevant information. Only use citation to the provided sources.",
+                "If the information required by the user does not exist in the data recovered from the search engine, please notify the user.",
+                "Citation is mandatory.",
+                "!@> previous discussion:",
+                context_details["discussion_messages"],
+                "!@> search results:",
+                f"{search_result}",              
+                "!@> question:",
+                f"{prompt}",
+                "!@> search query:"
+                ],
+                7
+            )
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"
@@ -263,6 +287,7 @@ Use Search engine results to answer user question by summarizing the results in 
 
         output = output+sources_text
         self.full(output)
+        self.step_end("Building summary")
 
         return output
 
