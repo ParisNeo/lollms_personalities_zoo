@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, craft_a_tag_to_specific_text
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from typing import Callable
@@ -281,9 +281,10 @@ class Processor(APScript):
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"
         for i,s in enumerate(sorted_similarities):
-            link = "_".join(s[0].split('_')[:-2]) + f"  chunk number {s[0].split('_')[-1]}"
+            crafted_link = craft_a_tag_to_specific_text(s[0].split('_')[:-2],docs[i][0:2])
+            link = "_".join(s[0].split('_')[:-2])
             href = "_".join(s[0].split('_')[:-2])
-            sources_text += f"[ [{i+1}] : {link}]({href})\n\n"
+            sources_text += f"[ [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
 
         output = output+sources_text
         self.full(output)
