@@ -83,9 +83,12 @@ class Processor(APScript):
         document_text = GenericDataLoader.read_file(document_path)
         document_chunks = DocumentDecomposer.decompose_document(document_text, self.personality_config.translation_chunk_size,0)
         translated = ""
-        for document_chunk in document_chunks:
-            tk = self.personality.model.tokenize(document_chunk)
+        nb_chunks = len(document_chunks)
+        for i,document_chunk in enumerate(document_chunks):
+            self.step_start(f"Translating chunk {i}/{nb_chunks}"
+            tk = self.personality.model.tokenize("".join(document_chunk))
             translated += self.translate(document_chunk, self.personality_config.output_language, self.personality.config.ctx_size-len(tk))
+            self.step_end(f"Translating chunk {i}/{nb_chunks}"
         self.full(translated)
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+f"_{self.personality_config.output_language}.txt"))
@@ -94,7 +97,7 @@ class Processor(APScript):
         
 
     def start_zipping(self, prompt="", full_context=""):
-        self.new_message("")
+        self.new_message("Warming up")
         for file in self.text_files:
             output=""
             file = Path(file)
