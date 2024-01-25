@@ -101,8 +101,8 @@ class Processor(APScript):
         for file in self.text_files:
             output=""
             file = Path(file)
-            summary, output = self.translate_document(file, file.parent, output)
-            output +=f"\n## Summary of {file.stem}\n{summary}"
+            translation, output = self.translate_document(file, file.parent, output)
+            output +=f"\n## {file.stem}\n{translation}"
             self.full(output)
 
 
