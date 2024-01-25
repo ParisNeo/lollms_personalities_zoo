@@ -85,12 +85,11 @@ class Processor(APScript):
         translated = ""
         nb_chunks = len(document_chunks)
         for i,document_chunk in enumerate(document_chunks):
-            self.step_start(f"Translating chunk {i}/{nb_chunks}")
+            self.step_start(f"Translating chunk {i+1}/{nb_chunks}")
             txt = "".join(document_chunk)
             translated += self.translate(txt, self.personality_config.output_language, self.personality.config.ctx_size-len(document_chunk))
-            self.step_end(f"Translating chunk {i}/{nb_chunks}")
+            self.step_end(f"Translating chunk {i+1}/{nb_chunks}")
             self.full(translated)
-            
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+f"_{self.personality_config.output_language}.txt"))
         return document_text, output
