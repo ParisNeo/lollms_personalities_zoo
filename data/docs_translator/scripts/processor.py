@@ -89,7 +89,8 @@ class Processor(APScript):
             txt = "".join(document_chunk)
             translated += self.translate(txt, self.personality_config.output_language, self.personality.config.ctx_size-len(document_chunk))
             self.step_end(f"Translating chunk {i}/{nb_chunks}")
-        self.full(translated)
+            self.full(translated)
+            
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+f"_{self.personality_config.output_language}.txt"))
         return document_text, output
