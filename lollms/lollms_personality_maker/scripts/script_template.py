@@ -6,8 +6,9 @@ description: # Place holder: personality description
 """
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
+from typing import Callable
 
 # Helper functions
 class Processor(APScript):
@@ -71,7 +72,7 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None, context_details=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
 

@@ -5,7 +5,7 @@ from lollms.helpers import ASCIIColors
 
 import json
 from pathlib import Path
-
+from typing import Callable
 
 class Text2Paragraphs:
     def __init__(self, database_path=None, max_chunk_size=2000):
@@ -189,17 +189,27 @@ class Processor(APScript):
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
             return False        
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            generate_fn (function): A function that generates model output based on the input prompt.
-                The function should take a single argument (prompt) and return the generated text.
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - force_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
 
         Returns:
             None

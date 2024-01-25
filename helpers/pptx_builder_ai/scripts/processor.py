@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
 if not PackageManager.check_package_installed("pptx"):
     PackageManager.install_package("pptx")

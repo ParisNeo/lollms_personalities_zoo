@@ -1,6 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS

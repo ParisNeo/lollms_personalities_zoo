@@ -18,6 +18,7 @@ from lollms.utilities import PromptReshaper
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from urllib.parse import quote
 import requests 
+from typing import Callable
 
 def query_server(base_url, query_params):
     url = base_url + "?" + "&".join([f"{key}={value}" for key, value in query_params.items()])
@@ -189,16 +190,28 @@ content: {{content}}
         report.append(report_entry)
         return True
         
-    def run_workflow(self, prompt, full_context="", callback=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - force_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
@@ -233,7 +246,7 @@ content: {{content}}
 Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.
 !@>user prompt: {{initial_prompt}}
 !@>query: """, self.personality_config.max_generation_prompt_size, {
-                    "previous_discussion":full_context,
+                    "previous_discussion":previous_discussion_text,
                     "initial_prompt":query
                     }, ["previous_discussion"], self.personality.config.debug)
             self.step_end("Building Keywords...")
