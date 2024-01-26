@@ -231,11 +231,13 @@ class Processor(APScript):
             # 1 first ask the model to formulate a query
             search_formulation_prompt = self.build_prompt([
                 "!@>instructions:",
-                "Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise.",
+                "Formulate a search query text based on the user prompt.",
+                "Use the same language as in the prompt.",
+                "Include all relevant information and keep the query concise.",
                 "Avoid unnecessary text and explanations.",
                 "!@> previous discussion:",
                 context_details["discussion_messages"],
-                "!@> question:",
+                "!@> prompt:",
                 f"{prompt}",
                 "!@> search query:"
                 ],
