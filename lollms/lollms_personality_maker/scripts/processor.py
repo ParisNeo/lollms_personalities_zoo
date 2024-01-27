@@ -119,7 +119,7 @@ class Processor(APScript):
             self.build_icon(full_context,full_context[index:].split("\n")[0].strip())
         except:
             self.warning("Couldn't find name")
-            
+
     def handle_request(self, data): # selects the image for the personality
         imageSource = data['imageSource']
         assets_path= data['assets_path']
@@ -206,7 +206,9 @@ class Processor(APScript):
                 "The user describes a personality and the ai should describe a suitable icon for the ai personality",
                 "icon imaginer tries to express the personality of by describing a suitable eye catching icon",
                 "icon imaginer uses english to describe the icon.",
-                "icon imaginer may emphesize some aspects of the icon by putting it inside multiple brackets, like ((beautiful)) or ((detailed)) etc...",
+                "icon imaginer may emphesize some aspects of the icon by putting it inside multiple brackets, like (((beautiful))) or ((detailed)) etc...",
+                "the more important the text is, the bigger the number of brackets.",
+                "icon imaginer description starts by describing the icon in details, then adds the name of the style or a description of the style for more original vibes then add boosting words, like detailed, beautiful, hires etc...",
                 "!@>context:",
                 discussion_messages,
                 f"!@>name: {name}",
@@ -523,7 +525,7 @@ class Processor(APScript):
             "    !@>system: ",
             f"    {conditioning}",
             "user_message_prefix: '!@>user:'",
-            "ai_message_prefix: '!@>{name.lower().replace(' ','_')}:'",
+            f"ai_message_prefix: '!@>{name.lower().replace(' ','_')}:'",
             "# A text to put between user and chatbot messages",
             "link_text: '\n'",
             "welcome_message: |",
