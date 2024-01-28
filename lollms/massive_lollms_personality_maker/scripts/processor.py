@@ -1,3 +1,4 @@
+from fastapi import APIRouter, Request
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -15,7 +16,7 @@ import yaml
 import urllib.parse
 # Flask is needed for ui functionalities
 from flask import request, jsonify
-from typing import Callable
+from typing import Callable, Dict, Any
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -83,7 +84,27 @@ class Processor(APScript):
         self.prepare()
         ASCIIColors.success("Installed successfully")
 
-    def handle_request(self, data): # selects the image for the personality
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        data = (await request.json())
         imageSource = data['imageSource']
         assets_path= data['assets_path']
 

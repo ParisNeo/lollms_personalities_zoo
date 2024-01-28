@@ -86,3 +86,8 @@ commands:
   - name: Regenerate icons
     value: regenerate_icons
     help: Regenerates the icons after creating the AI
+  - name: Manual building
+    value: manual_building
+    help: Manually build an AI 
+
+    

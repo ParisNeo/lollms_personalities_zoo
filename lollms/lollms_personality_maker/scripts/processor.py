@@ -1,3 +1,7 @@
+from fastapi import FastAPI, Request, File, UploadFile
+from pydantic import BaseModel
+from typing import Optional
+import os
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -8,6 +12,7 @@ from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, file_path_to_url
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
+from typing import Dict, Any
 
 import re
 import importlib
@@ -19,6 +24,18 @@ import urllib.parse
 # Flask is needed for ui functionalities
 from flask import request, jsonify
 from typing import Callable
+
+class AIBuildingRequestData(BaseModel):
+    ai_name: str
+    ai_author: str
+    ai_version: str
+    ai_category: str
+    ai_language: str
+    ai_description: str
+    ai_conditionning: str
+    ai_welcome_message: str
+    ai_temperature: float
+    ai_disclaimer: str
 
 class Processor(APScript):
     """
@@ -50,7 +67,7 @@ class Processor(APScript):
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
-
+                {"name":"default_negative_prompt","type":"str","value":"((((ugly)))), ((((text)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))", "help":"A negative prompt to be used in icon generation. The worlds list is the lis tof words to avoid having in the image"},
 
                 {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
@@ -86,7 +103,8 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
-                                        "regenerate_icons":self.regenerate_icons
+                                        "regenerate_icons":self.regenerate_icons,
+                                        "manual_building":self.manual_building
                                     },
                                     "default": None
                                 },                           
@@ -120,13 +138,108 @@ class Processor(APScript):
         except:
             self.warning("Couldn't find name")
 
-    def handle_request(self, data): # selects the image for the personality
-        imageSource = data['imageSource']
-        assets_path= data['assets_path']
 
-        shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
-        ASCIIColors.success("image Selected successfully")
-        return {"status":True}
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        try:
+            data = (await request.json())
+            imageSource = data['imageSource']
+            assets_path= data['assets_path']
+
+            shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
+            ASCIIColors.success("image Selected successfully")
+            return {"status":True}
+        except:
+            form_data = await request.form()
+            ai_icon: Optional[UploadFile] = None
+            if 'ai_icon' in form_data:
+                ai_icon = form_data['ai_icon'].file
+
+            # Parse the form data using Pydantic
+            request_data = AIBuildingRequestData(**form_data)
+
+
+            yaml_data="\n".join([
+                f"## {request_data.ai_name} Chatbot conditionning file",
+                f"## Author: {request_data.ai_author}",
+                f"## Version: {request_data.ai_version}",
+                f"## Description:",
+                f"## {request_data.ai_description}",
+                "## talking to.",
+                "",
+                "# Credits",
+                f"author: {request_data.ai_author}",
+                f"version: {request_data.ai_version}",
+                f"category: {request_data.ai_category}",
+                f"language: {request_data.ai_language}",
+                f"name: {request_data.ai_name}",
+                "personality_description: |",
+                f"    {request_data.ai_description}",
+                "disclaimer: |",
+                f"    {request_data.ai_disclaimer}",
+                "",
+                "# Actual useful stuff",
+                "personality_conditioning: |",
+                "    !@>system: ",
+                f"    {request_data.ai_conditionning}",
+                "user_message_prefix: '!@>user:'",
+                f"ai_message_prefix: '!@>{request_data.ai_name.lower().replace(' ','_')}:'",
+                "# A text to put between user and chatbot messages",
+                "link_text: '\n'",
+                "welcome_message: |",
+                f"    {request_data.ai_welcome_message}",
+                "# Here are default model parameters",
+                f"model_temperature: {request_data.ai_temperature} # higher: more creative, lower: more deterministic",
+                "model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words",
+                "model_top_k: 50",
+                "model_top_p: 0.90",
+                "model_repeat_penalty: 1.0",
+                "model_repeat_last_n: 40",
+                "",
+                "# Recommendations",
+                "recommended_binding: ''",
+                "recommended_model: ''",
+                "",
+                "# Here is the list of extensions this personality requires",
+                "dependencies: []",
+                "",
+                "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
+                "anti_prompts: ['!@>']"
+            ])   
+            self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/request_data.ai_name.lower().replace(" ","_").replace("\n","").replace('"','')
+            self.assets_path:Path = self.personality_path/"assets"
+            self.personality_path.mkdir(parents=True, exist_ok=True)
+            self.assets_path.mkdir(parents=True, exist_ok=True)
+         
+            with open(self.personality_path/"config.yaml","w", encoding="utf8") as f:
+                f.write(yaml_data)
+
+            # Process the file data
+            if ai_icon:
+                # Save the file to disk or process it as needed
+                with open(self.assets_path/'logo.png', 'wb') as f:
+                    while chunk := ai_icon.read(8192):
+                        f.write(chunk)
+
+            # Return a response indicating success or failure
+            return {"status": True}        
 
 
     def prepare(self):
@@ -212,10 +325,10 @@ class Processor(APScript):
                 "!@>context:",
                 discussion_messages,
                 f"!@>name: {name}",
-                f"!@>icon imaginer : An ((icon)) of a "
+                f"!@>icon imaginer : An (((icon))) of a "
             ],5
         )
-        sd_prompt = "An ((icon)) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
+        sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=f"- `icon sd_prompt`:\n{sd_prompt}\n\n"
@@ -223,6 +336,10 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
+
+        sd_negative_prompt = self.personality_config.default_negative_prompt
+        output_text+=f"- `icon sd_negative_prompt`:\n{sd_negative_prompt}\n\n"
+        self.full(output_text)
 
         self.new_message("")
         self.step_start("Painting Icon")
@@ -233,7 +350,7 @@ class Processor(APScript):
                 self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
                 file, infos = self.sd.paint(
                                 sd_prompt, 
-                                "((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))",
+                                sd_negative_prompt,
                                 [],
                                 sampler_name = self.personality_config.sampler_name,
                                 seed = self.personality_config.seed,
@@ -289,6 +406,12 @@ class Processor(APScript):
         if len(files)>0:
             shutil.copy(files[-1], self.assets_path/"logo.png")
 
+    def manual_building(self, prompt="", full_context=""):
+        form_path = Path(__file__).parent.parent/"assets"/"edit_persona.html"
+        with open(form_path,"r") as f:
+            form = f.read()
+        self.new_message(form,MSG_TYPE.MSG_TYPE_UI)
+        pass
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
@@ -387,16 +510,19 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt(
             [
                 "!@>system: language finder is a personality language guessing AI.",
-                "The user describes a personality and the ai should guess what language the AI should be built in",
-                "Default language is english, but if the user is using another language in its description then language finder uses that language."
-                "If the user explicitely proposed a language, language finder responds with that language",
-                "language finder only answers with the personality language name without any explanation.",
-                "!@>context",
+                "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
+                "!@>context:",
                 context_details["discussion_messages"],
-                f"!@>language finder: The chosen personality language is "
-            ],5
+                "!@>instructions to follow:",
+                "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
+                "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
+                "If the user explicitely states the language that should be used, language finder uses that language",
+                "language finder does not provide the language iso name, just the plain english name of the language such as: french, english, spanish, chinese, arabic etc ...",
+                "language finder only answers with the personality language name without any explanation.",
+                f"!@>language: "
+            ],3
         )
-        language = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the language")
         language = re.sub(r'[\\/:*?"<>|.]', '', language)
         ASCIIColors.yellow(f"Language:{language}")
@@ -416,8 +542,7 @@ class Processor(APScript):
                 "!@>context",
                 context_details["discussion_messages"],
                 f"!@>personality name:{name}",
-                f"!@>personality language:{language}",
-                f"!@>description builder: "
+                f"!@>description in {language}: "
             ],6
         )
         description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -440,8 +565,7 @@ class Processor(APScript):
                 "!@>context",
                 context_details["discussion_messages"],
                 f"!@>personality name:{name}",
-                f"!@>personality language:{language}",
-                f"!@>disclaimer builder: "
+                f"!@>disclaimer in {language}: "
             ],7
         )
         disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]

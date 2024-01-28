@@ -1,3 +1,4 @@
+from fastapi import APIRouter, Request
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -572,7 +573,8 @@ Given this image description prompt and negative prompt, make a consize title
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 
-    def handle_request(self, data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
         """
         Handle client requests.
 
@@ -588,9 +590,10 @@ Given this image description prompt and negative prompt, make a consize title
         ```
         handler = YourHandlerClass()
         request_data = {"command": "some_command", "parameters": {...}}
-        response = handler.handle_request(request_data)
+        response = await handler.handle_request(request_data)
         ```
         """
+        data = (await request.json())
         operation = data.get("name","variate")
         prompt = data.get("prompt","")
         negative_prompt =  data.get("negative_prompt","")

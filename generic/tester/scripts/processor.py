@@ -1,3 +1,5 @@
+from fastapi import APIRouter, Request
+from typing import Dict, Any
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -98,7 +100,27 @@ class Processor(APScript):
 
 
 
-    def handle_request(self, data): # selects the image for the personality
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        data = (await request.json())
         personality_subpath = data['personality_subpath']
         logo_path = data['logo_path']
         assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
