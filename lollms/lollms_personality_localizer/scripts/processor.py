@@ -14,8 +14,7 @@ import yaml
 import urllib.parse
 from typing import Callable
 
-# Flask is needed for ui functionalities
-from flask import request, jsonify
+
 
 class Processor(APScript):
     """

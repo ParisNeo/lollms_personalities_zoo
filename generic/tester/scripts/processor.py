@@ -11,7 +11,7 @@ from typing import Callable
 import shutil
 import yaml
 
-# Flask is needed for ui functionalities
+
 from flask import request, jsonify
 
 class Processor(APScript):
