@@ -4,7 +4,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull
+from lollms.utilities import PromptReshaper, git_pull, PackageManager
 import re
 import importlib
 import requests
@@ -12,6 +12,11 @@ from typing import Callable
 from tqdm import tqdm
 import webbrowser
 try:
+    if not PackageManager.check_package_installed("pytesseract"):
+        PackageManager.install_package("pytesseract")
+    if not PackageManager.check_package_installed("PIL"):
+        PackageManager.install_package("Pillow")
+
     import pytesseract
     from PIL import Image
 except:
@@ -77,8 +82,8 @@ class Processor(APScript):
         if callback is None and self.callback is not None:
             callback = self.callback
         super().add_file(path)
-        image = Image.open(self.image_files[-1])
-        url = str(self.image_files[-1]).replace("\\","/").split("uploads")[-1]
+        image = Image.open(self.personality.image_files[-1])
+        url = str(self.personality.image_files[-1]).replace("\\","/").split("uploads")[-1]
         self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)
         try:
             # Load an image using PIL (Python Imaging Library)

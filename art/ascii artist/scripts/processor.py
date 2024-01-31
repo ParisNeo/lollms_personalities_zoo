@@ -26,7 +26,7 @@ def git_pull(folder_path):
 try:
     from PIL import Image
 except:
-    PackageManager.install_package("pillow")
+    PackageManager.install_package("Pillow")
     from PIL import Image
     
 class AsciiArtConverter:
