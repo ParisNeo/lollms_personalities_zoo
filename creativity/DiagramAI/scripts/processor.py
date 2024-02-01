@@ -245,7 +245,7 @@ class Processor(APScript):
         Can you create a process flow diagram illustrating the key steps involved in developing a software application, from initial concept to deployment?
         """        
         # ====================================================================================
-        self.step_start("Generating the Diagram", callback=self.callback)
+        self.step_start("Generating the Diagram")
         # 1 first ask the model to formulate a query
         
         prompt = self.build_prompt([
@@ -260,7 +260,7 @@ class Processor(APScript):
             context_details["documentation"],
             context_details["knowledge"],
             context_details["user_description"],
-            context_details["discussion_messages"],
+            context_details["discussion_messages"] if self.personality_config.continuous_discussion else "",
             context_details["positive_boost"],
             context_details["negative_boost"],
             context_details["force_language"],
@@ -269,17 +269,17 @@ class Processor(APScript):
         ],11)
 
         #ASCIIColors.yellow(prompt)
-        gh_prompt = self.fast_gen(prompt)
+
+        gh_prompt = self.fast_gen(prompt,callback=self.sink)
         #print(gh_prompt)
         #ASCIIColors.yellow(gh_prompt)
-        self.full(gh_prompt, callback=self.callback)
         
         #------------------
         #gh_prompt = prompt
 
         files, out = self.gen_graph(gh_prompt)
-        self.full(out.strip(), callback=self.callback)
-        self.step_end("Generating the Diagram", callback=self.callback)
+        self.full(out.strip())
+        self.step_end("Generating the Diagram")
 
         return ""
 
