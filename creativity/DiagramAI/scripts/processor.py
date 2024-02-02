@@ -70,7 +70,7 @@ class Processor(APScript):
         # self.personality.InfoMessage("Please install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.")
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         try:
-            self.ShowBlockingMessage("Installing graphviz ...")
+            self.personality.ShowBlockingMessage("Installing graphviz ...")
             conda.cli.main("install", "-c","anaconda", "pydot" "-y")
             conda.cli.main("install", "-c","conda-forge", "python-graphviz" "-y")
             #conda.cli.main("install","anaconda::graphviz" "-y")
@@ -81,10 +81,10 @@ class Processor(APScript):
             import graphviz
             from PIL import Image
             from io import BytesIO
-            self.HideBlockingMessage()
+            self.personality.HideBlockingMessage()
         except Exception as ex:
             trace_exception(ex)
-            self.HideBlockingMessage()
+            self.personality.HideBlockingMessage()
 
     def gen_regex_image(self,call_graph_str,nb):
         import graphviz
