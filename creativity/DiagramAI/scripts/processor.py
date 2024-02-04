@@ -194,7 +194,7 @@ class Processor(APScript):
 
         except Exception as ex:
             trace_exception(ex)
-            ASCIIColors.error("Couldn't generate the image")
+            self.personality.error("Couldn't generate the graph")
             #trace_exception(f"gen_graph Exception:{ex}") 
         
 
