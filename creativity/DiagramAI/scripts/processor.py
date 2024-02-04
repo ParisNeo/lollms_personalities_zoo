@@ -156,7 +156,7 @@ class Processor(APScript):
                 "!@>warning: Don't respond with extra information."
                 "!@>graph:",
                 call_graph_str,
-                "!@>title:"
+                "!@>short title:"
             ]
         ))
 
