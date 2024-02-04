@@ -71,7 +71,7 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         try:
             self.personality.ShowBlockingMessage("Installing graphviz ...")
-            conda.cli.main("install", "-c","anaconda", "pydot" "-y")
+            conda.cli.main("install", "-c","aconda-forge::pydot" "-y")
             conda.cli.main("install", "-c","conda-forge", "python-graphviz" "-y")
             #conda.cli.main("install","anaconda::graphviz" "-y")
 
