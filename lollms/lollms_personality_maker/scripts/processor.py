@@ -393,6 +393,53 @@ class Processor(APScript):
             file_path = self.make_selectable_photo(f"Artbot_{file_id}", files[i])
             ui += str(file_path)
             print(f"Generated file in here : {str(files[i])}")
+        if self.personality_config.make_scripted:
+            ui += f"""
+            <a href="#" onclick="openCodeFolder()"> Click here to open the script folder of the persona</a>
+            <a href="#" onclick="openCodeFolderInVsCode()"> Click here to open the script folder of the persona in vscode</a>
+
+            <script>
+            function openCodeFolder() {{
+                const secretMessage = {{
+                '"folder_path": {self.scripts_path}'
+                }};
+
+                fetch('/open_code_folder', {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json'
+                }},
+                body: JSON.stringify(secretMessage)
+                }})
+                .then(() => {{
+                console.log("🎉 The secret message has been sent and the magic code folder has been opened! 🎉");
+                }})
+                .catch((error) => {{
+                console.error("😱 Oh no! Something went wrong:", error);
+                }});
+            }}
+            function openCodeFolderInVsCode() {{
+                const secretMessage = {{
+                '"folder_path": {self.scripts_path}'
+                }};
+
+                fetch('/open_code_folder_in_vs_code', {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json'
+                }},
+                body: JSON.stringify(secretMessage)
+                }})
+                .then(() => {{
+                console.log("🎉 The secret message has been sent and the magic code folder has been opened! 🎉");
+                }})
+                .catch((error) => {{
+                console.error("😱 Oh no! Something went wrong:", error);
+                }});
+            }}
+            </script>
+            """
+
         server_path = "/outputs/"+str(self.personality_path)
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
