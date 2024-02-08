@@ -7,7 +7,27 @@ from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from typing import Callable
 import subprocess
 
-   
+def get_favicon_url(url):
+    import requests
+    from bs4 import BeautifulSoup
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    favicon_link = soup.find('link', rel='icon') or soup.find('link', rel='shortcut icon')
+    
+    if favicon_link:
+        favicon_url = favicon_link['href']
+        if not favicon_url.startswith('http'):
+            favicon_url = url + favicon_url
+        return favicon_url
+    
+    return None
+
+
+def get_root_url(url):
+    from urllib.parse import urlparse
+    parsed_url = urlparse(url)
+    root_url = parsed_url.scheme + "://" + parsed_url.netloc
+    return root_url
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -230,16 +250,14 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = self.build_prompt([
-                "!@>instructions:",
-                "Formulate a search query text based on the user prompt.",
-                "Use the same language as in the prompt.",
-                "Include all relevant information and keep the query concise.",
-                "Avoid unnecessary text and explanations.",
+                "!@>system:",
+                "Formulate a web search query text based on the user prompt.",
+                "Use the same language as the prompt",
                 "!@> previous discussion:",
                 context_details["discussion_messages"],
-                "!@> prompt:",
+                "!@>prompt:",
                 f"{prompt}",
-                "!@> search query:"
+                "!@>formulated web search query in the same language as the prompt: "
                 ],
                 4
             )
@@ -282,15 +300,27 @@ class Processor(APScript):
                 7
             )
         print(prompt)
-        output = self.generate(prompt, self.personality_config.max_summery_size)
+        output = self.fast_gen(prompt, self.personality_config.max_summery_size, callback=self.sink)
         self.full(output)
-        sources_text = "\n# Sources :\n"
+        sources_text = '<div class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm ">'
+        sources_text += '<div class="text-gray-400 mr-10px">Sources:</div>'
         for i,s in enumerate(sorted_similarities):
-            crafted_link = craft_a_tag_to_specific_text("_".join(s[0].split('_')[:-2]),docs[i][0:2],"_".join(s[0].split('_')[:-2]))
+            url = "/".join(s[0].split("/")[:-1])
+            anchor_url = craft_a_tag_to_specific_text("_".join(s[0].split('_')[:-2]),docs[i][0:2],"_".join(s[0].split('_')[:-2]))
             # link = "_".join(s[0].split('_')[:-2])
             # href = "_".join(s[0].split('_')[:-2])
-            sources_text += f"- [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
-
+            favicon_url = get_favicon_url(url)
+            if favicon_url is None:
+                favicon_url ="/personalities/internet/loi/assets/logo.png"
+            root_url = get_root_url(url)
+            sources_text += "\n".join([
+                f'<a class="flex items-center gap-2 whitespace-nowrap rounded-lg border bg-white px-2 py-1.5 leading-none hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700" target="_blank" href="{anchor_url}">',
+                f'<img class="h-3.5 w-3.5 rounded" src="{favicon_url}">'
+                f'<div>{root_url}</div>'
+                f'</a>',
+                ])
+            #sources_text += f"- [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
+        sources_text += '</div>'
         output = output+sources_text
         self.full(output)
         self.step_end("Building summary")
