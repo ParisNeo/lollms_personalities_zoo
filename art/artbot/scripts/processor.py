@@ -505,12 +505,12 @@ class Processor(APScript):
             else:
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
-            metadata_infos += f"### Chosen resolution:\n{self.width}x{self.height}\n"
+            metadata_infos += self.add_collapsible_entry("Chosen resolution",f"{self.width}x{self.height}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================
             if self.personality_config.add_style:
                 styles = self.get_styles(initial_prompt,full_context)
-                metadata_infos += f"### Chosen style:\n{styles}"
+                metadata_infos += self.add_collapsible_entry("Chosen style",f"{styles}") 
                 self.full(f"{metadata_infos}")     
             else:
                 styles = None
@@ -532,7 +532,7 @@ class Processor(APScript):
 
             sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += f"### Positive prompt:\n{sd_positive_prompt}\n"
+            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{sd_positive_prompt}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
@@ -557,7 +557,7 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 sd_negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += f"### Negative prompt:\n{sd_negative_prompt}\n"
+            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{sd_negative_prompt}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
@@ -583,7 +583,7 @@ Given this image description prompt and negative prompt, make a consize title
                 self.print_prompt("Make up a title", prompt)
                 sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
-                metadata_infos += f"### title:\n{sd_title}\n"
+                metadata_infos += self.add_collapsible_entry(f"{sd_title}","")
                 self.full(f"{metadata_infos}")
         else:
             self.width=self.personality_config.width
