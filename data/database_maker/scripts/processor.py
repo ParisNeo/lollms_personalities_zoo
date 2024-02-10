@@ -212,7 +212,7 @@ class Processor(APScript):
         qna_list=[]
         # Perform further processing with questions_vector
         for index, question in enumerate(questions_vector):
-            docs, sorted_similarities = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
+            docs, sorted_similarities, document_ids = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
             if self.personality_config.use_enhanced_mode:
                 self.step_start(f"Verifying RAG data_{index}")
                 prompt_text = """!@>chunk: {{chunk}}

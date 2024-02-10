@@ -355,7 +355,7 @@ Act as arxiv search specialist. Your job is to reformulate the user requestio in
             self.step_start(f"Building answer")
             str_docs=""
             #data = self.abstract_vectorizer.recover_chunk_by_index(0)
-            docs, sorted_similarities = self.abstract_vectorizer.recover_text(keywords, top_k=self.personality_config.data_vectorization_nb_chunks)
+            docs, sorted_similarities, document_ids = self.abstract_vectorizer.recover_text(keywords, top_k=self.personality_config.data_vectorization_nb_chunks)
             for doc, infos in zip(docs, sorted_similarities):
                 str_docs+=f"->Document<-:\ndocument path: {infos[0]}\nsummary:{doc}"
 
@@ -363,13 +363,13 @@ Act as arxiv search specialist. Your job is to reformulate the user requestio in
                 pr = PromptReshaper("Documentation section:\n{{doc}}\nDiscussion:\n{{content}}")
                 discussion_messages = pr.build({
                                         "doc":str_docs,
-                                        "content":full_context+" Ok, after reading the provided document chunks, here is my answer to your request:"
+                                        "content":previous_discussion_text+" Ok, after reading the provided document chunks, here is my answer to your request:"
                                         }, self.personality.model.tokenize, self.personality.model.detokenize, self.personality.config.ctx_size, place_holders_to_sacrifice=["content"])
             else:
                 pr = PromptReshaper("{{conditionning}}\n{{content}}")
                 discussion_messages = pr.build({
                                         "conditionning":conditionning,
-                                        "content":full_context
+                                        "content":previous_discussion_text
                                         }, self.personality.model.tokenize, self.personality.model.detokenize, self.personality.config.ctx_size, place_holders_to_sacrifice=["content"])
             self.print_prompt("Ask to build keywords",discussion_messages)
             output = self.generate(discussion_messages, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")

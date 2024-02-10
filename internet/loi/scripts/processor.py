@@ -275,7 +275,7 @@ class Processor(APScript):
         self.step_end("Performing internet search")
 
         self.step_start("Organizing data")
-        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        docs, sorted_similarities, document_ids = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
         self.step_end("Organizing data")
 
         search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]

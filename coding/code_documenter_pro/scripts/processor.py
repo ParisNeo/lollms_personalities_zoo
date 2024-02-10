@@ -489,7 +489,7 @@ class Processor(APScript):
         self.step_start("Recovering data")
         ASCIIColors.blue("Recovering data")
         if self.vector_store.ready:
-            docs, sorted_similarities = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=self.personality_config.nb_chunks)
+            docs, sorted_similarities, document_ids = self.vector_store.recover_text(self.vector_store.embed_query(prompt), top_k=self.personality_config.nb_chunks)
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))

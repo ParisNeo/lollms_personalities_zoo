@@ -252,7 +252,7 @@ class Processor(APScript):
             search_query = prompt
             
         self.internet_search(search_query, self.personality_config.chromedriver_path)
-        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        docs, sorted_similarities, document_ids = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
         search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
         prompt = f"""!@>instructions:
                 Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
