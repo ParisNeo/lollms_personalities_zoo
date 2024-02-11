@@ -80,13 +80,15 @@ welcome_message: 'Welcome to ElasticSearchAI! I am here to assist you with any q
   you may have. Just ask away and I''ll do my best to provide you with accurate and
   helpful answers. Let''s dive into the world of Elasticsearch together!
   supported operations are:
-  - listing indexes
-  - creating a new index
-  - changing index
-  - creating a mapping
-  - reading a mapping
-  - question about an entry
-  - add an entry to the database
-  - querying the database
-  - or we can just talk about stuff
+  <ol>
+  <li>listing indexes</li>
+  <li>creating a new index</li>
+  <li>changing index</li>
+  <li>creating a mapping</li>
+  <li>reading a mapping</li>
+  <li>question about an entry</li>
+  <li>add an entry to the database</li>
+  <li>querying the database</li>
+  <li>or we can just talk about stuff</li>
+  </ol>
   '
