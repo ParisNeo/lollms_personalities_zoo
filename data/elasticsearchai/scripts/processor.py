@@ -4,7 +4,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
 from lollms.types import MSG_TYPE
 from typing import Callable
-
+import importlib.util
 import subprocess
 import ssl
 
@@ -170,15 +170,18 @@ class Processor(APScript):
         self.full("Mapping created successfully")
 
     def idle(self, prompt, previous_discussion_text=""):
-        index = self.multichoice_question("classify this prompt",
+        index = self.multichoice_question("classify this prompt:\n",
                                                 [
                                                     "The prompt is asking for creating a new index", 
                                                     "The prompt is asking for changing index",
-                                                    "creating a mapping",
-                                                    "reading a mapping",
-                                                    "asking a question about an entry"
+                                                    "The prompt is asking for creating a mapping",
+                                                    "The prompt is asking for reading a mapping",
+                                                    "The prompt is asking a question about an entry",
+                                                    "The prompt is asking to add an entry to the database",
+                                                    "The prompt is asking for querying the database",
+                                                    "Talking about something else",
                                                 ],
-                                                prompt)
+                                                "!@>prompt: "+prompt)
         if index==0:# "The prompt is asking for creating a new index"
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
@@ -216,21 +219,52 @@ class Processor(APScript):
         elif index==3:# "reading a mapping"
             mapping = self.read_mapping()
             self.full("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
+        elif index==4:# "a question about an entry"
+            pass
+        elif index==5:# "add an entry to the database"
+            mapping = self.read_mapping()
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+f"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.\n!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
+            code = code.replace("ElasticSearch","Elasticsearch")
+            code=self.extract_code_blocks(code)
+
+            if len(code)>0:
+                # Perform the search query
+                code = code[0]["content"]
+                ASCIIColors.magenta(code)
+                module_name = 'custom_module'
+                spec = importlib.util.spec_from_loader(module_name, loader=None)
+                module = importlib.util.module_from_spec(spec)
+                exec(code, module.__dict__)
+                if module.add_entry(self.es, self.personality_config.index_name):
+                    self.personality.info("Generating")
+                    out = self.fast_gen(f"!@>system: Describe the data being added to the database.\n!@>code: {code}"+"!@>elesticsearchai: ")
+                else:
+                    out = "Couldn't add data to the database"
+                self.full(out)
+        elif index==6:# "querying the database"
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be the output from es.search.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
+            code = code.replace("ElasticSearch","Elasticsearch")
+            code=self.extract_code_blocks(code)
+
+            if len(code)>0:
+                # Perform the search query
+                code = code[0]["content"]
+                ASCIIColors.magenta(code)
+                module_name = 'custom_module'
+                spec = importlib.util.spec_from_loader(module_name, loader=None)
+                module = importlib.util.module_from_spec(spec)
+                exec(code, module.__dict__)
+                out = module.query(self.es, self.personality_config.index_name)
+
+                # Process the search results
+                docs= "!@>Documentation:\n"
+                for hit in out:
+                    docs+=hit+"\n"
+                    print(hit['_source'])
+                self.personality.info("Generating")
+                out = self.fast_gen(self.personality.personality_conditioning+"\n"+previous_discussion_text+docs)
+                self.full(out)
         else:
-            query = "```python\ndef query(es:ElasticSearch):\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be in form of a dictionary.\nelasticsearch_ai:Here is the query function that you are asking for:\n```python\ndef query(es:ElasticSearch):\n")
-            query=self.remove_backticks(query)
-
-            # Perform the search query
-            res = self.es.search(index=self.personality_config.index_name, body=eval(query))
-
-            # Process the search results
-            docs= "!@>Documentation:\n"
-            for hit in res['hits']['hits']:
-                docs.append(hit)
-                print(hit['_source'])
-
-                self.chunk(hit['_source'])
-            self.personality.info("Generating")
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
