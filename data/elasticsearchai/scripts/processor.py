@@ -254,15 +254,17 @@ class Processor(APScript):
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 module = importlib.util.module_from_spec(spec)
                 exec(code, module.__dict__)
-                out = module.query(self.es, self.personality_config.index_name)
-
-                # Process the search results
-                docs= "!@>Documentation:\n"
-                for hit in out:
-                    docs+=hit+"\n"
-                    print(hit['_source'])
-                self.personality.info("Generating")
-                out = self.fast_gen(self.personality.personality_conditioning+"\n"+previous_discussion_text+docs)
+                search_result = module.query(self.es, self.personality_config.index_name)
+                if search_result:
+                    # Process the search results
+                    docs= "!@>query result:\n"
+                    for hit in search_result['hits']['hits']:
+                        docs+=hit+"\n"
+                        print(hit['_source'])
+                    self.personality.info("Generating")
+                    out = self.fast_gen(self.personality.personality_conditioning+"\n"+previous_discussion_text+docs)
+                else:
+                    out = "Failed to query the database"
                 self.full(out)
         else:
             out = self.fast_gen(previous_discussion_text)
