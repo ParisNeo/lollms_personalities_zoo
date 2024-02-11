@@ -33,7 +33,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"max_fails","type":"int","value":5, "help":"Maximum number of generation fails"},                
-                {"name":"show_code","type":"boom","value":True, "help":"If true, this will show the generated code"},                
+                {"name":"show_code","type":"bool","value":True, "help":"If true, this will show the generated code"},                
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -74,6 +74,25 @@ class Processor(APScript):
         """
         super().add_file(path, callback)
 
+
+    def get_cols(files)->str:
+        """
+        This function takes a list of files, output folder path, and output path URL as input.
+        It performs the user request based on the content of the files and returns the output in the specified format.
+        If the user asks for plotting, it uses matplotlib to create a chart and saves it as a png in the output folder.
+        If the user asks for computing something, it builds the code to perform the computation and returns the result as markdown code.
+        """
+        import pandas as pd
+        outputs = []
+        for file in files:
+            if file.suffix == ".csv" or file.suffix == ".txt":
+                df = pd.read_csv(file)
+                outputs.append(str(df.columns.tolist()))
+            elif file.suffix == ".xlsx":
+                df = pd.read_excel(file)
+                outputs.append(str(df.columns.tolist()))
+        
+        return outputs
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
@@ -103,11 +122,16 @@ class Processor(APScript):
         if len(self.personality.text_files)>0:
             done=False
             fails = 0
+            cols = self.get_cols()
+            files_infos = ""
+            for file, cols in zip(self.personality.text_files, cols):
+                files_infos += f"{file}: {cols}"
             while not done and fails < self.personality_config.max_fails:
                 self.step_start(f"Building code, appempt {fails}")
                 try:
+                    print(context_details["discussion_messages"])
                     module, code = self.build_and_execute_python_code(
-                        previous_discussion_text,
+                        context_details["discussion_messages"],
                         "\n".join([
                         f"Build a python function called reply_to_user to perform the user request given the list of files that he provides:",
                         "The function returns a string that contains the output.",
@@ -125,8 +149,9 @@ class Processor(APScript):
                         "the link should call the function open_file.",
                         "if the user asked for computing something, then build the code that does this and return the result as markdown code.",
                         "use the file type to infer which libraries should be used",
-                        "Files list :",
-                        f"{self.personality.text_files}",
+                        "Files list with their columns:",
+                        f"{files_infos}",
+                        "make sure you use the righrt method to load the files depending on their extension"
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_path_url:str)->str:"
                         )
@@ -139,6 +164,7 @@ class Processor(APScript):
                     done = True
                     self.step_end(f"Building code, appempt {fails}")
                 except Exception as ex:
+                    self.step_end(f"Building code, appempt {fails}",False)
                     fails += 1
                     ASCIIColors.error(str(ex))
                     if fails < self.personality_config.max_fails:
@@ -146,7 +172,6 @@ class Processor(APScript):
                     else:
                         out = "Failed to perform the task :(."
                     self.full(out)
-                    self.step_end(f"Building code, appempt {fails}",False)
         else:
             self.personality.info("Generating")
             self.callback = callback
