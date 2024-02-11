@@ -127,7 +127,7 @@ class Processor(APScript):
             for file, cols in zip(self.personality.text_files, cols):
                 files_infos += f"{file}: {cols}"
             while not done and fails < self.personality_config.max_fails:
-                self.step_start(f"Building code, appempt {fails}")
+                self.step_start(f"Building code, attempt {fails}")
                 try:
                     print(context_details["discussion_messages"])
                     module, code = self.build_and_execute_python_code(
@@ -138,11 +138,6 @@ class Processor(APScript):
                         "The output should be crafted out of the data contained in one or multiple files depending on the user demand.",
                         "The function should use the inputs or the content of the files to answer the user.",
                         "do not give sample code, just write the actual code",
-                        "It is mandatory to import the following:",
-                        "from pathlib import Path",
-                        "from typing import List"
-                        "before writing the code, write a multilined comment to explain it",
-                        "then write the code and make sure it does what the user asked for",
                         "if the user asked for plotting, use matplotlib, save the output as a png to output_folder/output_image_i.png where i is an index such that the files does not yet exists.",
                         "return an img tag of the built graphic in html that points to output_url/output_image_i.png.",
                         "if you need to put the output inside a file that is not an image, just return a hyper link to it.",
@@ -153,6 +148,12 @@ class Processor(APScript):
                         f"{files_infos}",
                         "make sure you use the right method to load the files depending on their extension",
                         "Put it all together and do not ask the user to do any updates."
+                        "It is mandatory to import the following:",
+                        "from pathlib import Path",
+                        "from typing import List"
+                        "import pandas as pd"
+                        "before writing the code, write a multilined comment to explain it",
+                        "then write the code and make sure it does what the user asked for",
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_path_url:str)->str:"
                         )
@@ -163,9 +164,9 @@ class Processor(APScript):
                         out = f"```python\n{code}\n```\n"+out
                     self.full(out)
                     done = True
-                    self.step_end(f"Building code, appempt {fails}")
+                    self.step_end(f"Building code, attempt {fails}")
                 except Exception as ex:
-                    self.step_end(f"Building code, appempt {fails}",False)
+                    self.step_end(f"Building code, attempt {fails}",False)
                     fails += 1
                     ASCIIColors.error(str(ex))
                     if fails < self.personality_config.max_fails:
