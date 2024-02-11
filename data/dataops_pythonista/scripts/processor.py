@@ -98,7 +98,24 @@ class Processor(APScript):
             None
         """
         if len(self.personality.text_files)>0:
-            out = self.build_and_execute_python_code(context_details["discussion_messages"], f"Build a python function to perform the user request given the list of files that he provides:\n{self.personality.text_files}\nThe function returns a string that contains the output. If a plot is requested, then use matplotlib and save the output to output_path then give as output a html link that points at that file. outputs folder is served at /outputs.", "def reply_to_user(files:List[Path], output_path:Path)->str:", [self.personality.text_files])
+            module = self.build_and_execute_python_code(
+                context_details["discussion_messages"],
+                "\n".join([
+                f"Build a python function to perform the user request given the list of files that he provides:",
+                f"{self.personality.text_files}",
+                "The function returns a string that contains the output.",
+                f"outputs folder is served at /outputs.",
+                "It is mandatory to import the following:",
+                "from pathlib import Path",
+                "from typing import List"
+                "don't forget to import all required libraries before creating the method",
+                "The function should use the inputs or the content of the files to answer the user."
+                ]),
+                "def reply_to_user(files:List[Path], output_path:Path)->str:"
+                )
+            output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.personality_folder_name
+            output_folder.mkdir(exist_ok=True, parents=True)
+            out = module.reply_to_user(self.personality.text_files, output_folder)
             self.full(out)
         else:
             self.personality.info("Generating")
