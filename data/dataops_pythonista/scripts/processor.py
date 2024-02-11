@@ -32,6 +32,8 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"max_fails","type":"int","value":5, "help":"Maximum number of generation fails"},                
+                {"name":"show_code","type":"boom","value":True, "help":"If true, this will show the generated code"},                
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -97,28 +99,54 @@ class Processor(APScript):
         Returns:
             None
         """
+        self.callback = callback
         if len(self.personality.text_files)>0:
-            module = self.build_and_execute_python_code(
-                context_details["discussion_messages"],
-                "\n".join([
-                f"Build a python function called reply_to_user to perform the user request given the list of files that he provides:",
-                f"{self.personality.text_files}",
-                "The function returns a string that contains the output.",
-                f"outputs folder is served at /outputs over the webserver.",
-                "for example if the file is output to c:/folder/outputs/file.png",
-                "then the a h ref to it is /outputs/file.png",
-                "It is mandatory to import the following:",
-                "from pathlib import Path",
-                "from typing import List"
-                "don't forget to import all required libraries before creating the method",
-                "The function should use the inputs or the content of the files to answer the user."
-                ]),
-                "def reply_to_user(files:List[Path], output_path:Path)->str:"
-                )
-            output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.personality_folder_name
-            output_folder.mkdir(exist_ok=True, parents=True)
-            out = module.reply_to_user(self.personality.text_files, output_folder)
-            self.full(out)
+            done=False
+            fails = 0
+            while not done and fails < self.personality_config.max_fails:
+                self.step_start(f"Building code, appempt {fails}")
+                try:
+                    module, code = self.build_and_execute_python_code(
+                        previous_discussion_text,
+                        "\n".join([
+                        f"Build a python function called reply_to_user to perform the user request given the list of files that he provides:",
+                        "The function returns a string that contains the output.",
+                        "The output should be crafted out of the data contained in one or multiple files depending on the user demand.",
+                        "The function should use the inputs or the content of the files to answer the user.",
+                        "do not give sample code, just write the actual code",
+                        "It is mandatory to import the following:",
+                        "from pathlib import Path",
+                        "from typing import List"
+                        "before writing the code, write a multilined comment to explain it",
+                        "then write the code and make sure it does what the user asked for",
+                        "if the user asked for plotting, use matplotlib, save the output as a png to output_folder/output_image_i.png where i is an index such that the files does not yet exists.",
+                        "return an img tag of the built graphic in html that points to output_url/output_image_i.png.",
+                        "if you need to put the output inside a file that is not an image, just return a hyper link to it.",
+                        "the link should call the function open_file.",
+                        "if the user asked for computing something, then build the code that does this and return the result as markdown code.",
+                        "use the file type to infer which libraries should be used",
+                        "Files list :",
+                        f"{self.personality.text_files}",
+                        ]),
+                        "def reply_to_user(files:List[Path], output_folder:Path, output_path_url:str)->str:"
+                        )
+                    output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.personality_folder_name
+                    output_folder.mkdir(exist_ok=True, parents=True)
+                    out = module.reply_to_user(self.personality.text_files, output_folder, f"/outputs/{self.personality.personality_folder_name}")
+                    if self.personality_config.show_code:
+                        out = f"```python\n{code}\n```\n"+out
+                    self.full(out)
+                    done = True
+                    self.step_end(f"Building code, appempt {fails}")
+                except Exception as ex:
+                    fails += 1
+                    ASCIIColors.error(str(ex))
+                    if fails < self.personality_config.max_fails:
+                        out = "Failed to perform the task :(. Trying again..."
+                    else:
+                        out = "Failed to perform the task :(."
+                    self.full(out)
+                    self.step_end(f"Building code, appempt {fails}",False)
         else:
             self.personality.info("Generating")
             self.callback = callback
