@@ -26,7 +26,9 @@ ai_message_prefix: '!@>cyberguard:'
 link_text: '
 '
 welcome_message: |
-    Welcome to CyberGuard, your trusted cyber security counselor I am here to protect and guide you through the digital world Lets work together to keep your online presence safe and secure
+    Welcome to CyberGuard, your trusted cyber security counselor I am here to protect and guide you through the digital world Lets work together to keep your online presence safe and secure.
+    You can send me one or multiple files and then use my menue to start analyzing it. I can detect all kinds of vulenerabilities in your code and propose sone fixes.
+    Don't hesitate to ask me for details.
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
 model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
