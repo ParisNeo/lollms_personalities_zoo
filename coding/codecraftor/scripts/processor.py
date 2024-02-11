@@ -97,32 +97,9 @@ class Processor(APScript):
         Returns:
             None
         """
-        if len(self.personality.text_files)>0:
-            module = self.build_and_execute_python_code(
-                context_details["discussion_messages"],
-                "\n".join([
-                f"Build a python function called reply_to_user to perform the user request given the list of files that he provides:",
-                f"{self.personality.text_files}",
-                "The function returns a string that contains the output.",
-                f"outputs folder is served at /outputs over the webserver.",
-                "for example if the file is output to c:/folder/outputs/file.png",
-                "then the a h ref to it is /outputs/file.png",
-                "It is mandatory to import the following:",
-                "from pathlib import Path",
-                "from typing import List"
-                "don't forget to import all required libraries before creating the method",
-                "The function should use the inputs or the content of the files to answer the user."
-                ]),
-                "def reply_to_user(files:List[Path], output_path:Path)->str:"
-                )
-            output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.personality_folder_name
-            output_folder.mkdir(exist_ok=True, parents=True)
-            out = module.reply_to_user(self.personality.text_files, output_folder)
-            self.full(out)
-        else:
-            self.personality.info("Generating")
-            self.callback = callback
-            out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+        self.personality.info("Generating")
+        self.callback = callback
+        out = self.fast_gen(previous_discussion_text)
+        self.full(out)
         return out
 
