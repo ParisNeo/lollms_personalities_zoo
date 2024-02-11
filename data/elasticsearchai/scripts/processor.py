@@ -173,17 +173,17 @@ class Processor(APScript):
         self.step_start("Analyzing request")
         index = self.multichoice_question("classify this prompt:\n",
                                                 [
-                                                    "The prompt is asking for listing indexes",
-                                                    "The prompt is asking for creating a new index", 
-                                                    "The prompt is asking for changing index",
-                                                    "The prompt is asking for creating a mapping",
-                                                    "The prompt is asking for reading a mapping",
-                                                    "The prompt is asking a question about an entry",
-                                                    "The prompt is asking to add an entry to the database",
-                                                    "The prompt is asking for querying the database",
-                                                    "Talking about something else",
+                                                    f"{self.personality.config.user_name} is asking for listing indexes",
+                                                    f"{self.personality.config.user_name} is asking for creating a new index", 
+                                                    f"{self.personality.config.user_name} is asking for changing index",
+                                                    f"{self.personality.config.user_name} is asking for creating a mapping",
+                                                    f"{self.personality.config.user_name} is asking for reading a mapping",
+                                                    f"{self.personality.config.user_name} is asking a question about an entry",
+                                                    f"{self.personality.config.user_name} is asking to add an entry to the database",
+                                                    f"{self.personality.config.user_name} is asking for querying the database",
+                                                    f"{self.personality.config.user_name} is just asking for information or chatting",
                                                 ],
-                                                "!@>prompt: "+prompt)
+                                                f"!@>{self.personality.config.user_name}: "+prompt)
         self.step_end("Analyzing request")
         if index==1:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for listing indices")
