@@ -153,7 +153,7 @@ class Processor(APScript):
     
     def build_db(self):
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
-        for file in self.text_files:
+        for file in self.personality.text_files:
             try:
                 if Path(file).suffix==".pdf":
                     text =  Processor.read_pdf_file(file)

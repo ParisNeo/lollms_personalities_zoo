@@ -92,7 +92,7 @@ class Processor(APScript):
 
             # only one path is required
             self.raw_image = Image.open(path).convert('RGB')
-            self.image_files = [path]
+            self.personality.image_files = [path]
             inputs = self.processor(self.raw_image, return_tensors="pt").to(self.personality_config.device) #"cuda")
             def local_callback(output):
                 token = output.argmax(dim=-1)

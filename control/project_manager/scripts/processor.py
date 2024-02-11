@@ -160,8 +160,8 @@ class Processor(APScript):
                     self.full(output)
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     members[selection].new_message("")
-                    members[selection].processor.text_files = self.text_files
-                    members[selection].processor.image_files = self.image_files
+                    members[selection].processor.text_files = self.personality.text_files
+                    members[selection].processor.image_files = self.personality.image_files
                     members[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
                 else:
                     if members[selection].name!="project_manager":

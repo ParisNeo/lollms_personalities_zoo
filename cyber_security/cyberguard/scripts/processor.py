@@ -1,13 +1,14 @@
+"""
+project: lollms
+personality: # Place holder: Personality name 
+Author: # Place holder: creator name 
+description: # Place holder: personality description
+"""
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
-from typing import Callable
-
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
-from pathlib import Path
+from typing import Callable
 
 # Helper functions
 class Processor(APScript):
@@ -23,15 +24,14 @@ class Processor(APScript):
                 ) -> None:
         
         self.callback = None
-        # Example entry
+        # Example entries
+        #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
         #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
         # Supported types:
         # str, int, float, bool, list
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"output_language","type":"str","value":"French", "help":"The output language to translate to"},
-                {"name":"translation_chunk_size","type":"int","value":1024, "help":"The size of the chunks to translate. They shoumld be less than the context size/2"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -46,18 +46,16 @@ class Processor(APScript):
                             [
                                 {
                                     "name": "idle",
-                                    "commands": { # list of commands
+                                    "commands": { # list of commands (don't forget to add these to your config.yaml file)
+                                        "scan_and_fix_files":self.scan_and_fix_files,
                                         "help":self.help,
-                                        "start_zipping":self.start_zipping
                                     },
                                     "default": None
                                 },                           
                             ],
                             callback=callback
                         )
-        self.cv = None
-        self.position = None
-
+        
     def install(self):
         super().install()
         
@@ -67,44 +65,57 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.personality.InfoMessage(self.personality.help)
+        self.full(self.personality.help)
     
+
+    def process_chunk(self, title, chunk, message = ""):
+        self.step_start(f"Processing {title}")
+        prompt = self.build_prompt([
+            "!@>system: Read the code chunk and try to detect any portential vulenerabilities. Point out the error by rewriting the code line where it occures, then propose a fix to it with a small example.",
+            "!@>code:\n",
+            chunk,
+            "!@>analysis:\n"
+        ])
+        self.step_end(f"Processing {title}")
+        analysis = self.fast_gen(prompt)
+        message += analysis
+        self.full(message)
+        return message
+
+    def scan_and_fix_files(self, prompt="", full_context=""):
+        self.new_message("")
+        if len(self.personality.text_files)==0:
+            self.full("Please send me the files you want me to analyze through the add file button in the chat tab of Lollms-webui.")
+        else:
+            message =""
+            for txt_pth in self.personality.text_files:
+                with open(txt_pth,"r",encoding="utf-8") as f:
+                    txt = f.read()
+                tk = self.personality.model.tokenize(txt)
+                message +=f"<h2>{txt_pth}</h2>\n"
+                if len(tk)<self.personality.config.ctx_size/2:
+                    message = self.process_chunk(f"{txt_pth}",txt, message)
+                else:
+                    self.step_start(f"Chunking file {txt_pth}")
+                    cs = int(self.personality.config.ctx_size/2)
+                    n = int(len(tk)/(cs))+1
+                    last_pos = 0
+                    chunk_id = 0
+                    while last_pos<len(tk):
+                        message +=f"<h3>chunk : {chunk_id+1}</h3>\n"
+                        chunk = tk[last_pos:last_pos+cs]
+                        last_pos= last_pos+cs
+                        message = self.process_chunk(f"{txt_pth} chunk {chunk_id+1}/({n+1})", self.personality.model.detokenize(chunk), message)
+                        chunk_id += 1
+                    self.step_end(f"Chunking file {txt_pth}")
+
+
+
     def add_file(self, path, callback=None):
         """
         Here we implement the file reception handling
         """
-        super()
-
-    def save_text(self, text, path:Path):
-        with open(path,"w", encoding="utf8") as f:
-            f.write(text)
-            
-    def translate_document(self, document_path:Path,  output_path:Path=None, output =""):
-        document_text = GenericDataLoader.read_file(document_path)
-        document_chunks = DocumentDecomposer.decompose_document(document_text, self.personality_config.translation_chunk_size,0)
-        translated = ""
-        nb_chunks = len(document_chunks)
-        for i,document_chunk in enumerate(document_chunks):
-            self.step_start(f"Translating chunk {i+1}/{nb_chunks}")
-            txt = "".join(document_chunk)
-            translated += self.translate(txt, self.personality_config.output_language, self.personality.config.ctx_size-len(document_chunk))
-            self.step_end(f"Translating chunk {i+1}/{nb_chunks}")
-            self.full(translated)
-        if output_path:
-            self.save_text(document_text, output_path/(document_path.stem+f"_{self.personality_config.output_language}.txt"))
-        return document_text, output
-                    
-        
-
-    def start_zipping(self, prompt="", full_context=""):
-        self.new_message("Warming up")
-        for file in self.personality.text_files:
-            output=""
-            file = Path(file)
-            translation, output = self.translate_document(file, file.parent, output)
-            output +=f"\n## {file.stem}\n{translation}"
-            self.full(output)
-
+        super().add_file(path, callback)
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
@@ -131,18 +142,9 @@ class Processor(APScript):
         Returns:
             None
         """
-
+        self.personality.info("Generating")
         self.callback = callback
-        if len(self.personality.text_files)>0:
-            self.step_start("Understanding request")
-            if self.yes_no("Is the user asking for summarizing the document?", previous_discussion_text):
-                self.step_end("Understanding request")
-                self.start_zipping()
-            else:
-                self.step_end("Understanding request")
-                self.fast_gen(previous_discussion_text, callback=self.callback)
-        else:
-            self.fast_gen(previous_discussion_text, callback=self.callback)
-        return ""
-
+        out = self.fast_gen(previous_discussion_text)
+        self.full(out)
+        return out
 

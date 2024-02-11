@@ -204,7 +204,7 @@ class Processor(APScript):
         self.personality.InfoMessage(self.personality.help)
     
     def new_image(self, prompt="", full_context=""):
-        self.image_files=[]
+        self.personality.image_files=[]
         self.personality.info("Starting fresh :)")
         
         
@@ -222,8 +222,8 @@ class Processor(APScript):
         
     def show_last_image(self, prompt="", full_context=""):
         self.prepare()
-        if len(self.image_files)>0:
-            self.full(f"![]({self.image_files})")        
+        if len(self.personality.image_files)>0:
+            self.full(f"![]({self.personality.image_files})")        
         else:
             self.full("Showing Stable diffusion settings UI")        
         
@@ -240,7 +240,7 @@ class Processor(APScript):
 
         self.prepare()
         super().add_file(path)
-        self.image_files.append(path)
+        self.personality.image_files.append(path)
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
@@ -348,7 +348,7 @@ class Processor(APScript):
                 file, infos = self.sd.paint(
                                 sd_positive_prompt, 
                                 sd_negative_prompt,
-                                self.image_files,
+                                self.personality.image_files,
                                 sampler_name = self.personality_config.sampler_name,
                                 seed = self.personality_config.seed,
                                 scale = self.personality_config.scale,
@@ -399,9 +399,9 @@ class Processor(APScript):
                 self.personality_config.width = closest_resolution[0]
                 self.personality_config.height = closest_resolution[1]                    
 
-                if len(self.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
+                if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
                     # Read the image file from disk and resize it
-                    image = Image.open(self.image_files[0])
+                    image = Image.open(self.personality.image_files[0])
                     width, height = self.personality_config.width, self.personality_config.height
                     image = image.resize((width, height))
 
@@ -460,7 +460,7 @@ class Processor(APScript):
             self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 
         if self.personality_config.continue_from_last_image:
-            self.image_files= [file]
+            self.personality.image_files= [file]
         self.full(metadata_infos0)
         self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)        
         return infos
@@ -641,7 +641,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.personality.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             self.personality.info("Regenerating")
             self.previous_sd_positive_prompt = prompt
             self.previous_sd_negative_prompt = negative_prompt
@@ -655,7 +655,7 @@ Given this image description prompt and negative prompt, make a consize title
             ASCIIColors.info(f"Regeneration requested for file : {imagePath}")
             self.new_image()
             ASCIIColors.info("Building new image")
-            self.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
+            self.personality.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             ASCIIColors.info("Regenerating")
             return {"status":True, "message":"Image is now set as the current image for image to image operation"}
 

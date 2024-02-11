@@ -157,7 +157,7 @@ class Processor(APScript):
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     collective[selection].new_message("")
                     collective[selection].full(f"At your service my queen.\n")
-                    collective[selection].processor.text_files = self.text_files
+                    collective[selection].processor.text_files = self.personality.text_files
                     collective[selection].processor.image_files = self.image_files
                     collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
                 else:

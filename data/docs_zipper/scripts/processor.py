@@ -80,7 +80,7 @@ class Processor(APScript):
         """
         Here we implement the file reception handling
         """
-        self.text_files.append(path)
+        self.personality.text_files.append(path)
 
     def save_text(self, text, path:Path):
         with open(path,"w", encoding="utf8") as f:
@@ -140,7 +140,7 @@ class Processor(APScript):
 
     def start_zipping(self, prompt="", full_context=""):
         self.new_message("")
-        for file in self.text_files:
+        for file in self.personality.text_files:
             output=""
             file = Path(file)
             summary, output = self.zip_document(file, file.parent, output)
@@ -175,7 +175,7 @@ class Processor(APScript):
         """
 
         self.callback = callback
-        if len(self.text_files)>0:
+        if len(self.personality.text_files)>0:
             self.step_start("Understanding request")
             if self.yes_no("Is the user asking for summarizing the document?", previous_discussion_text):
                 self.step_end("Understanding request")

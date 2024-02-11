@@ -170,8 +170,10 @@ class Processor(APScript):
         self.full("Mapping created successfully")
 
     def idle(self, prompt, previous_discussion_text=""):
+        self.step_start("Analyzing request")
         index = self.multichoice_question("classify this prompt:\n",
                                                 [
+                                                    "The prompt is asking for listing indexes",
                                                     "The prompt is asking for creating a new index", 
                                                     "The prompt is asking for changing index",
                                                     "The prompt is asking for creating a mapping",
@@ -182,7 +184,20 @@ class Processor(APScript):
                                                     "Talking about something else",
                                                 ],
                                                 "!@>prompt: "+prompt)
-        if index==0:# "The prompt is asking for creating a new index"
+        self.step_end("Analyzing request")
+        if index==1:# "The prompt is asking for creating a new index"
+            self.step("Analysis result: The prompt is asking for listing indices")
+            try:
+                indexes = self.es.indices.get_alias("*")
+                out = "Here is the list of available indexes:\n"
+                for index in indexes:
+                    out += f"- {index}\n"
+                self.full(out)
+            except Exception as ex:
+                self.full(f"I couldn't recover the indexes because of the following error:\n<p>{ex}</p>")
+
+        elif index==1:# "The prompt is asking for creating a new index"
+            self.step("Analysis result: The prompt is asking for creating a new index")
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
                 if self.create_index(index_name.replace("\"","").replace(".","")):
@@ -195,7 +210,8 @@ class Processor(APScript):
                 self.operation = self.create_index
                 self.goto_state("waiting_for_index_name")
                 return
-        elif index==1:# "The prompt is asking for changing index"
+        elif index==2:# "The prompt is asking for changing index"
+            self.step("Analysis result: The prompt is asking for changing index")
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
                 self.set_index(index_name)
@@ -205,7 +221,8 @@ class Processor(APScript):
                 self.operation = self.set_index
                 self.goto_state("waiting_for_index_name")
                 return
-        elif index==2:# "creating a mapping"
+        elif index==3:# "creating a mapping"
+            self.step("Analysis result: The prompt is asking for creating a mapping")
             if self.yes_no("does the prompt contain the mapping information required to build a mapping json out of it?",prompt):
                 output="```json\n{\n    \"properties\": {"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
                 output=self.remove_backticks(output.strip())
@@ -216,14 +233,16 @@ class Processor(APScript):
                 self.operation = self.set_index
                 self.goto_state("waiting_for_mapping")
                 return
-        elif index==3:# "reading a mapping"
+        elif index==4:# "reading a mapping"            
+            self.step("Analysis result: The prompt is asking for reading a mapping")
             mapping = self.read_mapping()
             self.full("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
-        elif index==4:# "a question about an entry"
-            pass
-        elif index==5:# "add an entry to the database"
+        elif index==5:# "a question about an entry"
+            self.step("Analysis result: The prompt is asking a question about an entry")
+        elif index==6:# "add an entry to the database"
+            self.step("Analysis result: The prompt is asking to add an entry to the database")
             mapping = self.read_mapping()
-            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+f"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.\n!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+f"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.\n!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\nfrom elasticsearch import Elasticsearch\n", callback=self.sink)
             code = code.replace("ElasticSearch","Elasticsearch")
             code=self.extract_code_blocks(code)
 
@@ -237,12 +256,13 @@ class Processor(APScript):
                 exec(code, module.__dict__)
                 if module.add_entry(self.es, self.personality_config.index_name):
                     self.personality.info("Generating")
-                    out = self.fast_gen(f"!@>system: Describe the data being added to the database.\n!@>code: {code}"+"!@>elesticsearchai: ")
+                    out = f"<div hidden>\n{code}\n</div>\n" + self.fast_gen(f"!@>system: Describe the data being added to the database.\n!@>code: {code}"+"!@>elesticsearchai: ")
                 else:
-                    out = "Couldn't add data to the database"
+                    out = f"<div hidden>\n{code}\n</div>\n" + "Couldn't add data to the database"
                 self.full(out)
-        elif index==6:# "querying the database"
-            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be the output from es.search.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
+        elif index==7:# "querying the database"
+            self.step("Analysis result: The prompt is asking for querying the database")
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be a string containing the requested information in markdown format.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str)->str:\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
             code = code.replace("ElasticSearch","Elasticsearch")
             code=self.extract_code_blocks(code)
 
@@ -257,18 +277,19 @@ class Processor(APScript):
                 search_result = module.query(self.es, self.personality_config.index_name)
                 if search_result:
                     # Process the search results
-                    docs= "!@>query result:\n"
-                    for hit in search_result['hits']['hits']:
-                        docs+=hit+"\n"
-                        print(hit['_source'])
+                    docs= f"!@>query result:\n{search_result}"
                     self.personality.info("Generating")
                     out = self.fast_gen(self.personality.personality_conditioning+"\n"+previous_discussion_text+docs)
                 else:
                     out = "Failed to query the database"
                 self.full(out)
         else:
+            self.step("Analysis result: The prompt is asking for something else")
             out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            self.full(out)        
+        
+
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
