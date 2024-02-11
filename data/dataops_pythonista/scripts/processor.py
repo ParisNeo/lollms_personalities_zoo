@@ -75,7 +75,7 @@ class Processor(APScript):
         super().add_file(path, callback)
 
 
-    def get_cols(files)->str:
+    def get_cols(self,files)->str:
         """
         This function takes a list of files, output folder path, and output path URL as input.
         It performs the user request based on the content of the files and returns the output in the specified format.
@@ -122,7 +122,7 @@ class Processor(APScript):
         if len(self.personality.text_files)>0:
             done=False
             fails = 0
-            cols = self.get_cols()
+            cols = self.get_cols(self.personality.text_files)
             files_infos = ""
             for file, cols in zip(self.personality.text_files, cols):
                 files_infos += f"{file}: {cols}"
@@ -151,7 +151,8 @@ class Processor(APScript):
                         "use the file type to infer which libraries should be used",
                         "Files list with their columns:",
                         f"{files_infos}",
-                        "make sure you use the righrt method to load the files depending on their extension"
+                        "make sure you use the right method to load the files depending on their extension",
+                        "Put it all together and do not ask the user to do any updates."
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_path_url:str)->str:"
                         )
@@ -168,9 +169,9 @@ class Processor(APScript):
                     fails += 1
                     ASCIIColors.error(str(ex))
                     if fails < self.personality_config.max_fails:
-                        out = "Failed to perform the task :(. Trying again..."
+                        out = "Failed to perform the task :(.\nLet me try again..."
                     else:
-                        out = "Failed to perform the task :(."
+                        out = "Failed to perform the task :(.\nDon't be harsh, I'm still learning :(.Try using a bigger model or modify the parameters of the AI"
                     self.full(out)
         else:
             self.personality.info("Generating")
