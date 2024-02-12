@@ -151,8 +151,8 @@ class Processor(APScript):
                         "from pathlib import Path",
                         "from typing import List",
                         "import pandas as pd",
-                        f"!@>previous code attempt:{code}" if code!="" else "",
-                        f"!@>detected bug:{previous_error}" if previous_error != "" else "",
+                        f"!@>previous code attempt:\n```python\n{code}\n```\n" if code!="" else "",
+                        f"!@>detected bug: {previous_error}" if previous_error != "" else "",
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_root_url:str)->str:"
                         )
@@ -165,6 +165,7 @@ class Processor(APScript):
                     done = True
                     self.step_end(f"Building code, attempt {fails}")
                 except Exception as ex:
+                    previous_error=ex
                     self.step_end(f"Building code, attempt {fails}",False)
                     fails += 1
                     ASCIIColors.error(str(ex))
