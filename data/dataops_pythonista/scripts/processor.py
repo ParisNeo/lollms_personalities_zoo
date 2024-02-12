@@ -118,6 +118,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        previous_error =""
+        code = ""
         self.callback = callback
         if len(self.personality.text_files)>0:
             done=False
@@ -147,8 +149,10 @@ class Processor(APScript):
                         "make sure you use the right method to load the files depending on their extension",
                         "It is mandatory to import the following:",
                         "from pathlib import Path",
-                        "from typing import List"
-                        "import pandas as pd"
+                        "from typing import List",
+                        "import pandas as pd",
+                        f"!@>previous code attempt:{code}" if code!="" else "",
+                        f"!@>detected bug:{previous_error}" if previous_error != "" else "",
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_root_url:str)->str:"
                         )
