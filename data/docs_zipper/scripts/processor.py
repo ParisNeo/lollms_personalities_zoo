@@ -32,6 +32,7 @@ class Processor(APScript):
             [
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"str","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
                 {"name":"translate_to","type":"str","value":"", "help":"Force the algorithm to summarize the document in a specific language. If none is provided then it won't do any translation"},
@@ -86,7 +87,7 @@ class Processor(APScript):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
             
-    def zip_document(self, document_path:Path,  output_path:Path=None, output =""):
+    def zip_document(self, document_path:Path,  output =""):
         document_text = GenericDataLoader.read_file(document_path)
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
@@ -132,8 +133,8 @@ class Processor(APScript):
 
         self.step_end(f"Last composition")
         self.step_end(f"summerizing {document_path.stem}")
-        if output_path:
-            self.save_text(document_text, output_path/(document_path.stem+"_summary.txt"))
+        if self.personality_config.output_path:
+            self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
         return document_text, output
                     
         
