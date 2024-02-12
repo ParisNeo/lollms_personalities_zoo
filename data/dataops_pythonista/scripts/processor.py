@@ -165,7 +165,7 @@ class Processor(APScript):
                     done = True
                     self.step_end(f"Building code, attempt {fails}")
                 except Exception as ex:
-                    previous_error=ex
+                    previous_error=str(ex)
                     self.step_end(f"Building code, attempt {fails}",False)
                     fails += 1
                     ASCIIColors.error(str(ex))
