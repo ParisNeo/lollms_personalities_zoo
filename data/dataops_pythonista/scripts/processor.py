@@ -137,24 +137,18 @@ class Processor(APScript):
                         "The function returns a string that contains the output.",
                         "The output should be crafted out of the data contained in one or multiple files depending on the user demand.",
                         "The function should use the inputs or the content of the files to answer the user.",
-                        "do not give sample code, just write the actual code",
                         "for graphs generation, save the output as a png to output_folder/output_image_i.png where i is an index such that the files does not yet exists.",
                         "return an img tag of the built graphic in html that points to output_root_url/output_image_i.png.",
                         "if you need to put the output inside a file that is not an image, just return a hyper link to it.",
-                        "the link should call the function open_file.",
                         "if some value needs to be computed, build the code that does this and return the result as markdown code.",
                         "use the file type to infer which libraries should be used",
                         "Files list with their columns:",
                         f"{files_infos}",
                         "make sure you use the right method to load the files depending on their extension",
-                        "Put it all together and do not ask the user to do any updates."
                         "It is mandatory to import the following:",
                         "from pathlib import Path",
                         "from typing import List"
                         "import pandas as pd"
-                        "before writing the code, write a multilined comment to explain it",
-                        "then write the code and make sure it does what the user asked without",
-                        "don't put any comment except the first one"
                         ]),
                         "def reply_to_user(files:List[Path], output_folder:Path, output_root_url:str)->str:"
                         )
