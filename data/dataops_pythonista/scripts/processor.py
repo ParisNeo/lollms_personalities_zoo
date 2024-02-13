@@ -5,13 +5,15 @@ Author: # Place holder: creator name
 description: # Place holder: personality description
 """
 from lollms.helpers import ASCIIColors
+from fastapi import Request
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
 from typing import Callable
 import random
 from ascii_colors import get_trace_exception
-
+from typing import Dict, Any
+import importlib
 # Helper functions
 class Processor(APScript):
     """
@@ -113,6 +115,39 @@ class Processor(APScript):
                 outputs.append(str(df.dtypes))
         
         return outputs
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        rnd_val=f"outgen_{random.randint(0,2000000000)}"
+        data = (await request.json())
+        code = data["code"]
+        print(code)
+        ASCIIColors.magenta(code)
+        module_name = 'custom_module'
+        spec = importlib.util.spec_from_loader(module_name, loader=None)
+        module = importlib.util.module_from_spec(spec)
+        output_folder = self.personality.lollms_paths.personal_outputs_path/self.personality.personality_folder_name/rnd_val
+        output_folder.mkdir(exist_ok=True, parents=True)
+        out = module.reply_to_user([str(f) for f in self.personality.text_files], str(output_folder))
+        out= out.replace(str(output_folder),f"/outputs/{self.personality.personality_folder_name}/{rnd_val}")
+        self.full(out)
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
@@ -177,6 +212,29 @@ class Processor(APScript):
                     
                     if self.personality_config.show_code:
                         out = f"```python\n{code}\n```\n"+out
+                    ui= "\n".join([
+                        '',
+                        f'<button id="_{rnd_val}">Reexecute</button>',
+                        '<script>',
+                        f'    document.getElementById("_{rnd_val}")'+'.addEventListener("click", function() {',
+                        '        var xhr = new XMLHttpRequest();',
+                        '        var url = "/post_to_personality";',
+                        '        xhr.open("POST", url, true);',
+                        '        xhr.setRequestHeader("Content-Type", "application/json");',
+                        '        xhr.onreadystatechange = function () {',
+                        '            if (xhr.readyState === 4 && xhr.status === 200) {',
+                        '                var json = JSON.parse(xhr.responseText);',
+                        '                console.log(json);',
+                        '            }',
+                        '        };',
+                        '        var data = JSON.stringify({"code": '+f'`{code}`'+'});',
+                        '        xhr.send(data);',
+                        '    });',
+                        '</script>',
+                    ])
+
+                    self.ui(ui)
+                        
                     self.full(out)
                     done = True
                     self.step_end(f"Building code, attempt {fails}")
