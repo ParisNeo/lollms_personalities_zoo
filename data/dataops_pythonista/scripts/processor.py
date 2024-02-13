@@ -217,6 +217,7 @@ class Processor(APScript):
                         f'<button id="_{rnd_val}">Reexecute</button>',
                         '<script>',
                         f'    document.getElementById("_{rnd_val}")'+'.addEventListener("click", function() {',
+                        '        console.log("reexecuting")',
                         '        var xhr = new XMLHttpRequest();',
                         '        var url = "/post_to_personality";',
                         '        xhr.open("POST", url, true);',
