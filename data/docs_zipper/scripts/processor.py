@@ -144,7 +144,7 @@ class Processor(APScript):
         for file in self.personality.text_files:
             output=""
             file = Path(file)
-            summary, output = self.zip_document(file, file.parent, output)
+            summary, output = self.zip_document(file, output)
             output +=f"\n## Summary of {file.stem}\n{summary}"
             self.full(output)
 
