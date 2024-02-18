@@ -460,8 +460,23 @@ class Processor(APScript):
 
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Step 2: Install dependencies using pip from requirements.txt
-        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])            
-        check_and_install_torch(self.personality.config.enable_gpu, version=2.1)
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])
+        if self.config.hardware_mode=="cpu-noavx":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="cpu":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="amd-noavx":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="amd":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="nvidia":
+            check_and_install_torch(True)
+        elif self.config.hardware_mode=="nvidia-tensorcores":
+            check_and_install_torch(True)
+        elif self.config.hardware_mode=="apple-intel":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="apple-silicon":
+            check_and_install_torch(False)
 
         ASCIIColors.success("Installed successfully")
 
