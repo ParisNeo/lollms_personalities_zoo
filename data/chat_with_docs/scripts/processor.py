@@ -36,7 +36,7 @@ class Processor(APScript):
                 {"name":"use_batch_mode","type":"bool","value":False, "help":"if selected, the chatwith docs will takes a list of questions out of a text file and answers them all then writes a final report about the questions"},
                 {"name":"batch_mode_questions_file","type":"str","value":"", "help":"A path to a text file containing the list of questions"},
                 {"name":"batch_mode_report_file","type":"str","value":"", "help":"A path to a markdown file to be created."},
-                {"name":"custom_db_path","type":"str","value":"", "help":"if not empty, you can change this to the path of the database you want to create or use"},
+                {"name":"custom_discussion_db_name","type":"str","value":"", "help":"if not empty, you can change this to the path of the database you want to create or use"},
                 {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
                 {"name":"load_db","type":"bool","value":False, "help":"If true, the vectorized database will be loaded at startup"},
                 {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
@@ -245,12 +245,12 @@ class Processor(APScript):
 
     def build_db(self):
         if self.vector_store is None:
-            root_db_folder = self.personality.lollms_paths.self.personal_databases_path/self.personality.personality_folder_name
+            root_db_folder = self.personality.lollms_paths.self.personal_discussions_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
                     self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
-                    database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
+                    database_path=root_db_folder/"db.json" if self.personality_config.custom_discussion_db_name=="" else self.personality_config.custom_discussion_db_name,
                     save_db=self.personality_config.save_db,
                     visualize_data_at_startup=self.personality_config.visualize_data_at_startup,
                     visualize_data_at_add_file=self.personality_config.visualize_data_at_add_file,
@@ -314,12 +314,12 @@ class Processor(APScript):
 
     def prepare(self):
         if self.vector_store is None:
-            root_db_folder = self.personality.lollms_paths.personal_databases_path/self.personality.personality_folder_name
+            root_db_folder = self.personality.lollms_paths.personal_discussions_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
                     self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
-                    database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
+                    database_path=root_db_folder/"db.json" if self.personality_config.custom_discussion_db_name=="" else self.personality_config.custom_discussion_db_name,
                     save_db=self.personality_config.save_db
             )        
 

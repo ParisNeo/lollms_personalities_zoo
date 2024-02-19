@@ -59,8 +59,22 @@ class Processor(APScript):
 
     def install(self):
         super().install()
-        check_and_install_torch(self.personality.config.enable_gpu, version=2.1)
-
+        if self.config.hardware_mode=="cpu-noavx":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="cpu":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="amd-noavx":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="amd":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="nvidia":
+            check_and_install_torch(True)
+        elif self.config.hardware_mode=="nvidia-tensorcores":
+            check_and_install_torch(True)
+        elif self.config.hardware_mode=="apple-intel":
+            check_and_install_torch(False)
+        elif self.config.hardware_mode=="apple-silicon":
+            check_and_install_torch(False)
 
         
         requirements_file = self.personality.personality_package_path / "requirements.txt"

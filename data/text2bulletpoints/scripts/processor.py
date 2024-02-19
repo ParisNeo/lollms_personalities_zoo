@@ -296,8 +296,8 @@ class Processor(APScript):
                 self.state=0
             elif self.state ==2:
                 try:
-                    new_db_path = Path(prompt)
-                    if new_db_path.exists():
+                    new_discussion_db_name = Path(prompt)
+                    if new_discussion_db_name.exists():
                         self.personality_config.database_path = prompt
                         self.text_store = Text2Paragraphs(
                                         self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,
