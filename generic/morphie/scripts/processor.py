@@ -32,7 +32,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"conditionning","type":"str","value":"Act as a helpful assistant.", "help":"Makes a scriptred AI that can perform operations using python script"},
+                {"name":"conditionning","type":"text","value":"Act as a helpful assistant.", "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"accept_documentation","type":"bool","value":False, "help":"Accept documentation"},
                 {"name":"accept_knowledge","type":"bool","value":False, "help":"Accept knowledge"},
                 

@@ -12,7 +12,6 @@ import shutil
 import yaml
 
 
-from flask import request, jsonify
 
 class Processor(APScript):
     """
@@ -126,7 +125,7 @@ class Processor(APScript):
         assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
 
         shutil.copy(logo_path, assets_path/"logo.png")
-        return jsonify({"status":True})
+        return {"status":True}
 
 
     def make_selectable_photo(self, image_id, image_source, params=""):
