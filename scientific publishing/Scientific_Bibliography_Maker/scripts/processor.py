@@ -46,8 +46,10 @@ class Processor(APScript):
         self.word_callback = None
         self.arxiv = None
         # C:\Program Files\MiKTeX\miktex\bin\x64
+        # https://developer.ieee.org/Python3_Software_Development_Kit#fullTextExample
         personality_config_template = ConfigTemplate(
             [
+                {"name":"ieee_explore_key","type":"str","value":"", "min":1, "help":"The key to use for accessing ieeexplore api"},                
                 {"name":"research_output_path","type":"str","value":"", "min":1, "help":"path to a folder where to put the downloaded bibliography files as well as the summary and analysis results"},                
                 {"name":"pdf_latex_path","type":"str","value":"", "min":1, "help":"path to the pdflatex file pdf compiler used to compile pdf files"},
                 {"name":"make_survey","type":"bool","value":True, "min":1, "help":"build a survey report"},
