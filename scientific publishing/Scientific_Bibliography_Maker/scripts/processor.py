@@ -57,6 +57,7 @@ class Processor(APScript):
                 {"name":"data_vectorization_nb_chunks","type":"int","value":5, "min":1, "help":"number of results to use for final text"},
                 {"name":"Formulate_search_query","type":"bool","value":True, "help":"Before doing the search the AI creates a keywords list that gets sent to the arxiv search engine."},
                 {"name":"read_abstracts","type":"bool","value":True, "help":"With this, the AI reads each abstract and judges if it is related to the work or not and filter out unrelated papers"},
+                {"name":"read_content","type":"bool","value":True, "help":"With this, the AI reads the whole document and judges if it is related to the work or not and filter out unrelated papers"},
                 {"name":"relevance_check_severiry","type":"int","value":5, "min":1, "max":10, "help":"A value that reflects how severe is selection criterion"},
                 {"name":"max_generation_prompt_size","type":"int","value":2048, "min":10, "max":personality.config["ctx_size"]},
             ]
@@ -117,25 +118,27 @@ class Processor(APScript):
                         document_file_name, 
                         articles_checking_text, 
                         report):
+        
         if self.personality_config.read_abstracts:
-            relevance_score = self.fast_gen("""!@>Instructions:
-Act as document relevance analyzer. Respond with the document relevance level out of 10.
-A document with a relevance of 10 is a document that adresses exactly the subject proposed by the user.
-Make sure the document is not talking about something else that is not really linked with the subject but may use some terms that can be found in the subject.
-!@>document:
-title: {{title}}
-content: {{content}}
-!@>subject:{{initial_prompt}}
-!@>relevance value out of 10: """, 10, {
+            relevance_score = self.fast_gen("\n".join([
+                "!@>system:",
+                "Act as document relevance analyzer. Respond with the document relevance level out of 10.",
+                "A document with a relevance of 10 is a document that adresses exactly the subject proposed by the user.",
+                "Make sure the document is not talking about something else that is not really linked with the subject but may use some terms that can be found in the subject.",
+                "!@>document:",
+                "title: {{title}}",
+                "content: {{content}}",
+                "!@>subject:{{initial_prompt}}",
+                "!@>relevance value out of 10: "]), 10, {
                     "title":title,
-                    "abstract":abstract,
+                    "content":abstract,
                     "initial_prompt":initial_prompt,
                     "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                    }, debug=self.personality.config.debug)
+                    }, debug=self.personality.config.debug, callback=self.sink)
             relevance_score = relevance_score
             relevance_score = self.find_numeric_value(relevance_score)
             if relevance_score is None:
-                articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<p style='color: red;'>Couldn't determine relevance</p>\n\n<b>File</b>: <a href='/open_file?path={fn}'>{document_file_name}</a>")
+                articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<p style='color: red;'>Couldn't determine relevance</p>\n\n<b>File</b>: <a href='file:///{fn}'>{document_file_name}</a>")
                 report_entry={
                     "title":title,
                     "authors":authors,
@@ -153,18 +156,23 @@ content: {{content}}
             if relevance_score>=float(self.personality_config.relevance_check_severiry):
                 self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
                 relevance = f"relevance score {relevance_score}/10"
-                relevance_explanation = self.fast_gen("""!@>Instructions: Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject.
-!@>document:
-title: {{title}}
-authors: {{authors}}
-content: {{content}}
-!@>subject: {{initial_prompt}}
-!@>Explanation: """, self.personality_config.max_generation_prompt_size, {
-                    "title":title,
-                    "abstract":abstract,
-                    "initial_prompt":initial_prompt,
-                    "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                    }, debug=self.personality.config.debug)
+                relevance_explanation = self.fast_gen("\n".join([
+                        "!@>system:",
+                        "Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject."
+                        "!@>document:",
+                        "title: {{title}}",
+                        "authors: {{authors}}",
+                        "content: {{content}}",
+                        "!@>subject: {{initial_prompt}}",
+                        "!@>Explanation: "                    
+                        ]), self.personality_config.max_generation_prompt_size, {
+                        "title":title,
+                        "abstract":abstract,
+                        "initial_prompt":initial_prompt,
+                        "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
+                    },
+                    debug=self.personality.config.debug,
+                    callback=self.sink)
             else:
                 relevance = "irrelevant"
                 relevance_explanation = ""
@@ -242,10 +250,12 @@ content: {{content}}
         if self.personality_config.Formulate_search_query:
             self.step_start("Building query...")
             self.full("")
-            keywords = self.fast_gen("""!@>Instructions:
-Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.
-!@>user prompt: {{initial_prompt}}
-!@>query: """, self.personality_config.max_generation_prompt_size, {
+            keywords = self.fast_gen("\n".join([
+                "!@>system:",
+                "Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.",
+                "!@>user prompt: {{initial_prompt}}",
+                "!@>query: "
+            ]), self.personality_config.max_generation_prompt_size, {
                     "previous_discussion":previous_discussion_text,
                     "initial_prompt":query
                     }, ["previous_discussion"], self.personality.config.debug)
