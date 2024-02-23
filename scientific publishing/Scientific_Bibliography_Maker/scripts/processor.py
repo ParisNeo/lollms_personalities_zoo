@@ -193,7 +193,7 @@ class Processor(APScript):
         }        
         relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b>\n{relevance_explanation}'  if relevance_score>float(self.personality_config.relevance_check_severiry) else f'<p style="color: gray;">{relevance}</p>' 
         fn = str(file_name).replace('\\','/')
-        articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<b>File</b>: <a href='/open_file?path={fn}'>{document_file_name}</a>\n\nRelevance:\n{relevance}\n\n")
+        articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<b>File</b>: <a href='file:///{fn}'>{document_file_name}</a>\n\nRelevance:\n{relevance}\n\n")
         self.full("\n".join(articles_checking_text))
         report.append(report_entry)
         return True
