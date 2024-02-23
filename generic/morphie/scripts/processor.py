@@ -34,6 +34,7 @@ class Processor(APScript):
             [
                 {"name":"conditionning","type":"text","value":"Act as a helpful assistant.", "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"accept_documentation","type":"bool","value":False, "help":"Accept documentation"},
+                {"name":"accept_internet","type":"bool","value":False, "help":"Accept internet"},
                 {"name":"accept_knowledge","type":"bool","value":False, "help":"Accept knowledge"},
                 
             ]
@@ -103,12 +104,17 @@ class Processor(APScript):
         """
         self.personality.info("Generating")
         self.callback = callback
-        out = self.fast_gen(self.build_prompt([
+        prompt = self.build_prompt([
             self.personality_config.conditionning,
             context_details["documentation"] if self.personality_config.accept_documentation else "",
             context_details["knowledge"] if self.personality_config.accept_knowledge else "",
-
-        ]))
+            "\n".join([f"internet result at {i}:\n{c}" for i, c in zip(context_details["internet_search_infos"],context_details["internet_search_results"])]) if self.personality_config.accept_internet else "",
+            context_details["discussion_messages"],
+            
+        ])
+        
+        ASCIIColors.cyan(prompt)
+        out = self.fast_gen(prompt)
         self.full(out)
         return out
 
