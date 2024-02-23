@@ -33,6 +33,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"conditionning","type":"text","value":"Act as a helpful assistant.", "help":"Makes a scriptred AI that can perform operations using python script"},
+                {"name":"temperature","type":"float", "min":0.1, "max":2,"value":False, "help":"Temperature of the answer (higher value gives more liberty to the AI, lower value makes the output more deterministic). Values over 1 may be unstable. It is advised not to go beyond 0.9 but you can try that for fun"},
                 {"name":"accept_documentation","type":"bool","value":False, "help":"Accept documentation"},
                 {"name":"accept_internet","type":"bool","value":False, "help":"Accept internet"},
                 {"name":"accept_knowledge","type":"bool","value":False, "help":"Accept knowledge"},
@@ -112,6 +113,7 @@ class Processor(APScript):
             context_details["discussion_messages"],
             
         ])
+        self.personality.model_temperature = float(self.personality_config.temperature)
         
         ASCIIColors.cyan(prompt)
         out = self.fast_gen(prompt)
