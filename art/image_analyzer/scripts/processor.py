@@ -92,7 +92,7 @@ class Processor(APScript):
             self.finished_message()
 
 
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         self.prepare()
         if callback is None and self.callback is not None:
             callback = self.callback

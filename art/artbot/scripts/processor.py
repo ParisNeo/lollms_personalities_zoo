@@ -227,7 +227,7 @@ class Processor(APScript):
         else:
             self.full("Showing Stable diffusion settings UI")        
         
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         self.new_message("")
         pth = str(path).replace("\\","/").split('/')
         idx = pth.index("uploads")
@@ -239,7 +239,7 @@ class Processor(APScript):
             callback = self.callback
 
         self.prepare()
-        super().add_file(path)
+        super().add_file(path, client)
         self.personality.image_files.append(path)
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)

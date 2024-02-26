@@ -91,11 +91,11 @@ class Processor(APScript):
         
         
         
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
         ASCIIColors.yellow("Testing add file")
-        super().add_file(path)
+        super().add_file(path, client, callback)
 
 
 

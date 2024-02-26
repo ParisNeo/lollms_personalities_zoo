@@ -74,11 +74,11 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        super().add_file(path, callback)
+        super().add_file(path, client, callback)
 
     def bulletpoints(self, chunks, summary_instruction="", chunk_name="chunk", answer_start="", max_generation_size=3000):
         summeries = []

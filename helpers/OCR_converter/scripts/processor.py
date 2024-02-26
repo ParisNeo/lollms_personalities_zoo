@@ -77,11 +77,11 @@ class Processor(APScript):
         except:
             pass
 
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         # Load an image using PIL (Python Imaging Library)
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
+        super().add_file(path, client, callback)
         image = Image.open(self.personality.image_files[-1])
         url = str(self.personality.image_files[-1]).replace("\\","/").split("uploads")[-1]
         self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)

@@ -61,11 +61,11 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        super().add_file(path, callback)
+        super().add_file(path, client, callback)
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """

@@ -77,11 +77,11 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        self.personality.text_files.append(path)
+        super().add_file(path, client, callback)
 
     def save_text(self, text, path:Path):
         with open(path,"w", encoding="utf8") as f:

@@ -263,13 +263,13 @@ class Processor(APScript):
         else:
             self.full("Showing Stable diffusion settings UI")        
         
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         self.new_message("")
         if callback is None and self.callback is not None:
             callback = self.callback
 
         self.prepare()
-        super().add_file(path)
+        super().add_file(path, client, callback)
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)

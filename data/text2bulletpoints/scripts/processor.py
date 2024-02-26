@@ -177,10 +177,10 @@ class Processor(APScript):
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
 
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
+        super().add_file(path, client, callback)
         try:
             self.build_db()
             self.info("File added successfully", callback=callback)
@@ -268,8 +268,14 @@ class Processor(APScript):
                 if len(chunk.split())<50:
                     print(chunk)
                     continue
-                docs = |
-  !@>Instructions:\nSummarize the following paragraph in the form of bullet points.\nBe concise and only keep most important ideas.\nUse short sentences\nParagraph:'+chunk+"\nBullet points:\n-"
+                docs = "\n".join([
+                  "!@>system:",
+                  "Summarize the following paragraph in the form of bullet points.",
+                  "Be concise and only keep most important ideas.",
+                  "Use short sentences",
+                  f"Paragraph:{chunk}",
+                  "Bullet points:\n-"
+                ])
                 ASCIIColors.error("\n-------------- Documentation -----------------------")
                 ASCIIColors.error(docs)
                 ASCIIColors.error("----------------------------------------------------")
@@ -289,7 +295,7 @@ class Processor(APScript):
         else:
             if self.state ==1:
                 try:
-                    self.add_file(prompt)
+                    pass#self.add_file(prompt, client) # TODO: FIX
                 except Exception as ex:
                     ASCIIColors.error(f"Exception: {ex}")
                     output = str(ex)

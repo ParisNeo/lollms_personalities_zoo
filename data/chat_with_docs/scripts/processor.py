@@ -291,10 +291,10 @@ class Processor(APScript):
             trace_exception(ex)
             return False
             
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
+        super().add_file(path, client)
         self.prepare()
         try:
             self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
