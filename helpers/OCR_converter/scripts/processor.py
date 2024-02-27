@@ -11,6 +11,7 @@ import requests
 from typing import Callable
 from tqdm import tqdm
 import webbrowser
+from functools import partial
 try:
     if not PackageManager.check_package_installed("pytesseract"):
         PackageManager.install_package("pytesseract")
@@ -78,20 +79,27 @@ class Processor(APScript):
             pass
 
     def add_file(self, path, client, callback=None):
+        if self.callback is None and callback==None:
+            self.callback = partial(self.personality.app.process_chunk, client_id = client.client_id)
+        elif self.callback is None:
+            self.callback = callback
         # Load an image using PIL (Python Imaging Library)
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path, client, callback)
+        super().add_file(path, client, callback, process=False)
         image = Image.open(self.personality.image_files[-1])
-        url = str(self.personality.image_files[-1]).replace("\\","/").split("uploads")[-1]
-        self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)
+        url = str(self.personality.image_files[-1]).replace("\\","/").split("discussion_databases")[-1]
+        self.new_message("",MSG_TYPE.MSG_TYPE_FULL)
+        output = f'<img src="/discussions{url}">'
+        self.full(output)
         try:
             # Load an image using PIL (Python Imaging Library)
             image = Image.open(self.personality.image_files[-1])
 
             # Use pytesseract to extract text from the image
             text = pytesseract.image_to_string(image)
-            self.full("<h3>Extracted text:</h3>\n\n"+text)
+            output += "\n<h3>Extracted text:</h3>\n\n"+text
+            self.full(output)
         except Exception as ex:
             self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
         return True
