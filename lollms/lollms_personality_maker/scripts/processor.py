@@ -765,7 +765,8 @@ class Processor(APScript):
             self.step_start("Building icon")
             try:
                 self.build_icon(previous_discussion_text, name, output_text)
-            except:
+            except Exception as ex:
+                trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")
             self.step_end("Building icon")
         else:
