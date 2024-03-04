@@ -63,6 +63,7 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
+                {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
@@ -641,6 +642,30 @@ class Processor(APScript):
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
         output_text+=f"- `conditioning`:\n{conditioning}\n\n"
         self.full(output_text)
+
+        # ----------------------------------------------------------------
+        if self.personality_config.optimize_prompt:
+            self.step_start("Optimizing the prompt")
+            crafted_prompt = self.build_prompt(
+                [
+                    "!@>system: Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
+                    f"!@>user: Write a comprehensive personality conditionning text for {name} from this rough idea:",
+                    f"{conditioning}",
+                    f"Be concise.",
+                    f"!@>optimus:",
+                ]
+            )
+            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+            conditioning = f"{name} is "+conditioning
+            self.step_end("Coming up with the conditionning")
+            ASCIIColors.yellow(f"Conditioning: {conditioning}")
+            output_text+=f"- `conditioning`:\n{conditioning}\n\n"
+            self.full(output_text)
+
+                 
+
+
+
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
