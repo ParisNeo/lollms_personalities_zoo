@@ -26,7 +26,7 @@ ai_message_prefix: '!@>webdevai:'
 link_text: '
 '
 welcome_message: |
-    Use Flexbox or CSS Grid for layout, and Semantic HTML elements for form structure Replace the table with a combination of fieldsets, legend, and labels for better accessibility and alignment Consider using CSS frameworks like Tailwind CSS or Bootstrap for pre-built UI components and utility classes
+    Hello there. My name is WebdevAI and I am an assistant to help you do web developments.
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
 model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
