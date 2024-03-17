@@ -9,7 +9,7 @@ from safe_store.generic_data_loader import GenericDataLoader
 from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
-
+from datetime import datetime
 # Helper functions
 class Processor(APScript):
     """
@@ -211,18 +211,15 @@ class Processor(APScript):
         """
 
         self.callback = callback
-        if len(self.personality.text_files)>0:
-            self.step_start("Understanding request")
-            if self.yes_no("Is the user asking for doing internet search about a topic?", previous_discussion_text):
-                self.step_end("Understanding request")
-                self.personality.step_start("Crafting internet search query")
-                query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
-                self.personality.step_end("Crafting internet search query")
-                self.search_and_zip(query)
-            else:
-                self.step_end("Understanding request")
-                self.fast_gen(previous_discussion_text, callback=self.callback)
+        self.step_start("Understanding request")
+        if self.yes_no("Is the user asking for doing internet search about a topic?", previous_discussion_text):
+            self.step_end("Understanding request")
+            self.personality.step_start("Crafting internet search query")
+            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
+            self.personality.step_end("Crafting internet search query")
+            self.search_and_zip(query)
         else:
+            self.step_end("Understanding request")
             self.fast_gen(previous_discussion_text, callback=self.callback)
         return ""
 
