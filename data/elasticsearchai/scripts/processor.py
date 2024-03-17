@@ -242,13 +242,25 @@ class Processor(APScript):
         elif index==6:# "add an entry to the database"
             self.step("Analysis result: The prompt is asking to add an entry to the database")
             mapping = self.read_mapping()
-            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+f"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.\n!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\nfrom elasticsearch import Elasticsearch\n", callback=self.sink)
+            code = "\n".join([
+                    "```python",
+                    "from elasticsearch import Elasticsearch\n"
+                ])+self.fast_gen(
+                "\n".join([
+                    "!@>context!:\n"+previous_discussion_text,
+                    f"!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.",
+                    f"!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):",
+                    f"Do not provide explanations or usage example.",
+                    "!@>elasticsearch_ai:Here is the query function that you are asking for:",
+                    "```python",
+                    "from elasticsearch import Elasticsearch\n"
+                ]), callback=self.sink)
             code = code.replace("ElasticSearch","Elasticsearch")
             code=self.extract_code_blocks(code)
 
             if len(code)>0:
                 # Perform the search query
-                code = code[0]["content"]
+                code = code[0]["content"].replace("\_","_")
                 ASCIIColors.magenta(code)
                 module_name = 'custom_module'
                 spec = importlib.util.spec_from_loader(module_name, loader=None)

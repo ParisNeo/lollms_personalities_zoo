@@ -1,4 +1,4 @@
-from lollms.helpers import ASCIIColors
+from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
@@ -194,12 +194,13 @@ class Processor(APScript):
         if index==0:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for listing indices")
             try:
-                indexes = self.es.indices.get_alias("*")
+                indexes = self.es.indices.get_alias(index="*")
                 out = "Here is the list of available indexes:\n"
                 for index in indexes:
                     out += f"- {index}\n"
                 self.full(out)
             except Exception as ex:
+                trace_exception(ex)
                 self.full(f"I couldn't recover the indexes because of the following error:\n<p>{ex}</p>")
 
         elif index==1:# "The prompt is asking for creating a new index"
@@ -254,7 +255,7 @@ class Processor(APScript):
 
             if len(code)>0:
                 # Perform the search query
-                code = code[0]["content"]
+                code = code[0]["content"].replace("\_","_")
                 ASCIIColors.magenta(code)
                 module_name = 'custom_module'
                 spec = importlib.util.spec_from_loader(module_name, loader=None)

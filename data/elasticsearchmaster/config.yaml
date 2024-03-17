@@ -4,7 +4,7 @@ anti_prompts:
 author: lollms_personality_maker prompted by ParisNEO
 category: ElasticSearchMaster
 dependencies: []
-disclaimer: 'The ElasticSearchMaster personality created by Bill is
+disclaimer: 'The ElasticSearchMaster personality is
   designed to assist with database management using Elasticsearch. It is important
   to note that while the personality has been crafted to provide accurate and helpful
   responses to user questions, it is still an AI and may not always have the ability
