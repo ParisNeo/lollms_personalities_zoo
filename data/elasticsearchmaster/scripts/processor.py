@@ -190,7 +190,8 @@ class Processor(APScript):
                                                 ],
                                                 f"!@>{self.personality.config.user_name}: "+prompt)
         self.step_end("Analyzing request")
-        if index==1:# "The prompt is asking for creating a new index"
+
+        if index==0:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for listing indices")
             try:
                 indexes = self.es.indices.get_alias("*")
@@ -273,7 +274,9 @@ class Processor(APScript):
 
             if len(code)>0:
                 # Perform the search query
-                code = code[0]["content"]
+                code = code[0]["content"].replace("\_","_")
+                if self.personality.config.debug:
+                    ASCIIColors.yellow(code)
                 ASCIIColors.magenta(code)
                 module_name = 'custom_module'
                 spec = importlib.util.spec_from_loader(module_name, loader=None)

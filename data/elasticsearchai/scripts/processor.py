@@ -185,7 +185,7 @@ class Processor(APScript):
                                                 ],
                                                 f"!@>{self.personality.config.user_name}: "+prompt)
         self.step_end("Analyzing request")
-        if index==1:# "The prompt is asking for creating a new index"
+        if index==0:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for listing indices")
             try:
                 indexes = self.es.indices.get_alias("*")
