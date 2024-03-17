@@ -59,7 +59,7 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
-                                        "start_zipping":self.start_zipping
+                                        "start_scraping":self.start_scraping
                                     },
                                     "default": None
                                 },                           
@@ -177,7 +177,7 @@ class Processor(APScript):
                     
         
 
-    def start_zipping(self, prompt="", full_context=""):
+    def start_scraping(self, prompt="", full_context=""):
         self.new_message("")
         if self.personality_config.search_query!="":
             self.search_and_zip(self.personality_config.search_query)
