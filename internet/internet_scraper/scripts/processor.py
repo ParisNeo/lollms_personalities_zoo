@@ -2,6 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
+from lollms.internet import internet_search
 from typing import Callable
 
 from safe_store.generic_data_loader import GenericDataLoader
@@ -30,8 +31,10 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used."},
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
-                {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
+                {"name":"buttons_to_press","type":"str","value":"'accept'", "help":"Buttons to be pressed in the pages you want to load."},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
@@ -87,36 +90,71 @@ class Processor(APScript):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
             
-    def zip_document(self, document_path:Path,  output =""):
-        document_text = GenericDataLoader.read_file(document_path)
-        tk = self.personality.model.tokenize(document_text)
-        self.step_start(f"summerizing {document_path.stem}")
-        if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
-        else:
-            depth=0
-            while len(tk)>int(self.personality_config.zip_size):
-                self.step_start(f"Comprerssing.. [depth {depth}]")
-                chunk_size = int(self.personality.config.ctx_size*0.6)
-                document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize(document_chunks,"\n".join([
-                        f"Summerize the document chunk and do not add any comments after the summary.",
-                        "The summary should contain exclusively information from the document chunk.",
-                        "Do not provide opinions nor extra information that is not in the document chunk",
-                        f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                        f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                        f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                        f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                        f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                        f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                        f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                    ]),
-                    "Document chunk"
-                    )
-                tk = self.personality.model.tokenize(document_text)
-                self.step_end(f"Comprerssing.. [depth {depth}]")
-                self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
-                depth += 1
+    def search_and_zip(self, query,  output =""):
+        pages = internet_search(query, self.personality.config, buttons_to_press=self.personality_config.buttons_to_press)
+        processed_pages = ""
+        for page in pages:
+            tk = self.personality.model.tokenize(document_text)
+            self.step_start(f"summerizing {page['title']}")
+            if len(tk)<int(self.personality_config.zip_size):
+                    document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+            else:
+                depth=0
+                while len(tk)>int(self.personality_config.zip_size):
+                    self.step_start(f"Comprerssing.. [depth {depth}]")
+                    chunk_size = int(self.personality.config.ctx_size*0.6)
+                    document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
+                    document_text = self.summerize(document_chunks,"\n".join([
+                            f"Summerize the document chunk and do not add any comments after the summary.",
+                            "The summary should contain exclusively information from the document chunk.",
+                            "Do not provide opinions nor extra information that is not in the document chunk",
+                            f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                            f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                            f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                            f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                            f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                            f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                            f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                        ]),
+                        "Document chunk"
+                        )
+                    tk = self.personality.model.tokenize(document_text)
+                    self.step_end(f"Comprerssing.. [depth {depth}]")
+                    self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
+                    depth += 1
+            self.step_start(f"Last composition")
+            document_text = self.summerize(document_chunks,"\n".join([
+                    f"Rewrite this document in a better way while respecting the following guidelines:",
+                    f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                    f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                    f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                    f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                    f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                    f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                    f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                ]),
+                "Document chunk"
+                )
+
+            self.step_end(f"Last composition")
+            self.step_end(f"summerizing {page['title']}")
+            processed_pages += f"{page['title']}\n{document_text}"
+
+        document_text = self.summerize(processed_pages,"\n".join([
+                f"Summerize the document chunk and do not add any comments after the summary.",
+                "The summary should contain exclusively information from the document chunk.",
+                "Do not provide opinions nor extra information that is not in the document chunk",
+                f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+            ]),
+            "Document chunk"
+            )
+
         self.step_start(f"Last composition")
         document_text = self.summerize(document_chunks,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
@@ -132,22 +170,19 @@ class Processor(APScript):
             )
 
         self.step_end(f"Last composition")
-        self.step_end(f"summerizing {document_path.stem}")
+
         if self.personality_config.output_path:
-            self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
+            self.save_text(document_text, Path(self.personality_config.output_path)/(page['title']+"_summary.txt"))
         return document_text, output
                     
         
 
     def start_zipping(self, prompt="", full_context=""):
         self.new_message("")
-        for file in self.personality.text_files:
-            output=""
-            file = Path(file)
-            summary, output = self.zip_document(file, output)
-            output +=f"\n## Summary of {file.stem}\n{summary}"
-            self.full(output)
-
+        if self.personality_config.search_query!="":
+            self.search_and_zip(self.personality_config.search_query)
+        else:
+            self.info("Please put a search query in the search query setting of this personality.")
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
@@ -178,9 +213,12 @@ class Processor(APScript):
         self.callback = callback
         if len(self.personality.text_files)>0:
             self.step_start("Understanding request")
-            if self.yes_no("Is the user asking for summarizing the document?", previous_discussion_text):
+            if self.yes_no("Is the user asking for doing internet search about a topic?", previous_discussion_text):
                 self.step_end("Understanding request")
-                self.start_zipping()
+                self.personality.step_start("Crafting internet search query")
+                query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
+                self.personality.step_end("Crafting internet search query")
+                self.search_and_zip(query)
             else:
                 self.step_end("Understanding request")
                 self.fast_gen(previous_discussion_text, callback=self.callback)
