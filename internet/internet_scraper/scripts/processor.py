@@ -117,6 +117,7 @@ class Processor(APScript):
                         ]),
                         "Document chunk"
                         )
+                    self.full(page_text)
             else:
                 depth=0
                 while len(tk)>int(self.personality_config.zip_size):
@@ -137,6 +138,7 @@ class Processor(APScript):
                         ]),
                         "Document chunk"
                         )
+                    self.full(page_text)
                     tk = self.personality.model.tokenize(page_text)
                     self.step_end(f"Comprerssing.. [depth {depth}]")
                     self.full(output+f"\n\n## Summerized chunk text:\n{page_text}")
@@ -152,8 +154,10 @@ class Processor(APScript):
                     f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                     f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                 ]),
-                "Document chunk"
+                "Document chunk",
+                callback=self.sink
                 )
+            self.full(page_text)
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
@@ -171,8 +175,10 @@ class Processor(APScript):
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
             ]),
-            "Document chunk"
+            "Document chunk",
+            callback=self.sink
             )
+        self.full(page_text)
 
         self.step_start(f"Last composition")
         page_text = self.summerize(document_chunks,"\n".join([
@@ -185,9 +191,10 @@ class Processor(APScript):
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
             ]),
-            "Document chunk"
+            "Document chunk",
+            callback=self.sink
             )
-
+        self.full(page_text)
         self.step_end(f"Last composition")
 
         if self.personality_config.output_path:
