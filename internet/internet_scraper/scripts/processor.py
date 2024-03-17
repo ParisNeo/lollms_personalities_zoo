@@ -32,6 +32,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used."},
+                {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
+                {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
                 {"name":"buttons_to_press","type":"str","value":"'accept'", "help":"Buttons to be pressed in the pages you want to load."},
@@ -91,20 +93,24 @@ class Processor(APScript):
             f.write(text)
             
     def search_and_zip(self, query,  output =""):
-        pages = internet_search(query, self.personality.config, buttons_to_press=self.personality_config.buttons_to_press)
+        pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
         for page in pages:
-            tk = self.personality.model.tokenize(document_text)
+            if self.personality_config.quick_search:
+                page_text = f"page_title: {page['title']}\npage_brief:{page['brief']}"
+            else:
+                page_text = f"page_title: {page['title']}\npage_content:{page['content']}"
+            tk = self.personality.model.tokenize(page_text)
             self.step_start(f"summerizing {page['title']}")
             if len(tk)<int(self.personality_config.zip_size):
-                    document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                    page_text = self.summerize([page_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
             else:
                 depth=0
                 while len(tk)>int(self.personality_config.zip_size):
                     self.step_start(f"Comprerssing.. [depth {depth}]")
                     chunk_size = int(self.personality.config.ctx_size*0.6)
-                    document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                    document_text = self.summerize(document_chunks,"\n".join([
+                    document_chunks = DocumentDecomposer.decompose_document(page_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
+                    page_text = self.summerize(document_chunks,"\n".join([
                             f"Summerize the document chunk and do not add any comments after the summary.",
                             "The summary should contain exclusively information from the document chunk.",
                             "Do not provide opinions nor extra information that is not in the document chunk",
@@ -118,12 +124,12 @@ class Processor(APScript):
                         ]),
                         "Document chunk"
                         )
-                    tk = self.personality.model.tokenize(document_text)
+                    tk = self.personality.model.tokenize(page_text)
                     self.step_end(f"Comprerssing.. [depth {depth}]")
-                    self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
+                    self.full(output+f"\n\n## Summerized chunk text:\n{page_text}")
                     depth += 1
             self.step_start(f"Last composition")
-            document_text = self.summerize(document_chunks,"\n".join([
+            page_text = self.summerize(document_chunks,"\n".join([
                     f"Rewrite this document in a better way while respecting the following guidelines:",
                     f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                     f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -138,9 +144,9 @@ class Processor(APScript):
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
-            processed_pages += f"{page['title']}\n{document_text}"
+            processed_pages += f"{page['title']}\n{page_text}"
 
-        document_text = self.summerize(processed_pages,"\n".join([
+        page_text = self.summerize(processed_pages,"\n".join([
                 f"Summerize the document chunk and do not add any comments after the summary.",
                 "The summary should contain exclusively information from the document chunk.",
                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -156,7 +162,7 @@ class Processor(APScript):
             )
 
         self.step_start(f"Last composition")
-        document_text = self.summerize(document_chunks,"\n".join([
+        page_text = self.summerize(document_chunks,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -172,8 +178,8 @@ class Processor(APScript):
         self.step_end(f"Last composition")
 
         if self.personality_config.output_path:
-            self.save_text(document_text, Path(self.personality_config.output_path)/(page['title']+"_summary.txt"))
-        return document_text, output
+            self.save_text(page_text, Path(self.personality_config.output_path)/(page['title']+"_summary.txt"))
+        return page_text, output
                     
         
 
@@ -217,7 +223,10 @@ class Processor(APScript):
             self.personality.step_start("Crafting internet search query")
             query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
             self.personality.step_end("Crafting internet search query")
+
+            self.personality.step_start("Scraping (this may take time, so be patient) ....")
             self.search_and_zip(query)
+            self.personality.step_end("Scraping (this may take time, so be patient) ....")
         else:
             self.step_end("Understanding request")
             self.fast_gen(previous_discussion_text, callback=self.callback)
