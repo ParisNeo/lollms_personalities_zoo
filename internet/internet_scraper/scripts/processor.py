@@ -216,7 +216,7 @@ class Processor(APScript):
         This function will search for latest news, then regroup them by category
         """
         self.new_message("")
-        self.full("")
+        self.chunk("")
         self.step_start("Performing internet search")
         pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         self.step_end("Performing internet search")
