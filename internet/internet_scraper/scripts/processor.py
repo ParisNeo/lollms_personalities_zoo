@@ -1,5 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
+from lollms.utilities import PackageManager
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
 from lollms.internet import internet_search
@@ -10,6 +11,11 @@ from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
 from datetime import datetime
+
+if not PackageManager.check_package_installed("feedparser"):
+    PackageManager.install_package("feedparser")
+
+import feedparser
 # Helper functions
 class Processor(APScript):
     """
@@ -31,6 +37,8 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                 
+                {"name":"rss_urls","type":"text","value":"", "help":"Here you can put rss feed address to recover data."},
                 {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used."},
                 {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
@@ -75,9 +83,9 @@ class Processor(APScript):
     def install(self):
         super().install()
         
-        # requirements_file = self.personality.personality_package_path / "requirements.txt"
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
-        # subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
@@ -217,13 +225,24 @@ class Processor(APScript):
         """
         self.new_message("")
         self.chunk("")
-        self.step_start("Performing internet search")
-        pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
-        self.step_end("Performing internet search")
-        self.full("\n".join([
-            "## Internet search done:",
-            "### Pages:",
-        ]+[f"<a href={p['url']}>{p['url']}</a>" for p in pages]))
+        if self.personality_config.search_query!="" or self.personality_config.rss_urls=="":
+            self.step_start("Performing internet search")
+            pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=True)
+            self.step_end("Performing internet search")
+            self.full("\n".join([
+                "## Internet search done:",
+                "### Pages:",
+            ]+[f"<a href={p['url']}>{p['url']}</a>" for p in pages]))
+        elif self.personality_config.rss_urls!="":
+            self.step_start("Recovering rss feeds")
+            rss_feeds = self.personality_config.rss_urls.split(",")
+            for rss_feed in rss_feeds:
+                feed = feedparser.parse(rss_feed)
+                self.step_end("Recovering rss feeds")
+                self.full("\n".join([
+                    "## Internet search done:",
+                    "### Pages:",
+                ]+[f"<a href={p.link}>{p.title}</a>" for p in feed.entries]))
         self.new_message("## Building categories")
         
 
