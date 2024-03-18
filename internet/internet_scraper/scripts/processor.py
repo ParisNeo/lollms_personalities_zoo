@@ -232,17 +232,19 @@ class Processor(APScript):
             self.full("\n".join([
                 "## Internet search done:",
                 "### Pages:",
-            ]+[f"<a href={p['url']}>{p['url']}</a>" for p in pages]))
+            ]+[f"<a href={p['url']} target=\"_blank\">{p['title']}</a><p>{p['brief']}</p>" for p in pages]))
         elif self.personality_config.rss_urls!="":
             self.step_start("Recovering rss feeds")
             rss_feeds = self.personality_config.rss_urls.split(",")
+            self.step_end("Recovering rss feeds")
+            links = []
             for rss_feed in rss_feeds:
                 feed = feedparser.parse(rss_feed)
-                self.step_end("Recovering rss feeds")
-                self.full("\n".join([
-                    "## Internet search done:",
-                    "### Pages:",
-                ]+[f"<a href={p.link}>{p.title}</a>" for p in feed.entries]))
+                links += [f"<a href={p.link} target=\"_blank\">{p.title}</a><p>{p.description}</p>" for p in feed.entries]
+            self.full("\n".join([
+                "## Internet search done:",
+                "### Pages:",
+            ]+links))
         self.new_message("## Building categories")
         
 
