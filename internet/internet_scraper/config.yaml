@@ -71,3 +71,6 @@ commands:
   - name: Start scraping
     value: start_scraping
     help: Starts scraping internet and zipping the outputs
+  - name: Build latest News article
+    value: scrape_news
+    help: Starts scraping internet and building news about recent events

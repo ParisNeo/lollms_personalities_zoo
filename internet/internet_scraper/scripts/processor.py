@@ -62,6 +62,7 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                         "start_scraping":self.start_scraping
+                                        "scrape_news":self.scrape_news
                                     },
                                     "default": None
                                 },                           
@@ -209,6 +210,22 @@ class Processor(APScript):
             self.search_and_zip(self.personality_config.search_query)
         else:
             self.info("Please put a search query in the search query setting of this personality.")
+
+    def scrape_news(self, prompt="", full_context=""):
+        """
+        This function will search for latest news, then regroup them by category
+        """
+        self.new_message("")
+        self.step_start("Performing internet search")
+        pages = internet_search("", self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
+        self.step_end("Performing internet search")
+        self.full("".join([
+            "## Internet search done:",
+            "### Pages:",
+        ]+[f"<a href={p['url']}>{p['url']}</a>" for p in pages]))
+        self.new_message("## Building categories")
+        
+
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
