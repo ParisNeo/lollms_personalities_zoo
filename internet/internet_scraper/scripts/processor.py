@@ -61,7 +61,7 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
-                                        "start_scraping":self.start_scraping
+                                        "start_scraping":self.start_scraping,
                                         "scrape_news":self.scrape_news
                                     },
                                     "default": None
@@ -217,9 +217,9 @@ class Processor(APScript):
         """
         self.new_message("")
         self.step_start("Performing internet search")
-        pages = internet_search("", self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
+        pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         self.step_end("Performing internet search")
-        self.full("".join([
+        self.full("\n".join([
             "## Internet search done:",
             "### Pages:",
         ]+[f"<a href={p['url']}>{p['url']}</a>" for p in pages]))
