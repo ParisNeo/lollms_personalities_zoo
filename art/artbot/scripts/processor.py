@@ -5,7 +5,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager
 from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
@@ -64,8 +64,9 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
+                {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
                 {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
@@ -104,7 +105,6 @@ class Processor(APScript):
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
 
-                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api"},
                 {"name":"quality","type":"str","value":"standard", "options":["standard","hd"],"help":"The quality of Dalle generated files."},                
    
             ]
@@ -370,6 +370,8 @@ class Processor(APScript):
                 self.full(metadata_infos)
                 
             elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
+                if not PackageManager.check_package_installed("openai"):
+                    PackageManager.install_package("openai")
                 import openai
                 openai.api_key = self.personality_config.config["openai_key"]
                 if self.personality_config.generation_engine=="dall-e-2":

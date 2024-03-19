@@ -24,6 +24,10 @@ import urllib.parse
 
 from typing import Callable
 
+from PIL import Image
+from io import BytesIO
+
+
 class AIBuildingRequestData(BaseModel):
     ai_name: str
     ai_author: str
@@ -63,6 +67,8 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
@@ -120,11 +126,6 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
-
-        # Clone repository
-        if not self.sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-
         self.prepare()
         ASCIIColors.success("Installed successfully")
 
@@ -348,30 +349,118 @@ class Processor(APScript):
             ui=""
             for img in range(self.personality_config.num_images):
                 self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file, infos = self.sd.paint(
-                                sd_prompt, 
-                                sd_negative_prompt,
-                                [],
-                                sampler_name = self.personality_config.sampler_name,
-                                seed = self.personality_config.seed,
-                                scale = self.personality_config.scale,
-                                steps = self.personality_config.steps,
-                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                                width = 512,
-                                height = 512,
-                                restore_faces = True,
-                            )
-                if file is None:
-                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
-                    continue
-                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file = str(file)
+                if self.personality_config.generation_engine=="stable_diffusion":
+                    file, infos = self.sd.paint(
+                                    sd_prompt, 
+                                    sd_negative_prompt,
+                                    [],
+                                    sampler_name = self.personality_config.sampler_name,
+                                    seed = self.personality_config.seed,
+                                    scale = self.personality_config.scale,
+                                    steps = self.personality_config.steps,
+                                    img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                    width = 512,
+                                    height = 512,
+                                    restore_faces = True,
+                                )
+                    if file is None:
+                        self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
+                        continue
+                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
+                    file = str(file)
 
-                files.append(file)
-                escaped_url =  file_path_to_url(file)
-                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
-                ui += file_html
-                self.full(f'\n![]({escaped_url})')
+                    files.append(file)
+                    escaped_url =  file_path_to_url(file)
+                    file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
+                    ui += file_html
+                    self.full(f'\n![]({escaped_url})')
+                elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
+                    import openai
+                    openai.api_key = self.personality_config.config["openai_key"]
+                    if self.personality_config.generation_engine=="dall-e-2":
+                        supported_resolutions = [
+                            [512, 512],
+                            [1024, 1024],
+                        ]
+                        # Find the closest resolution
+                        closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
+                        
+                    else:
+                        supported_resolutions = [
+                            [1024, 1024],
+                            [1024, 1792],
+                            [1792, 1024]
+                        ]
+                        # Find the closest resolution
+                        if self.personality_config.width>self.personality_config.height:
+                            closest_resolution = [1792, 1024]
+                        elif self.personality_config.width<self.personality_config.height: 
+                            closest_resolution = [1024, 1792]
+                        else:
+                            closest_resolution = [1024, 1024]
+
+
+                    # Update the width and height
+                    self.personality_config.width = closest_resolution[0]
+                    self.personality_config.height = closest_resolution[1]                    
+
+                    if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
+                        # Read the image file from disk and resize it
+                        image = Image.open(self.personality.image_files[0])
+                        width, height = self.personality_config.width, self.personality_config.height
+                        image = image.resize((width, height))
+
+                        # Convert the image to a BytesIO object
+                        byte_stream = BytesIO()
+                        image.save(byte_stream, format='PNG')
+                        byte_array = byte_stream.getvalue()
+                        response = openai.images.create_variation(
+                            image=byte_array,
+                            n=1,
+                            model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
+                            size=f"{self.personality_config.width}x{self.personality_config.height}"
+                        )
+                    else:
+
+                        response = openai.images.generate(
+                            model=self.personality_config.generation_engine,
+                            prompt=sd_positive_prompt.strip(),
+                            quality="standard",
+                            size=f"{self.personality_config.width}x{self.personality_config.height}",
+                            n=1,
+                            
+                            )
+                    infos = {
+                        "title":sd_title,
+                        "prompt":self.previous_sd_positive_prompt,
+                        "negative_prompt":""
+                    }
+                    # download image to outputs
+                    output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    image_url = response.data[0].url
+
+                    # Get the image data from the URL
+                    response = requests.get(image_url)
+
+                    if response.status_code == 200:
+                        # Generate the full path for the image file
+                        file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
+
+                        # Save the image to the specified folder
+                        with open(file_name, "wb") as file:
+                            file.write(response.content)
+                        ASCIIColors.yellow(f"Image saved to {file_name}")
+                    else:
+                        ASCIIColors.red("Failed to download the image")
+                    file = str(file_name)
+
+                    url = "/"+file[file.index("outputs"):].replace("\\","/")
+                    file_html = self.make_selectable_photo(Path(file).stem, url, infos)
+                    files.append("/"+file[file.index("outputs"):].replace("\\","/"))
+                    ui += file_html
+                    metadata_infos += f'\n![]({url})'
+                    self.full(metadata_infos)                    
 
         except Exception as ex:
             try:
