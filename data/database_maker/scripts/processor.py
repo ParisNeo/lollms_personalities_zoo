@@ -190,16 +190,16 @@ class Processor(APScript):
                 processed_chunks += 1
                 self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 # Build the prompt text with placeholders
-                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mention the text itself in your questions. Make sure you format the output using Markdown so it appears as a regular list without numbers.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions and tasks to further explore the contents of the given text chunks:\n- "
+                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mention the text itself in your questions. Make sure you format the output using Markdown with each question or task placed in a separate paragraph starting with __P__.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions and tasks to further explore the contents of the given text chunks:\n__P__"
                 # Ask AI to generate questions
-                generated_text = "- "+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
+                generated_text = "__P__"+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
                 # Split the generated text into lines and accumulate into questions_vector
-                generated_lines = generated_text.strip().split("\n")
-                generated_lines = [q[2:] if q.startswith("- ") else q for q in generated_lines]
+                generated_lines = generated_text.strip().split("__P__")
+                generated_lines = [q.replace("__P__","") for q in generated_lines]
                 generated_lines = [remove_indexing_from_markdown(q) for q in generated_lines]
                 questions_vector.extend(generated_lines)
                 self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
-                output += "\n- ".join(generated_lines) + "\n"
+                output += "\n<".join(generated_lines) + "\n"
                 self.full(output)
             
             self.step_start(f"Saving questions for future use")
@@ -231,14 +231,18 @@ Valid answers:
             prompt_text = """!@>chunk: {{chunk}}
 !@>instructions:
 Interpret the textual data contained within the chunk thoroughly to answer the corresponding instruction/task presented alongside it.
-If the information stored in this chunk does not suffice to provide categorically accurate answers, please indicate accordingly by stating "insufficient information".
-All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated. 
+If the information stored in this chunk does not suffice to provide categorically accurate answers, please answer exactly __UNSUFFICIENT_INFORMATION__.
+All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated.
+Do not mention the chunks, assume you are generating training data for an AI to learn from without data.
 It is crucial to maintain strict adherence to the content delineated in each instance of interaction.
+Be precise and helpful.
 !@>question: {{question}}
 !@>answer: """
             # !@>chunk: {{chunk}}\n!@>instruction: Please use the text chunks to answer the following question:\n\n!@>question: {{question}}\n\n!@>answer: "
             # Ask AI to generate an answer
             answer = self.fast_gen(prompt_text, max_generation_size=self.personality_config.answer_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
+            if "UNSUFFICIENT_INFORMATION" in answer:
+                continue
             qna_list.append({
                 "conditionning":"Act as LoLLMs expert and answer the following questions.",
                 "question":question,
