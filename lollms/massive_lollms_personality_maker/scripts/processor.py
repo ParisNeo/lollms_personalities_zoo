@@ -75,12 +75,6 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
-
-        # Clone repository
-        if not self.sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-
-        self.prepare()
         ASCIIColors.success("Installed successfully")
 
 

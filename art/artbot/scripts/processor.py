@@ -170,8 +170,7 @@ class Processor(APScript):
         ASCIIColors.red(" *-*-*-*-*-*-*-*")
 
     def install(self):
-        super().install()
-        
+        super().install()        
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
