@@ -222,10 +222,9 @@ class Processor(APScript):
         else:
             self.info("Please put a search query in the search query setting of this personality.")
 
-    def scrape_news(self, prompt="", full_context=""):
-        """
-        This function will search for latest news, then regroup them by category
-        """
+
+
+    def recover_all_rss_feeds(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
         if output_folder=="":
             self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
@@ -234,7 +233,6 @@ class Processor(APScript):
         if not output_folder.exists():
             self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
             return
-        
         self.new_message("")
         self.chunk("")
         if self.personality_config.search_query!="" or self.personality_config.rss_urls=="":
@@ -274,8 +272,52 @@ class Processor(APScript):
             ]+links)
             ASCIIColors.yellow("Done URLs recovery")
             self.full(output)
-        self.new_message("## Building categories")
+
+
+    def categorize_news(self):
+        output_folder = self.personality_config.output_folder
+        if output_folder=="":
+            self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        output_folder = Path(output_folder)
+        if not output_folder.exists():
+            self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        self.new_message("")
+        self.chunk("")
+        self.step_start("Categorizing articles")
+        with open(output_folder/"news_data.json","r") as f:
+            feeds = json.load(f)
+            cats = [c.strip() for c in self.personality_config.categories.split(",")]
+            categorized ={
+                cat:[]
+                for cat in cats
+            }
+            for feed in feeds:
+                for entry in feed:
+                    answer = self.multichoice_question("What category suits this article information the most", cats,f"Title: {entry['title']}\nContent:\n{entry['description'] if hasattr(entry, 'description') else ''}\n")
+                    categorized[cats[answer]].append(entry)
+                    self.full(f'''
+Article classified as : {cats[answer]}
+<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+    <h3 style="margin-top: 0;">
+        <a href="{entry['link']}" target="_blank" style="text-decoration: none; color: #333;">{entry['title']}</a>
+    </h3>
+    <p style="color: #666;">{entry['description'] if hasattr(entry, 'description') else ''}</p>
+</div>
+                    ''')
         
+        with open(output_folder/"news_data_categorized.json","r") as f:
+            json.dump(categorized, f)
+        self.step_end("Categorizing articles")
+
+    def scrape_news(self, prompt="", full_context=""):
+        """
+        This function will search for latest news, then regroup them by category
+        """
+        self.recover_all_rss_feeds()
+        self.categorize_news()
+
 
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
