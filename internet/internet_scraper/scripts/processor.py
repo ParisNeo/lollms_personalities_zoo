@@ -248,12 +248,13 @@ class Processor(APScript):
             nb_feeds=0
             for rss_feed in rss_feeds:
                 feed = feedparser.parse(rss_feed)
-                feeds.append(feed.entries)
+                feeds.append([])
                 to_remove=[]
                 for p in feed.entries:
                     nb_feeds += 1
                     if nb_feeds>=self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
                         break
+                    feeds[-1].append(p)
                     content = p['summary'] if 'summary' in p else p['description'] if 'description' in p else ''
                     if content!="":
                         card = f'''
