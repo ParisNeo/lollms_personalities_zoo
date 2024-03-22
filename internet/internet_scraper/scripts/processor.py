@@ -41,13 +41,15 @@ class Processor(APScript):
                 {"name":"output_folder","type":"str","value":"", "help":"The folder where all the files will be stored"},
                  
                 {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used. This automatically deactivates the rss, if you want the rss to work, then please empty this"},
-                {"name":"rss_urls","type":"text","value":"https://feeds.bbci.co.uk/news/rss.xml, http://rss.cnn.com/rss/cnn_topstories.rss, https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml, https://www.theguardian.com/world/rss, https://www.reuters.com/rssfeed/topNews, http://feeds.foxnews.com/foxnews/latest, https://www.aljazeera.com/xml/rss/all.xml, https://feeds.a.dj.com/rss/RSSWorldNews.xml, https://feeds.npr.org/1001/rss.xml, https://www.bloomberg.com/politics/feeds/site.xml", "help":"Here you can put rss feed address to recover data."},
+                {"name":"rss_urls","type":"text","value":"https://feeds.bbci.co.uk/news/rss.xml, http://rss.cnn.com/rss/cnn_topstories.rss, https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml, https://www.theguardian.com/world/rss, https://www.reuters.com/rssfeed/topNews, http://feeds.foxnews.com/foxnews/latest, https://www.aljazeera.com/xml/rss/all.xml, https://www.bloomberg.com/politics/feeds/site.xml", "help":"Here you can put rss feed address to recover data."},
                 {"name":"categories","type":"text","value":"World News,Entertainment,Sport,Technology,Education,Medicine,Space,R&D,Politics,Music,Business", "help":"The list of categories to help the AI organize the news."},
+                {"name":"nb_rss_feed_pages","type":"int","value":5, "help":"the maximum number of rss feed pages to search"},
+                {"name":"rss_scraping_type","type":"str","value":"quick","options":["quick","deep"], "help":"quick uses only the breafs to build the summary and the deep will scrape data from the website"},
                 {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
-                {"name":"buttons_to_press","type":"str","value":"", "help":"Buttons to be pressed in the pages you want to load. A comma separated text that can be seen on the button to press. The buttons will be pressed sequencially"},
+                {"name":"buttons_to_press","type":"str","value":"I agree,accept", "help":"Buttons to be pressed in the pages you want to load. A comma separated text that can be seen on the button to press. The buttons will be pressed sequencially"},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
@@ -103,9 +105,11 @@ class Processor(APScript):
     def save_text(self, text, path:Path):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
-            
+
     def search_and_zip(self, query,  output =""):
+        self.step_start("Performing internet search")
         pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
+        pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=True)
         processed_pages = ""
         for page in pages:
             if self.personality_config.quick_search:
@@ -235,15 +239,7 @@ class Processor(APScript):
             return
         self.new_message("")
         self.chunk("")
-        if self.personality_config.search_query!="" or self.personality_config.rss_urls=="":
-            self.step_start("Performing internet search")
-            pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=True)
-            self.step_end("Performing internet search")
-            self.full("\n".join([
-                "## Internet search done:",
-                "### Pages:",
-            ]+[f"<a href=\"{p['url']}\" target=\"_blank\">{p['title']}</a><p>{p['brief']}</p>" for p in pages]))
-        elif self.personality_config.rss_urls!="":
+        if self.personality_config.rss_urls!="":
             self.step_start("Recovering rss feeds")
             rss_feeds = [feed.strip() for feed in self.personality_config.rss_urls.split(",")]
             self.step_end("Recovering rss feeds")
@@ -252,18 +248,26 @@ class Processor(APScript):
             for rss_feed in rss_feeds:
                 feed = feedparser.parse(rss_feed)
                 feeds.append(feed.entries)
+                to_remove=[]
                 for p in feed.entries:
-                    card = f'''
+                    content = p['summary'] if 'summary' in p else p['description'] if 'description' in p else ''
+                    if content!="":
+                        card = f'''
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
         <a href="{p.link}" target="_blank" style="text-decoration: none; color: #333;">{p.title}</a>
     </h3>
-    <p style="color: #666;">{p.description if hasattr(p, 'description') else ''}</p>
+    <p style="color: #666;">{content}</p>
 </div>
-                    '''
-                    links.append(card)
+                        '''
+                        links.append(card)
+                    else:
+                        to_remove.append(p)
+                for r in to_remove:
+                    feed.entries.remove(r)
             # Save
             with open(output_folder/"news_data.json","w") as f:
+                feeds = [feed for feed_pack in feeds for feed in feed_pack]
                 json.dump(feeds, f)
             # build output
             output = "\n".join([
@@ -273,8 +277,72 @@ class Processor(APScript):
             ASCIIColors.yellow("Done URLs recovery")
             self.full(output)
 
+    def fuse_articles(self, prompt="", full_context=""):
+        output_folder = self.personality_config.output_folder
+        if output_folder=="":
+            self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        output_folder = Path(output_folder)
+        if not output_folder.exists():
+            self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        self.new_message("")
+        self.chunk("")
+        self.step_start("Fusing articles")
+        with open(output_folder/"news_data.json","r") as f:
+            feeds = json.load(f)
+        self.step_end("Fusing articles")
+        total_entries = len(feeds)
+        subjects = []
+        processed=[]
+        previous_output =""
+        for index,feed in enumerate(feeds):
+            if not feed in processed:
+                subjects.append([feed])
+                progress = (index / total_entries) * 100
+                content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
+                for second_index, second_feed in enumerate(feeds):
+                    second_progress = (second_index / total_entries) * 100
+                    second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['description'] if 'description' in second_feed else  ''
+                    answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
+                    out = f'''
+<b>Processing article : {feed['title']}</b>
+<div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
+    <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
+</div>
+<b>Comparing article : {second_feed['title']}</b>
+<div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
+    <div style="width: {second_progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
+</div>    
+<b>{'same' if answer else 'different'}<b><br>
+'''+previous_output
+                    self.full(out)
+                    if answer:
+                        subjects[-1].append(second_feed)
+                        processed.append(feed)
+                        ASCIIColors.yellow(f"{feed['title']} and {second_feed['title']} are the same.")
+                previous_output = "**Fused subjects**"
+                for feed in subjects[-1]:
+                    content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
+                    previous_output+=f'''
+<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+    <h3 style="margin-top: 0;">
+        <a href="{feed['link']}" target="_blank" style="text-decoration: none; color: #333;">{feed['title']}</a>
+    </h3>
+    <p style="color: #666;">{content}</p>
+</div>
+                    '''
+                out = f'''
+<b>Processing article : {feed['title']}</b>
+<div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
+    <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
+</div>    
+'''+previous_output
+                self.full(out)
 
-    def categorize_news(self):
+
+
+    def categorize_news(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
         if output_folder=="":
             self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
@@ -293,7 +361,6 @@ class Processor(APScript):
                 cat:[]
                 for cat in cats
             }
-            feeds = [feed for feed_pack in feeds for feed in feed_pack]
             total_entries = len(feeds)
             for index,feed in enumerate(feeds):
                 progress = (index / total_entries) * 100
@@ -321,6 +388,7 @@ Article classified as : {cats[answer]}
         This function will search for latest news, then regroup them by category
         """
         self.recover_all_rss_feeds()
+        self.fuse_articles()
         self.categorize_news()
 
 
