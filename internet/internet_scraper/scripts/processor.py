@@ -307,7 +307,7 @@ Article classified as : {cats[answer]}
 </div>
                     ''')
         
-        with open(output_folder/"news_data_categorized.json","r") as f:
+        with open(output_folder/"news_data_categorized.json","w") as f:
             json.dump(categorized, f)
         self.step_end("Categorizing articles")
 
