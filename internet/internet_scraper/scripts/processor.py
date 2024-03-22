@@ -11,6 +11,7 @@ from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
 from datetime import datetime
+import json
 
 if not PackageManager.check_package_installed("feedparser"):
     PackageManager.install_package("feedparser")
@@ -37,9 +38,11 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
+                {"name":"output_folder","type":"str","value":"", "help":"The folder where all the files will be stored"},
                  
-                {"name":"rss_urls","type":"text","value":"", "help":"Here you can put rss feed address to recover data."},
-                {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used."},
+                {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used. This automatically deactivates the rss, if you want the rss to work, then please empty this"},
+                {"name":"rss_urls","type":"text","value":"https://www.reutersagency.com/feed/?post_type=best, http://feeds.bbci.co.uk/news/rss.xml, http://rss.cnn.com/rss/cnn_topstories.rss, https://www.theguardian.com/world/rss, https://www.aljazeera.com/xml/rss/all.xml, https://feeds.npr.org/1001/rss.xml, https://www.huffpost.com/section/front-page/feed, https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml, http://feeds.washingtonpost.com/rss/world, https://www.economist.com/international/rss.xml", "help":"Here you can put rss feed address to recover data."},
+                {"name":"categories","type":"text","value":"World News,Entertainment,Sport,Technology,Education,Medicine,Space,R&D,Politics,Music,Business", "help":"The list of categories to help the AI organize the news."},
                 {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
@@ -223,6 +226,15 @@ class Processor(APScript):
         """
         This function will search for latest news, then regroup them by category
         """
+        output_folder = self.personality_config.output_folder
+        if output_folder=="":
+            self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        output_folder = Path(output_folder)
+        if not output_folder.exists():
+            self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
+            return
+        
         self.new_message("")
         self.chunk("")
         if self.personality_config.search_query!="" or self.personality_config.rss_urls=="":
@@ -232,19 +244,36 @@ class Processor(APScript):
             self.full("\n".join([
                 "## Internet search done:",
                 "### Pages:",
-            ]+[f"<a href={p['url']} target=\"_blank\">{p['title']}</a><p>{p['brief']}</p>" for p in pages]))
+            ]+[f"<a href=\"{p['url']}\" target=\"_blank\">{p['title']}</a><p>{p['brief']}</p>" for p in pages]))
         elif self.personality_config.rss_urls!="":
             self.step_start("Recovering rss feeds")
-            rss_feeds = self.personality_config.rss_urls.split(",")
+            rss_feeds = [feed.strip() for feed in self.personality_config.rss_urls.split(",")]
             self.step_end("Recovering rss feeds")
             links = []
+            feeds = []
             for rss_feed in rss_feeds:
                 feed = feedparser.parse(rss_feed)
-                links += [f"<a href={p.link} target=\"_blank\">{p.title}</a><p>{p.description}</p>" for p in feed.entries]
-            self.full("\n".join([
+                feeds.append(feed.entries)
+                for p in feed.entries:
+                    card = f'''
+<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+    <h3 style="margin-top: 0;">
+        <a href="{p.link}" target="_blank" style="text-decoration: none; color: #333;">{p.title}</a>
+    </h3>
+    <p style="color: #666;">{p.description if hasattr(p, 'description') else ''}</p>
+</div>
+                    '''
+                    links.append(card)
+            # Save
+            with open(output_folder/"news_data.json","w") as f:
+                json.dump(feeds, f)
+            # build output
+            output = "\n".join([
                 "## Internet search done:",
                 "### Pages:",
-            ]+links))
+            ]+links)
+            ASCIIColors.yellow("Done URLs recovery")
+            self.full(output)
         self.new_message("## Building categories")
         
 
