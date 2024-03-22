@@ -293,17 +293,22 @@ class Processor(APScript):
                 cat:[]
                 for cat in cats
             }
-            for feed in feeds:
-                for entry in feed:
-                    answer = self.multichoice_question("What category suits this article information the most", cats,f"Title: {entry['title']}\nContent:\n{entry['description'] if hasattr(entry, 'description') else ''}\n")
-                    categorized[cats[answer]].append(entry)
-                    self.full(f'''
+            feeds = [feed for feed_pack in feeds for feed in feed_pack]
+            total_entries = len(feeds)
+            for index,feed in enumerate(feeds):
+                progress = (index / total_entries) * 100
+                answer = self.multichoice_question("What category suits this article information the most", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
+                categorized[cats[answer]].append(feed)
+                self.full(f'''
 Article classified as : {cats[answer]}
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
-        <a href="{entry['link']}" target="_blank" style="text-decoration: none; color: #333;">{entry['title']}</a>
+        <a href="{feed['link']}" target="_blank" style="text-decoration: none; color: #333;">{feed['title']}</a>
     </h3>
-    <p style="color: #666;">{entry['description'] if hasattr(entry, 'description') else ''}</p>
+    <p style="color: #666;">{feed['description'] if hasattr(feed, 'description') else ''}</p>
+    <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
+        <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
+    </div>    
 </div>
                     ''')
         
