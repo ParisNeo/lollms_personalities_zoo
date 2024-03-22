@@ -245,7 +245,11 @@ class Processor(APScript):
             self.step_end("Recovering rss feeds")
             links = []
             feeds = []
+            nb_feeds=0
             for rss_feed in rss_feeds:
+                nb_feeds += 1
+                if nb_feeds>=self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
+                    break
                 feed = feedparser.parse(rss_feed)
                 feeds.append(feed.entries)
                 to_remove=[]
@@ -364,7 +368,7 @@ class Processor(APScript):
             total_entries = len(feeds)
             for index,feed in enumerate(feeds):
                 progress = (index / total_entries) * 100
-                answer = self.multichoice_question("What category suits this article information the most", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
+                answer = self.multichoice_question("Determine the category that suits this article the most.", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
                 categorized[cats[answer]].append(feed)
                 self.full(f'''
 Article classified as : {cats[answer]}
