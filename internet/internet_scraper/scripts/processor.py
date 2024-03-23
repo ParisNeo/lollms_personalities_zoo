@@ -398,7 +398,7 @@ class Processor(APScript):
             prompt +="Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\n!@>summary:\n"
             gen = self.fast_gen(prompt, callback=self.sink)
                 
-            title = self.fast_gen(f"!@>system:generate a title for this article\n!@>content:{gen}\n!@>info: Don't make any comments, just do the summary.Don't write the article summary, just the title.\n!@>title:", callback=self.sink)
+            title = self.fast_gen(f"!@>system:Generate a conceise yet eye catching title for this article.\nInfo: No comments, just provide a comprehensive and informative summary.\n!@>content:{gen}\n!@>title:", callback=self.sink)
             themes['title']={
                 'title':title,
                 'thumbnails':thumbnails,
