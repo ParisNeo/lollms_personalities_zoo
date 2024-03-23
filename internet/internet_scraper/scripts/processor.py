@@ -346,7 +346,7 @@ class Processor(APScript):
                     if not second_feed in processed:
                         second_progress = ((second_index+1) / total_entries) * 100
                         second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['brief'] if 'brief' in second_feed  else second_feed['description'] if 'description' in second_feed else ''
-                        answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
+                        answer = self.yes_no("Based on these two articles, are they covering the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
                         out = f'''
 <b>Processing article : {feed['title']}</b>
 <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
