@@ -331,26 +331,28 @@ class Processor(APScript):
                 progress = ((index+1) / total_entries) * 100
                 content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
                 for second_index, second_feed in enumerate(feeds):
-                    second_progress = ((second_index+1) / total_entries) * 100
-                    second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['description'] if 'description' in second_feed else  ''
-                    answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
-                    thumbneil="<div>"
-                    out = f'''
+                    if not second_feed in processed:
+                        second_progress = ((second_index+1) / total_entries) * 100
+                        second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['description'] if 'description' in second_feed else  ''
+                        answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
+                        out = f'''
 <b>Processing article : {feed['title']}</b>
 <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
     <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
 </div>
-<b>Comparing article : {second_feed['title']}</b>
+<b>Comparing to : {second_feed['title']}</b>
 <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
     <div style="width: {second_progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
 </div>    
 <b>{'same' if answer else 'different'}<b><br>
 '''+previous_output
-                    self.full(out)
-                    if answer:
-                        subjects[-1].append(second_feed)
-                        processed.append(feed)
-                        ASCIIColors.yellow(f"{feed['title']} and {second_feed['title']} are the same.")
+                        self.full(out)
+                        if answer:
+                            subjects[-1].append(second_feed)
+                            processed.append(feed)
+                            ASCIIColors.yellow(f"{feed['title']} and {second_feed['title']} are the same.")
+                
+                
                 previous_output = "<b>Fused subjects</b>"
                 for feed in subjects[-1]:
                     content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
