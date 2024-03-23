@@ -42,7 +42,7 @@ class Processor(APScript):
                  
                 {"name":"search_query","type":"text","value":"", "help":"Here you can put custom search query to be used. This automatically deactivates the rss, if you want the rss to work, then please empty this"},
                 {"name":"rss_urls","type":"text","value":"https://feeds.bbci.co.uk/news/rss.xml, http://rss.cnn.com/rss/cnn_topstories.rss, https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml, https://www.theguardian.com/world/rss, https://www.reuters.com/rssfeed/topNews, http://feeds.foxnews.com/foxnews/latest, https://www.aljazeera.com/xml/rss/all.xml, https://www.bloomberg.com/politics/feeds/site.xml", "help":"Here you can put rss feed address to recover data."},
-                {"name":"categories","type":"text","value":"World News,Entertainment,Sport,Technology,Education,Medicine,Space,R&D,Politics,Music,Business", "help":"The list of categories to help the AI organize the news."},
+                {"name":"categories","type":"text","value":"World News,Entertainment,Sport,Technology,Education,Medicine,Space,R&D,Politics,Music,Business,Peaple", "help":"The list of categories to help the AI organize the news."},
                 {"name":"nb_rss_feed_pages","type":"int","value":5, "help":"the maximum number of rss feed pages to search"},
                 {"name":"rss_scraping_type","type":"str","value":"quick","options":["quick","deep"], "help":"quick uses only the breafs to build the summary and the deep will scrape data from the website"},
                 {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
@@ -227,6 +227,24 @@ class Processor(APScript):
             self.info("Please put a search query in the search query setting of this personality.")
 
 
+    def generate_thumbnail_html(self, feed):
+        thumbnails = feed.get('media_thumbnail',[])
+        
+        thumbnail_html = ''
+        for thumbnail in thumbnails:
+            url = thumbnail['url']
+            width = thumbnail['width']
+            height = thumbnail['height']
+            
+            thumbnail_html += f'<img src="{url}" width="{width}" height="{height}" alt="Thumbnail" style="margin-right: 10px;">'
+        
+        card_html = f'''
+<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+    {thumbnail_html}
+</div>
+        '''
+        return card_html
+
 
     def recover_all_rss_feeds(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
@@ -256,13 +274,16 @@ class Processor(APScript):
                         break
                     feeds[-1].append(p)
                     content = p['summary'] if 'summary' in p else p['description'] if 'description' in p else ''
+                    thumbnail_html = self.generate_thumbnail_html(p)
                     if content!="":
                         card = f'''
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
         <a href="{p.link}" target="_blank" style="text-decoration: none; color: #333;">{p.title}</a>
     </h3>
-    <p style="color: #666;">{content}</p>
+{thumbnail_html}    
+
+<p style="color: #666;">{content}</p>
 </div>
                         '''
                         links.append(card)
@@ -307,12 +328,13 @@ class Processor(APScript):
         for index,feed in enumerate(feeds):
             if not feed in processed:
                 subjects.append([feed])
-                progress = (index / total_entries) * 100
+                progress = ((index+1) / total_entries) * 100
                 content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
                 for second_index, second_feed in enumerate(feeds):
-                    second_progress = (second_index / total_entries) * 100
+                    second_progress = ((second_index+1) / total_entries) * 100
                     second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['description'] if 'description' in second_feed else  ''
                     answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
+                    thumbneil="<div>"
                     out = f'''
 <b>Processing article : {feed['title']}</b>
 <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
@@ -329,7 +351,7 @@ class Processor(APScript):
                         subjects[-1].append(second_feed)
                         processed.append(feed)
                         ASCIIColors.yellow(f"{feed['title']} and {second_feed['title']} are the same.")
-                previous_output = "**Fused subjects**"
+                previous_output = "<b>Fused subjects</b>"
                 for feed in subjects[-1]:
                     content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
                     previous_output+=f'''
@@ -371,7 +393,7 @@ class Processor(APScript):
             }
             total_entries = len(feeds)
             for index,feed in enumerate(feeds):
-                progress = (index / total_entries) * 100
+                progress = ((index+1) / total_entries) * 100
                 answer = self.multichoice_question("Determine the category that suits this article the most.", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
                 categorized[cats[answer]].append(feed)
                 self.full(f'''
