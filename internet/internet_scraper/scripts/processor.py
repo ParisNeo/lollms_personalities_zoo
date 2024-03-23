@@ -234,9 +234,18 @@ class Processor(APScript):
         
         thumbnail_html = ''
         for thumbnail in thumbnails:
-            url = thumbnail['url']
-            width = thumbnail['width']
-            height = thumbnail['height']
+            try:
+                url = thumbnail['url']
+            except:
+                continue
+            try:
+                width = thumbnail['width']
+            except:
+                width = 500
+            try:
+                height = thumbnail['height']
+            except:
+                height = 200
             
             thumbnail_html += f'<img src="{url}" width="{width}" height="{height}" alt="Thumbnail" style="margin-right: 10px;">'
         
@@ -332,11 +341,11 @@ class Processor(APScript):
                 processed.append(feed)
                 subjects.append([feed])
                 progress = ((index+1) / total_entries) * 100
-                content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
+                content = feed['summary'] if 'summary' in feed else feed['brief'] if 'brief' in feed  else feed['description'] if 'description' in feed else ''
                 for second_index, second_feed in enumerate(feeds):
                     if not second_feed in processed:
                         second_progress = ((second_index+1) / total_entries) * 100
-                        second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['description'] if 'description' in second_feed else  ''
+                        second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['brief'] if 'brief' in second_feed  else second_feed['description'] if 'description' in second_feed else ''
                         answer = self.yes_no("Are those two articles talking about the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
                         out = f'''
 <b>Processing article : {feed['title']}</b>
@@ -382,7 +391,7 @@ class Processor(APScript):
         themes = {}
         out = ""
         for subject_bundle in subjects:
-            prompt = "!@>system: Summerize the current article snippets.\n"
+            prompt = "!@>system: As an authoritative figure in the designated category, provide an in-depth analysis of the document's content, summarizing key points while highlighting any notable trends, patterns, or relevant context. Consider the document's source, credibility, and potential biases, while incorporating your expertise and insights to deliver a comprehensive and engaging summary.\n"
             thumbnails = []
             urls = []
             for feed in subject_bundle:
