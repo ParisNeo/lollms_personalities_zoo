@@ -3,7 +3,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.utilities import PackageManager
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
-from lollms.internet import internet_search
+from lollms.internet import internet_search, scrape_and_save
 from typing import Callable
 
 from safe_store.generic_data_loader import GenericDataLoader
@@ -109,7 +109,6 @@ class Processor(APScript):
     def search_and_zip(self, query,  output =""):
         self.step_start("Performing internet search")
         pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
-        pages = internet_search("Latest news" if self.personality_config.search_query=="" else self.personality_config.search_query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=True)
         processed_pages = ""
         for page in pages:
             if self.personality_config.quick_search:
@@ -388,13 +387,18 @@ class Processor(APScript):
             urls = []
             for feed in subject_bundle:
                 content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
-                prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
                 thumbnails += feed.get('media_thumbnail',[])
                 urls.append(feed['link'])
+                if self.personality_config.rss_scraping_type=="quick":
+                    prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
+                else:
+                    content = scrape_and_save(feed['link'])
+                    prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
             prompt +="Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\n!@>summary:\n"
             gen = self.fast_gen(prompt, callback=self.sink)
-            title = self.fast_gen(f"!@>system:generate a title for this article\n!@>content:{gen}\n!@>info: Don't make any comments, just do the summary.\n!@>title:", callback=self.sink)
+                
+            title = self.fast_gen(f"!@>system:generate a title for this article\n!@>content:{gen}\n!@>info: Don't make any comments, just do the summary.Don't write the article summary, just the title.\n!@>title:", callback=self.sink)
             themes['title']={
                 'title':title,
                 'thumbnails':thumbnails,
