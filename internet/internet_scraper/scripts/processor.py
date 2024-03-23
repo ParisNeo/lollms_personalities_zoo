@@ -302,8 +302,8 @@ class Processor(APScript):
                 json.dump(feeds, f)
             # build output
             output = "\n".join([
-                "## Internet search done:",
-                "### Pages:",
+                "## RSS feeds recovered:",
+                "### News:",
             ]+links)
             ASCIIColors.yellow("Done URLs recovery")
             self.full(output)
