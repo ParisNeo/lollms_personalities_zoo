@@ -299,7 +299,7 @@ class Processor(APScript):
             # Save
             with open(output_folder/"news_data.json","w") as f:
                 feeds = [feed for feed_pack in feeds for feed in feed_pack]
-                json.dump(feeds, f)
+                json.dump(feeds, f,indent=4)
             # build output
             output = "\n".join([
                 "## RSS feeds recovered:",
@@ -424,7 +424,7 @@ class Processor(APScript):
             out +=card
             self.full(out)
         with open(output_folder/"fused.json","w") as f:
-            json.dump(themes,f)
+            json.dump(themes,f,indent=4)
 
         
 
@@ -466,7 +466,7 @@ Article classified as : {cats[answer]}
                     ''')
         
         with open(output_folder/"news_data_categorized.json","w") as f:
-            json.dump(categorized, f)
+            json.dump(categorized, f,indent=4)
         self.step_end("Categorizing articles")
 
     def scrape_news(self, prompt="", full_context=""):
