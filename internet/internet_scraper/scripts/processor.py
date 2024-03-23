@@ -228,7 +228,10 @@ class Processor(APScript):
 
 
     def generate_thumbnail_html(self, feed):
-        thumbnails = feed.get('media_thumbnail',[])
+        if type(feed)==list:
+            thumbnails = feed
+        else:
+            thumbnails = feed.get('media_thumbnail',[])
         
         thumbnail_html = ''
         for thumbnail in thumbnails:
@@ -327,6 +330,7 @@ class Processor(APScript):
         previous_output =""
         for index,feed in enumerate(feeds):
             if not feed in processed:
+                processed.append(feed)
                 subjects.append([feed])
                 progress = ((index+1) / total_entries) * 100
                 content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
@@ -373,6 +377,52 @@ class Processor(APScript):
                 self.full(out)
 
 
+
+
+
+        themes = {}
+        out = ""
+        for subject_bundle in subjects:
+            prompt = "!@>system: Summerize the current article snippets.\n"
+            thumbnails = []
+            urls = []
+            for feed in subject_bundle:
+                content = feed['summary'] if 'summary' in feed else feed['description'] if 'description' in feed else ''
+                prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
+                thumbnails += feed.get('media_thumbnail',[])
+                urls.append(feed['link'])
+
+            prompt +="Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\n!@>summary:\n"
+            gen = self.fast_gen(prompt, callback=self.sink)
+            title = self.fast_gen(f"!@>system:generate a title for this article\n!@>content:{gen}\n!@>info: Don't make any comments, just do the summary.\n!@>title:", callback=self.sink)
+            themes['title']={
+                'title':title,
+                'thumbnails':thumbnails,
+                'content':gen
+            }
+            thumbnail_html = self.generate_thumbnail_html(thumbnails)
+            card = f'''
+<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+    <h3 style="margin-top: 0;">
+        <a href="{urls[0]}" target="_blank" style="text-decoration: none; color: #333;">{title}</a>
+    </h3>
+{thumbnail_html}    
+<p style="color: #666;">{gen}</p>
+<h4>Sources:</h4>
+'''
+            for url in urls:
+                 card+=f'''
+<a href="{url}" target="_blank" style="text-decoration: none; color: #333;">{url}</a>
+'''
+            card+=f'''
+</div>
+                        '''
+            out +=card
+            self.full(out)
+        with open(output_folder/"fused.json","w") as f:
+            json.dump(themes,f)
+
+        
 
     def categorize_news(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
