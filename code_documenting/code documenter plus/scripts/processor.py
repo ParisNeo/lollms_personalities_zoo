@@ -228,7 +228,7 @@ class Processor(APScript):
             try:
                 with open(file_path, 'r') as file:
                     source_code = file.read()
-                summary = self.summerize([source_code],"Summerize the objective of this code. Keep the main idea of the functionality of the code in the summary",Path(file_path).stem,"Here is a summary of the provided code:\n")
+                summary = self.summerize_text(source_code,"Summerize the objective of this code. Keep the main idea of the functionality of the code in the summary",Path(file_path).stem,"Here is a summary of the provided code:\n")
                 doc =  self.parse_python_code(source_code)
                 extra_path1 = file_path.relative_to(str(project_path))
                 output_file_path = docs_dir / extra_path1

@@ -47,6 +47,7 @@ class Processor(APScript):
                 {"name":"rss_scraping_type","type":"str","value":"quick","options":["quick","deep"], "help":"quick uses only the breafs to build the summary and the deep will scrape data from the website"},
                 {"name":"nb_search_pages","type":"int","value":5, "help":"the maximum number of pages to search"},
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
+                {"name":"summary_mode","type":"str","value":"RAG", "options":["RAG","Full Summary"], "help":"If Rag is used then the AI will search for useful data before summerizing, else it's gonna read the whole page before summary. The first is faster, but the second allows accessing the whole information without compromize."},                
                 {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
                 {"name":"buttons_to_press","type":"str","value":"I agree,accept", "help":"Buttons to be pressed in the pages you want to load. A comma separated text that can be seen on the button to press. The buttons will be pressed sequencially"},
@@ -108,8 +109,14 @@ class Processor(APScript):
 
     def search_and_zip(self, query,  output =""):
         self.step_start("Performing internet search")
+        self.chunk("")
         pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
+        if len(pages)==0:
+            self.full("Failed to do internet search!!")
+            self.step_end("Performing internet search",False)
+            return
+        self.step_end("Performing internet search")
         for page in pages:
             if self.personality_config.quick_search:
                 page_text = f"page_title: {page['title']}\npage_brief:{page['brief']}"
@@ -117,70 +124,50 @@ class Processor(APScript):
                 page_text = f"page_title: {page['title']}\npage_content:{page['content']}"
             tk = self.personality.model.tokenize(page_text)
             self.step_start(f"summerizing {page['title']}")
-            if len(tk)<int(self.personality_config.zip_size):
-                    page_text = self.summerize(document_chunks,"\n".join([
-                            f"Extract from the document any information related to the query. Write the output as a short article.",
-                            "The summary should contain exclusively information from the document chunk.",
-                            "Do not provide opinions nor extra information that is not in the document chunk",
-                            f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                            f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                            f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                            f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                            f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                            f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                            f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                            f"!@>query: {query}"
-                        ]),
-                        "Document chunk"
-                        )
-                    self.full(page_text)
+            if len(tk)<int(self.personality_config.zip_size) or self.personality_config.summary_mode!="RAG":
+                page_text = self.summerize_text(page_text,"\n".join([
+                                f"Extract from the document any information related to the query. Write the output as a short article.",
+                                "The summary should contain exclusively information from the document chunk.",
+                                "Do not provide opinions nor extra information that is not in the document chunk",
+                                f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                                f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                                f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                                f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                                f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                                f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                                f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                                f"!@>query: {query}"
+                            ]),
+                            "Document chunk"
+                            )
+                self.full(page_text)
             else:
-                depth=0
-                while len(tk)>int(self.personality_config.zip_size):
-                    self.step_start(f"Comprerssing.. [depth {depth}]")
-                    chunk_size = int(self.personality.config.ctx_size*0.6)
-                    document_chunks = DocumentDecomposer.decompose_document(page_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                    page_text = self.summerize(document_chunks,"\n".join([
-                            f"Extract from the document any information related to the query. Write the output as a short article.",
-                            "The summary should contain exclusively information from the document chunk.",
-                            "Do not provide opinions nor extra information that is not in the document chunk",
-                            f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                            f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                            f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                            f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                            f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                            f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                            f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                            f"!@>query: {query}"
-                        ]),
-                        "Document chunk"
-                        )
-                    self.full(page_text)
-                    tk = self.personality.model.tokenize(page_text)
-                    self.step_end(f"Comprerssing.. [depth {depth}]")
-                    self.full(output+f"\n\n## Summerized chunk text:\n{page_text}")
-                    depth += 1
-            self.step_start(f"Last composition")
-            page_text = self.summerize(document_chunks,"\n".join([
-                    f"Rewrite this document in a better way while respecting the following guidelines:",
-                    f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                    f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                    f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                    f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                    f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                    f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                    f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                ]),
-                "Document chunk",
-                callback=self.sink
-                )
+                chunks, sim = self.vectorize_and_query(page['content'], query)
+                content = "\n".join(chunks)
+                page_text = f"page_title:\n{page['title']}\npage_content:\n{content}"
+                page_text = self.summerize_text(page_text,"\n".join([
+                        f"Extract from the document any information related to the query. Write the output as a short article.",
+                        "The summary should contain exclusively information from the document chunk.",
+                        "Do not provide opinions nor extra information that is not in the document chunk",
+                        f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                        f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                        f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                        f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                        f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                        f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                        f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                        f"!@>query: {query}"
+                    ]),
+                    "Document chunk"
+                    )
+                self.full(page_text)
             self.full(page_text)
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
             processed_pages += f"{page['title']}\n{page_text}"
 
-        page_text = self.summerize(processed_pages,"\n".join([
+        page_text = self.summerize_text(processed_pages,"\n".join([
                 f"Extract from the document any information related to the query. Write the output as a short article.",
                 "The summary should contain exclusively information from the document chunk.",
                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -199,7 +186,7 @@ class Processor(APScript):
         self.full(page_text)
 
         self.step_start(f"Last composition")
-        page_text = self.summerize(page_text,"\n".join([
+        page_text = self.summerize_text(page_text,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -405,7 +392,8 @@ class Processor(APScript):
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
                 else:
                     content = scrape_and_save(feed['link'])
-                    content = self.summerize([content],"summerize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
+
+                    content = self.summerize_text(content,"summerize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
             prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.\n!@>Today date:{datetime.now()}\n!@>summary:\n"
@@ -442,8 +430,6 @@ class Processor(APScript):
 
         with open(output_folder/"fused.json","w") as f:
             json.dump(themes,f,indent=4)
-
-        
 
     def categorize_news(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
@@ -494,8 +480,6 @@ Article classified as : {cats[answer]}
         self.fuse_articles()
         self.categorize_news()
 
-
-
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
@@ -528,7 +512,7 @@ Article classified as : {cats[answer]}
             self.step_end("Understanding request")
             self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
-            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
+            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
             self.personality.step_end("Crafting internet search query")
 
             self.personality.step_start("Scraping (this may take time, so be patient) ....")

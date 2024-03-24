@@ -399,7 +399,7 @@ class Processor(APScript):
             self.new_message("")
             self.full(summary_text)
             if self.personality_config.make_survey:
-                summary = self.summerize([str(report)],f"create a summary where you keep the author names, the title of the article and any thing important related to the prompt:\nprompt:{query}","summary")
+                summary = self.summerize_text(str(report),f"create a summary where you keep the author names, the title of the article and any thing important related to the prompt:\nprompt:{query}","summary")
                 summary_latex = self.fast_gen(f"!@>instruction: Write a survey article out of the information provided below about the subject. Use academic style and cite the contributions.\nInput:\n{summary}\nOutput format : a complete latex document that should compile without errors and should contain inline bibliography\n!@>Output:\n```latex\n")
                 with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
                     f.write(summary_latex)

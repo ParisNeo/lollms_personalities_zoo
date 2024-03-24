@@ -92,14 +92,14 @@ class Processor(APScript):
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
         if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
                 self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize(document_chunks,"\n".join([
+                document_text = self.summerize_chunks(document_chunks,"\n".join([
                         f"Summerize the document chunk and do not add any comments after the summary.",
                         "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
@@ -118,7 +118,7 @@ class Processor(APScript):
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
         self.step_start(f"Last composition")
-        document_text = self.summerize(document_chunks,"\n".join([
+        document_text = self.summerize_chunks(document_chunks,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",

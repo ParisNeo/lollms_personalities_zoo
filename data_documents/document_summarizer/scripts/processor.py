@@ -108,7 +108,7 @@ class Processor(APScript):
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
         if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
@@ -153,28 +153,8 @@ class Processor(APScript):
         document_text = GenericDataLoader.read_file(document_path)
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
-        if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize([document_text],"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
-        else:
-            depth=0
-            while len(tk)>int(self.personality_config.zip_size):
-                self.step_start(f"Comprerssing.. [depth {depth}]")
-                chunk_size = int(self.personality.config.ctx_size*0.6) if self.personality_config.chunk_size==0 else self.personality_config.chunk_size
-                document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize(document_chunks,"\n".join([
-                        f"Summerize the document chunk and do not add any comments after the summary.",
-                        "If you detect the document title in this chunks do not strip it aout and just keep it in the summary.",
-                        "The summary should contain exclusively information from the document chunk.",
-                        "Do not provide opinions nor extra information that is not in the document chunk",
-                        "!@>discussion:",
-                        previous_discussion
-                    ]),
-                    "!@>Document chunk"
-                    )
-                tk = self.personality.model.tokenize(document_text)
-                self.step_end(f"Comprerssing.. [depth {depth}]")
-                self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
-                depth += 1
+        document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+        self.step_end(f"summerizing {document_path.stem}")
         self.step_start(f"Last composition")
         document_text = self.fast_gen("\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
