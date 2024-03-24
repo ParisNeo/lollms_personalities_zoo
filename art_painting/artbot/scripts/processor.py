@@ -5,7 +5,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager, find_next_available_filename
 from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
@@ -16,22 +16,6 @@ from typing import Dict, Any, Callable
 from pathlib import Path
 from PIL import Image
 from io import BytesIO
-
-# Helper functions
-def find_next_available_filename(folder_path, prefix):
-    folder = Path(folder_path)
-
-    if not folder.exists():
-        raise FileNotFoundError(f"The folder '{folder}' does not exist.")
-
-    index = 1
-    while True:
-        next_filename = f"{prefix}_{index}.png"
-        potential_file = folder / next_filename
-        if not potential_file.exists():
-            return potential_file
-        index += 1
-
 
 class Processor(APScript):
     """

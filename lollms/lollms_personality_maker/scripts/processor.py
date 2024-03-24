@@ -10,7 +10,7 @@ from lollms.services.sd.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, find_next_available_filename
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
 
@@ -326,20 +326,21 @@ class Processor(APScript):
                 "!@>context:",
                 discussion_messages,
                 f"!@>name: {name}",
+                f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
                 f"!@>icon imaginer : An (((icon))) of a "
             ],5
         )
         sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
-        output_text+=f"- `icon sd_prompt`:\n{sd_prompt}\n\n"
+        output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
         self.full(output_text)
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
 
         sd_negative_prompt = self.personality_config.default_negative_prompt
-        output_text+=f"- `icon sd_negative_prompt`:\n{sd_negative_prompt}\n\n"
+        output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.full(output_text)
 
         self.new_message("")
@@ -404,37 +405,21 @@ class Processor(APScript):
                     self.personality_config.width = closest_resolution[0]
                     self.personality_config.height = closest_resolution[1]                    
 
-                    if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
-                        # Read the image file from disk and resize it
-                        image = Image.open(self.personality.image_files[0])
-                        width, height = self.personality_config.width, self.personality_config.height
-                        image = image.resize((width, height))
+                    # Read the image file from disk and resize it
+                    image = Image.open(self.personality.image_files[0])
+                    width, height = self.personality_config.width, self.personality_config.height
+                    image = image.resize((width, height))
 
-                        # Convert the image to a BytesIO object
-                        byte_stream = BytesIO()
-                        image.save(byte_stream, format='PNG')
-                        byte_array = byte_stream.getvalue()
-                        response = openai.images.create_variation(
-                            image=byte_array,
-                            n=1,
-                            model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
-                            size=f"{self.personality_config.width}x{self.personality_config.height}"
-                        )
-                    else:
-
-                        response = openai.images.generate(
-                            model=self.personality_config.generation_engine,
-                            prompt=sd_positive_prompt.strip(),
-                            quality="standard",
-                            size=f"{self.personality_config.width}x{self.personality_config.height}",
-                            n=1,
-                            
-                            )
-                    infos = {
-                        "title":sd_title,
-                        "prompt":self.previous_sd_positive_prompt,
-                        "negative_prompt":""
-                    }
+                    # Convert the image to a BytesIO object
+                    byte_stream = BytesIO()
+                    image.save(byte_stream, format='PNG')
+                    byte_array = byte_stream.getvalue()
+                    response = openai.images.create_variation(
+                        image=byte_array,
+                        n=1,
+                        model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
+                        size=f"{self.personality_config.width}x{self.personality_config.height}"
+                    )
                     # download image to outputs
                     output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
                     output_dir.mkdir(parents=True, exist_ok=True)
@@ -600,8 +585,8 @@ class Processor(APScript):
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|.]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
-        output_text+=f"- `name`: {name}\n\n"
-        self.full(output_text)
+        Infos_text = ""
+        Infos_text+=f"<b>Name</b>: {name}<br>"
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -610,13 +595,11 @@ class Processor(APScript):
         except:
             author = "lpm"
         # ----------------------------------------------------------------
-        output_text+=f"- `author`: {author}\n\n"
-        self.full(output_text)
+        Infos_text+=f"<b>Author</b>: {author}<br>"
         
         # ----------------------------------------------------------------
         version = "1.0" 
-        output_text+=f"- `version`: {version}\n\n"
-        self.full(output_text)
+        Infos_text+=f"<b>Version</b>: {version}<br>"
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -637,8 +620,7 @@ class Processor(APScript):
         self.step_end("Coming up with the category")
         category = re.sub(r'[\\/:*?"<>|.]', '', category)
         ASCIIColors.yellow(f"Category:{category}")
-        output_text+=f"- `category`: {category}\n\n"
-        self.full(output_text)
+        Infos_text+=f"<b>Category</b>: {category}<br>"
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -662,10 +644,12 @@ class Processor(APScript):
         self.step_end("Coming up with the language")
         language = re.sub(r'[\\/:*?"<>|.]', '', language)
         ASCIIColors.yellow(f"Language:{language}")
-        output_text+=f"- `language`: {language}\n\n"
-        self.full(output_text)
+        Infos_text+=f"<b>Language</b>: {language}<br>"
         # ----------------------------------------------------------------
         
+        output_text+=self.build_a_document_block('Infos',"",Infos_text)
+
+
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description")
         crafted_prompt = self.build_prompt(
@@ -684,7 +668,7 @@ class Processor(APScript):
         description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
-        output_text+=f"- `description`:\n{description}\n\n"
+        output_text+= self.build_a_document_block('description',"",description)
         self.full(output_text)
         # ----------------------------------------------------------------
         
@@ -707,7 +691,7 @@ class Processor(APScript):
         disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
-        output_text+=f"- `disclaimer`:\n{disclaimer}\n\n"
+        output_text+=self.build_a_document_block('disclaimer',"",disclaimer)
         self.full(output_text)
         # ----------------------------------------------------------------
 
@@ -723,13 +707,15 @@ class Processor(APScript):
                 context_details["discussion_messages"],
                 f"!@>personality language:{language}",
                 f"!@>conditionning builder: {name} is "
+                f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
+                f"!@>conditionning:",
             ],5
         )
-        conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","")
         conditioning = f"{name} is "+conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
-        output_text+=f"- `conditioning`:\n{conditioning}\n\n"
+        output_text+=self.build_a_document_block('conditioning',"",conditioning)
         self.full(output_text)
 
         # ----------------------------------------------------------------
@@ -740,15 +726,15 @@ class Processor(APScript):
                     "!@>system: Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
                     f"!@>user: Write a comprehensive personality conditionning text for {name} from this rough idea:",
                     f"{conditioning}",
-                    f"Be concise.",
+                    f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
                     f"!@>optimus:",
                 ]
             )
-            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","")
             conditioning = f"{name} is "+conditioning
             self.step_end("Coming up with the conditionning")
             ASCIIColors.yellow(f"Conditioning: {conditioning}")
-            output_text+=f"- `conditioning`:\n{conditioning}\n\n"
+            output_text+=self.build_a_document_block('refined conditioning',"",conditioning)
             self.full(output_text)
 
                  
@@ -774,7 +760,7 @@ class Processor(APScript):
         welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
-        output_text+=f"- `welcome_message`:\n{welcome_message}\n\n"
+        output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
         self.full(output_text)
         # ----------------------------------------------------------------
                          

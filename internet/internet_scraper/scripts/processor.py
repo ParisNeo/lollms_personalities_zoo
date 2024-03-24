@@ -421,7 +421,8 @@ class Processor(APScript):
 '''
             card+=f'''
 </div>
-                        '''
+'''
+            out += self.build_a_folder_link(self.personality_config.output_folder,"Open output folder")
             out +=card
             self.full(out)
         out = "<html><header></header><body>"+"\n"+out+"</body><html>"
