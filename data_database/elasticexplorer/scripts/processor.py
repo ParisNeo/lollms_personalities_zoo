@@ -143,8 +143,10 @@ class Processor(APScript):
                 self.step_end("Executing code")
             else:
                 break
-
             self.full(out)
+            self.chunk("")
+
+        self.full(out)
 
         return out
 
