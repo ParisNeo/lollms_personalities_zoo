@@ -67,7 +67,7 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["none (use default icon)","stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
@@ -126,7 +126,6 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
-        self.prepare()
         ASCIIColors.success("Installed successfully")
 
     def help(self, prompt="", full_context=""):
@@ -244,15 +243,16 @@ class Processor(APScript):
 
 
     def prepare(self):
-        if self.sd is None:
-            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-        model = self.sd.util_get_current_model()
-        if model!=self.personality_config.sd_model_name:
-            self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
-            self.sd.util_set_model(self.personality_config.sd_model_name,True)
-            self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+        if self.personality_config.generation_engine=="stable_diffusion":
+            if self.sd is None:
+                self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                self.sd = self.personality.app.sd if hasattr(self.personality.app, 'sd') else LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            model = self.sd.util_get_current_model()
+            if model!=self.personality_config.sd_model_name:
+                self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
+                self.sd.util_set_model(self.personality_config.sd_model_name,True)
+                self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
 
     def get_sd(self):
         
@@ -330,11 +330,12 @@ class Processor(APScript):
                 f"!@>icon imaginer : An (((icon))) of a "
             ],5
         )
-        sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().split("\n")[0]
+        sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
         self.full(output_text)
+        self.chunk("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -342,6 +343,7 @@ class Processor(APScript):
         sd_negative_prompt = self.personality_config.default_negative_prompt
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.full(output_text)
+        self.chunk("")
 
         self.new_message("")
         self.step_start("Painting Icon")
@@ -379,26 +381,9 @@ class Processor(APScript):
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
                     if self.personality_config.generation_engine=="dall-e-2":
-                        supported_resolutions = [
-                            [512, 512],
-                            [1024, 1024],
-                        ]
-                        # Find the closest resolution
-                        closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
-                        
+                        closest_resolution = [512, 512]
                     else:
-                        supported_resolutions = [
-                            [1024, 1024],
-                            [1024, 1792],
-                            [1792, 1024]
-                        ]
-                        # Find the closest resolution
-                        if self.personality_config.width>self.personality_config.height:
-                            closest_resolution = [1792, 1024]
-                        elif self.personality_config.width<self.personality_config.height: 
-                            closest_resolution = [1024, 1792]
-                        else:
-                            closest_resolution = [1024, 1024]
+                        closest_resolution = [1024, 1024]
 
 
                     # Update the width and height
@@ -406,46 +391,55 @@ class Processor(APScript):
                     self.personality_config.height = closest_resolution[1]                    
 
                     # Read the image file from disk and resize it
-                    image = Image.open(self.personality.image_files[0])
-                    width, height = self.personality_config.width, self.personality_config.height
-                    image = image.resize((width, height))
+                    if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
+                        image = Image.open(self.personality.image_files[0])
+                        width, height = self.personality_config.width, self.personality_config.height
+                        image = image.resize((width, height))
 
-                    # Convert the image to a BytesIO object
-                    byte_stream = BytesIO()
-                    image.save(byte_stream, format='PNG')
-                    byte_array = byte_stream.getvalue()
-                    response = openai.images.create_variation(
-                        image=byte_array,
-                        n=1,
-                        model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
-                        size=f"{self.personality_config.width}x{self.personality_config.height}"
-                    )
-                    # download image to outputs
-                    output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
-                    output_dir.mkdir(parents=True, exist_ok=True)
-                    image_url = response.data[0].url
-
-                    # Get the image data from the URL
-                    response = requests.get(image_url)
-
-                    if response.status_code == 200:
-                        # Generate the full path for the image file
-                        file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
-
-                        # Save the image to the specified folder
-                        with open(file_name, "wb") as file:
-                            file.write(response.content)
-                        ASCIIColors.yellow(f"Image saved to {file_name}")
+                        # Convert the image to a BytesIO object
+                        byte_stream = BytesIO()
+                        image.save(byte_stream, format='PNG')
+                        byte_array = byte_stream.getvalue()
+                        response = openai.images.create_variation(
+                            image=byte_array,
+                            n=1,
+                            model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
+                            size=f"{self.personality_config.width}x{self.personality_config.height}"
+                        )
                     else:
-                        ASCIIColors.red("Failed to download the image")
-                    file = str(file_name)
+                        response = openai.images.generate(
+                            model=self.personality_config.generation_engine,
+                            prompt=sd_prompt.strip(),
+                            quality="standard",
+                            size=f"{self.personality_config.width}x{self.personality_config.height}",
+                            n=1,
+                            
+                            )
+                        # download image to outputs
+                        output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
+                        output_dir.mkdir(parents=True, exist_ok=True)
+                        image_url = response.data[0].url
 
-                    url = "/"+file[file.index("outputs"):].replace("\\","/")
-                    file_html = self.make_selectable_photo(Path(file).stem, url, infos)
-                    files.append("/"+file[file.index("outputs"):].replace("\\","/"))
-                    ui += file_html
-                    metadata_infos += f'\n![]({url})'
-                    self.full(metadata_infos)                    
+                        # Get the image data from the URL
+                        response = requests.get(image_url)
+
+                        if response.status_code == 200:
+                            # Generate the full path for the image file
+                            file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
+
+                            # Save the image to the specified folder
+                            with open(file_name, "wb") as file:
+                                file.write(response.content)
+                            ASCIIColors.yellow(f"Image saved to {file_name}")
+                        else:
+                            ASCIIColors.red("Failed to download the image")
+                        file = str(file_name)
+                        files.append(file)
+                        escaped_url =  file_path_to_url(file)
+                        file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
+                        ui += file_html
+                        self.full(f'\n![]({escaped_url})')
+                        self.chunk("")
 
         except Exception as ex:
             try:
@@ -468,6 +462,7 @@ class Processor(APScript):
             file_path = self.make_selectable_photo(f"Artbot_{file_id}", files[i])
             ui += str(file_path)
             print(f"Generated file in here : {str(files[i])}")
+
         if self.personality_config.make_scripted:
             ui += f"""
             <a href="#" onclick="openCodeFolder()"> Click here to open the script folder of the persona</a>
@@ -518,7 +513,8 @@ class Processor(APScript):
         server_path = "/outputs/"+str(self.personality_path)
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
-        output_text+=f"`- `personality path`: [{self.personality_path}]({server_path})\n\n"
+        
+        output_text+= self.build_a_folder_link(self.personality_path,"press this text to access personality path")
         self.full(output_text)
         self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
@@ -526,6 +522,9 @@ class Processor(APScript):
         self.assets_path.mkdir(parents=True, exist_ok=True)
         if len(files)>0:
             shutil.copy(files[-1], self.assets_path/"logo.png")
+        else:
+            shutil.copy(Path(__file__).parent.parent/"assets"/"lollms_logo.png", self.assets_path/"logo.png")
+
 
     def manual_building(self, prompt="", full_context=""):
         form_path = Path(__file__).parent.parent/"assets"/"edit_persona.html"
@@ -568,6 +567,7 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Coming up with the personality name")
+        self.chunk("")
         crafted_prompt = self.build_prompt(
             [
 
@@ -581,7 +581,7 @@ class Processor(APScript):
                 f"!@>qna: The chosen personality name is "
             ],6
         )
-        name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True).strip().split("\n")[0]
+        name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
         name = re.sub(r'[\\/:*?"<>|.]', '', name)
         ASCIIColors.yellow(f"Name:{name}")
@@ -616,7 +616,7 @@ class Processor(APScript):
                 f"!@>category maker: The chosen personality category is "
             ],6
         )        
-        category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the category")
         category = re.sub(r'[\\/:*?"<>|.]', '', category)
         ASCIIColors.yellow(f"Category:{category}")
@@ -640,7 +640,7 @@ class Processor(APScript):
                 f"!@>language: "
             ],3
         )
-        language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the language")
         language = re.sub(r'[\\/:*?"<>|.]', '', language)
         ASCIIColors.yellow(f"Language:{language}")
@@ -648,8 +648,8 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         
         output_text+=self.build_a_document_block('Infos',"",Infos_text)
-
-
+        self.full(output_text)
+        self.chunk("")
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description")
         crafted_prompt = self.build_prompt(
@@ -665,11 +665,12 @@ class Processor(APScript):
                 f"!@>description in {language}: "
             ],6
         )
-        description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
         output_text+= self.build_a_document_block('description',"",description)
         self.full(output_text)
+        self.chunk("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -688,11 +689,12 @@ class Processor(APScript):
                 f"!@>disclaimer in {language}: "
             ],7
         )
-        disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
         output_text+=self.build_a_document_block('disclaimer',"",disclaimer)
         self.full(output_text)
+        self.chunk("")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
@@ -711,13 +713,13 @@ class Processor(APScript):
                 f"!@>conditionning:",
             ],5
         )
-        conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","")
+        conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
         conditioning = f"{name} is "+conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
         output_text+=self.build_a_document_block('conditioning',"",conditioning)
         self.full(output_text)
-
+        self.chunk("")
         # ----------------------------------------------------------------
         if self.personality_config.optimize_prompt:
             self.step_start("Optimizing the prompt")
@@ -730,12 +732,13 @@ class Processor(APScript):
                     f"!@>optimus:",
                 ]
             )
-            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","")
+            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
             conditioning = f"{name} is "+conditioning
             self.step_end("Coming up with the conditionning")
             ASCIIColors.yellow(f"Conditioning: {conditioning}")
             output_text+=self.build_a_document_block('refined conditioning',"",conditioning)
             self.full(output_text)
+            self.chunk("")
 
                  
 
@@ -757,11 +760,12 @@ class Processor(APScript):
                 f"!@>personality welcome message in {language}: "
             ],5
         )
-        welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
         output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
         self.full(output_text)
+        self.chunk("")
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------
