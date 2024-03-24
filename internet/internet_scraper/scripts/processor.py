@@ -199,7 +199,7 @@ class Processor(APScript):
         self.full(page_text)
 
         self.step_start(f"Last composition")
-        page_text = self.summerize(document_chunks,"\n".join([
+        page_text = self.summerize(page_text,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -436,6 +436,10 @@ class Processor(APScript):
                         '''
             out +=card
             self.full(out)
+        out = "<html><header></header><body>"+"\n"+out+"</body><html>"
+        with open(output_folder/"news.html","w") as f:
+            f.write(out)
+
         with open(output_folder/"fused.json","w") as f:
             json.dump(themes,f,indent=4)
 
@@ -520,8 +524,9 @@ Article classified as : {cats[answer]}
 
         self.callback = callback
         self.step_start("Understanding request")
-        if self.yes_no("Is the user asking for doing internet search about a topic?", previous_discussion_text):
+        if self.yes_no("Is the user asking for information that requires verification using internet search?", previous_discussion_text):
             self.step_end("Understanding request")
+            self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
             query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink)
             self.personality.step_end("Crafting internet search query")
