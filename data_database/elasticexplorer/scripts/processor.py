@@ -122,7 +122,7 @@ class Processor(APScript):
                     header_text,
                     context_details["conditionning"],
                     context_details["discussion_messages"],
-                    "!@>ElasticExplorer:",
+                    "\n!@>ElasticExplorer:",
                     execution_output,
                 ],
                 2
@@ -141,7 +141,7 @@ class Processor(APScript):
                             output = self.execute_python(code, discussion.discussion_folder)
                         except Exception as ex:
                             output = ex
-                        execution_output += f"Output of script {i}:\n" + output
+                        execution_output += f"Output of script {i}:\n" + output +"\n!@>ElasticExplorer:"
                 self.step_end("Executing code")
             else:
                 break
