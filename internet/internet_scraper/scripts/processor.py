@@ -281,7 +281,7 @@ class Processor(APScript):
                 to_remove=[]
                 for p in feed.entries:
                     nb_feeds += 1
-                    if nb_feeds>=self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
+                    if nb_feeds>self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
                         break
                     feeds[-1].append(p)
                     content = p['summary'] if 'summary' in p else p['description'] if 'description' in p else ''
@@ -302,7 +302,7 @@ class Processor(APScript):
                         to_remove.append(p)
                 for r in to_remove:
                     feed.entries.remove(r)
-                if nb_feeds>=self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
+                if nb_feeds>self.personality_config.nb_rss_feed_pages and self.personality_config.nb_rss_feed_pages!=-1:
                     break
 
             # Save
@@ -346,7 +346,7 @@ class Processor(APScript):
                     if not second_feed in processed:
                         second_progress = ((second_index+1) / total_entries) * 100
                         second_content = second_feed['summary'] if 'summary' in second_feed else second_feed['brief'] if 'brief' in second_feed  else second_feed['description'] if 'description' in second_feed else ''
-                        answer = self.yes_no("Based on these two articles, are they covering the same subject?",f"Article 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
+                        answer = self.yes_no("Based on these two articles, are they covering the same subject? Two article are talking about the same subject if they are exposing the same event or the same context. Make sure you answer the ",f"Date:{datetime.now()}\nArticle 1 :\nTitle: {feed['title']}\nContent:\n{content}\nArticle 2 :\nTitle: {second_feed['title']}\nContent:\n{second_content}\n")
                         out = f'''
 <b>Processing article : {feed['title']}</b>
 <div style="width: 100%; height: 10px; background-color: #f0f0f0; border-radius: 5px; margin-top: 10px;">
@@ -361,7 +361,7 @@ class Processor(APScript):
                         self.full(out)
                         if answer:
                             subjects[-1].append(second_feed)
-                            processed.append(feed)
+                            processed.append(second_feed)
                             ASCIIColors.yellow(f"{feed['title']} and {second_feed['title']} are the same.")
                 
                 
@@ -402,12 +402,13 @@ class Processor(APScript):
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
                 else:
                     content = scrape_and_save(feed['link'])
+                    content = self.summerize([content],"summerize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
-            prompt +="Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\n!@>summary:\n"
+            prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.\n!@>Today date:{datetime.now()}\n!@>summary:\n"
             gen = self.fast_gen(prompt, callback=self.sink)
                 
-            title = self.fast_gen(f"!@>system:Generate a conceise yet eye catching title for this article.\nInfo: No comments, just provide a comprehensive and informative summary.\n!@>content:{gen}\n!@>title:", callback=self.sink)
+            title = self.fast_gen(f"!@>system: Generate a concise yet eye catching title for this article.\nInfo: No comments, just provide a comprehensive and informative summary.\n!@>Today date:{datetime.now()}\n!@>content:{gen}\n!@>title:", callback=self.sink)
             themes['title']={
                 'title':title,
                 'thumbnails':thumbnails,
