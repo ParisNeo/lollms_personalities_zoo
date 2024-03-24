@@ -33,11 +33,11 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"servers","type":"str","value":"https://localhost:9200", "help":"List of addresses of the server in form of ip or host name: port"},
+                {"name":"server","type":"str","value":"https://localhost:9200", "help":"List of addresses of the server in form of ip or host name: port"},
                 {"name":"index_name","type":"str","value":"", "help":"The index to be used for querying"},
                 {"name":"user","type":"str","value":"", "help":"The user name to connect to the database"},
                 {"name":"password","type":"str","value":"", "help":"The password to connect to the elastic search database"},
-
+                {"name":"max_execution_depth","type":"int","value":10, "help":"The maximum execution depth"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -63,10 +63,9 @@ class Processor(APScript):
         
     def install(self):
         super().install()
-        
-        # requirements_file = self.personality.personality_package_path / "requirements.txt"
+        requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
-        # subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+        subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
@@ -105,18 +104,47 @@ class Processor(APScript):
         """
         self.personality.info("Generating")
         self.callback = callback
+        header_text = f"!@>Extra infos:"
+        header_text += f"server:{self.personality_config.server}\n"
+        if self.personality_config.user!="" and self.personality_config.password!="":
+            header_text += f"user:{self.personality_config.user}\n"
+            header_text += f"password:{self.personality_config.password}\n"
+            header_text += f'es = Elasticsearch("{self.personality_config.server}", http_auth=("{self.personality_config.user}", "{self.personality_config.password}"), verify_certs=False)'
+        else:
+            header_text += f'es = Elasticsearch("{self.personality_config.server}", verify_certs=False)'
 
-        previous_discussion_text = f"!@>Extra infos:\nservers:{self.personality_config.servers}\nindex_name:"+previous_discussion_text
-        out = self.fast_gen(previous_discussion_text)
-        code_blocks = self.extract_code_blocks(out)
-        if len(code_blocks)>0:
-            out += "<b>Executing code</b><br>"
+        execution_output = ""
+        repeats=0
+        while repeats<self.personality_config.max_execution_depth:
+            repeats += 1
+            prompt = self.build_prompt(
+                [
+                    header_text,
+                    previous_discussion_text,
+                    execution_output,
+                ],
+                1
+            )
+            out = self.fast_gen(prompt, callback=self.sink)
+            previous_discussion_text += out
+            code_blocks = self.extract_code_blocks(out)
+            execution_output = ""
+            if len(code_blocks)>0:
+                self.step_start("Executing code")
+                for i in range(len(code_blocks)):
+                    if code_blocks[i]["type"]=="python":
+                        code = code_blocks[i]["content"].replace("\_","_")
+                        discussion:Discussion = self.personality.app.session.get_client(context_details["client_id"]).discussion 
+                        try:
+                            output = self.execute_python(code, discussion.discussion_folder)
+                        except Exception as ex:
+                            output = ex
+                        execution_output += f"Output of script {i}:\n" + output
+                self.step_end("Executing code")
+            else:
+                break
+
             self.full(out)
-            code = code[0]["content"].replace("\_","_")
-            discussion:Discussion = self.personality.app.session.get_client(context_details["client_id"]).discussion 
-            self.execute_python(code, discussion.discussion_folder,)
-
-        self.full(out)
 
         return out
 
