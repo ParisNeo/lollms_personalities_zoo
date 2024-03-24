@@ -128,6 +128,8 @@ class Processor(APScript):
                 2
             )
             out = self.fast_gen(prompt, callback=self.sink)
+            self.full(out)
+            self.chunk("")
             context_details["discussion_messages"] += "!@>ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""
@@ -145,8 +147,6 @@ class Processor(APScript):
                 self.step_end("Executing code")
             else:
                 break
-            self.full(out)
-            self.chunk("")
 
         self.full(out)
 
