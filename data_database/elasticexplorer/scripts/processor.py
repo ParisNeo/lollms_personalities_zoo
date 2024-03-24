@@ -120,13 +120,15 @@ class Processor(APScript):
             prompt = self.build_prompt(
                 [
                     header_text,
-                    previous_discussion_text,
+                    context_details["conditionning"],
+                    context_details["discussion_messages"],
+                    "!@>ElasticExplorer:",
                     execution_output,
                 ],
-                1
+                2
             )
             out = self.fast_gen(prompt, callback=self.sink)
-            previous_discussion_text += out
+            context_details["discussion_messages"] += "!@>ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""
             if len(code_blocks)>0:
