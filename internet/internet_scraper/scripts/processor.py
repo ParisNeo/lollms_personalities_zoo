@@ -59,6 +59,7 @@ class Processor(APScript):
                 {"name":"preserve_authors_name","type":"bool","value":False, "help":"Force the algorithm to preserve the authors names as an important information"},
                 {"name":"preserve_results","type":"bool","value":True, "help":"Force the algorithm to preserve the document results the authors names as an important information"},
                 {"name":"maximum_compression","type":"bool","value":False, "help":"Force the algorithm to compress the document as much as possible. Useful for what is this document talking about kind of summary"},
+                {"name":"keep_only_multi_articles_subjects","type":"bool","value":False, "help":"When this option is true, only articles that have more than one source are kept"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -376,7 +377,16 @@ class Processor(APScript):
 
 
 
-
+        try:
+            if self.personality_config.keep_only_multi_articles_subjects:
+                to_remove = []
+                for subject in subjects:
+                    if len(subject)<2:
+                        to_remove.append(subject)
+                for r in to_remove:
+                    subjects.remove(r)
+        except Exception as ex:
+            ASCIIColors.warning(f"Couldn't remove some subjects: {ex}")
 
         themes = {}
         out = ""
