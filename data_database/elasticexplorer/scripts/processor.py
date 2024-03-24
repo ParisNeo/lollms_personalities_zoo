@@ -115,6 +115,8 @@ class Processor(APScript):
 
         execution_output = ""
         repeats=0
+        output=""
+        out=""
         while repeats<self.personality_config.max_execution_depth:
             repeats += 1
             prompt = self.build_prompt(
@@ -127,6 +129,7 @@ class Processor(APScript):
                 ],
                 2
             )
+            prev_out = out
             out = self.fast_gen(prompt, callback=self.sink)
             self.full(out)
             self.chunk("")
@@ -148,7 +151,7 @@ class Processor(APScript):
             else:
                 break
 
-        self.full(out)
+        self.full(prev_out+'\n'+output+'\n'+out)
 
         return out
 
