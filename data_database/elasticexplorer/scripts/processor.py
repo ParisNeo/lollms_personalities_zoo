@@ -10,7 +10,26 @@ from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.databases.discussions_database import Discussion
 import subprocess
 from typing import Callable
+import sys
+import io
+def execute_code(code):
+    try:
+        captured_stdout = io.StringIO()
+        captured_stderr = io.StringIO()
+        sys.stdout = captured_stdout
+        sys.stderr = captured_stderr
 
+        exec(code, globals())
+
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+
+        return captured_stdout.getvalue(), captured_stderr.getvalue()
+
+    except Exception as e:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        return str(e), ''
 # Helper functions
 class Processor(APScript):
     """
@@ -104,7 +123,7 @@ class Processor(APScript):
         """
         self.personality.info("Generating")
         self.callback = callback
-        header_text = f"!@>Extra infos:"
+        header_text = f"!@>Extra infos:\n"
         header_text += f"server:{self.personality_config.server}\n"
         if self.personality_config.user!="" and self.personality_config.password!="":
             header_text += f"user:{self.personality_config.user}\n"
@@ -113,9 +132,15 @@ class Processor(APScript):
         else:
             header_text += f'es = Elasticsearch("{self.personality_config.server}", verify_certs=False)'
 
-        execution_output = ""
+        execution_output = "\n".join([
+                    "!@>Requirements:",
+                    "Make sure to write the whole code in a single code block.",
+                    "Make sure you import all required libraries.",
+                    "Respond with a single fully contained python code.",
+                    "Only answer with the code without any explanation.",
+                    "Try to use elasticsearch-dsl when possible."
+        ])
         repeats=0
-        output=""
         out=""
         while repeats<self.personality_config.max_execution_depth:
             repeats += 1
@@ -124,11 +149,6 @@ class Processor(APScript):
                     header_text,
                     context_details["conditionning"],
                     context_details["discussion_messages"],
-                    "Use the output either to fix the code or to answer the user."
-                    "Make sure to write the whole code in a single code block.",
-                    "Make sure you import all required libraries.",
-                    "Respond with a single fully contained python code.",
-                    "Put your explanation as comments in the code.",   
                     execution_output,
                     "\n!@>ElasticExplorer:",
                 ],
@@ -136,27 +156,42 @@ class Processor(APScript):
             )
             prev_out = out
             out = self.fast_gen(prompt, callback=self.sink)
-            self.full(out)
             self.chunk("")
             context_details["discussion_messages"] += "!@>ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""
             if len(code_blocks)>0:
                 self.step_start("Executing code")
+                nb_codes = 0
                 for i in range(len(code_blocks)):
                     if code_blocks[i]["type"]=="python":
+                        nb_codes += 1
                         code = code_blocks[i]["content"].replace("\_","_")
                         discussion:Discussion = self.personality.app.session.get_client(context_details["client_id"]).discussion 
                         try:
-                            output = self.execute_python(code, discussion.discussion_folder)
+                            stdout, stderr = execute_code(code)
+
+                            execution_output += f"Output of script {i}:\n" + stdout +"\n"+f"\n" + stderr +"\n"+"\n".join([
+                                "!@>Requirements:",
+                                "Ignore warnings.",
+                                "If the output is satisfactory then answer the user request without using any python code block. If the output contains a json put it inside a json code tag.",
+                                "If an error is detected, fix the code then answer with the full fixed code in a single block and do not provide explanations.",
+                            ])
                         except Exception as ex:
-                            output = f"Exception: {ex}\n"
-                        execution_output += f"Output of script {i}:\n" + output +"\n!@>ElasticExplorer:"
+                            execution_output += f"Error detected in script {i}:\n" + ex +"\n"+"\n".join([
+                                    "!@>Requirements:",
+                                    "Using the error, fix the code.",
+                                    "Answer with the full fixed code.",
+                                    "Do not provide explanations.",
+                                ])
+                if nb_codes == 0:
+                    break
                 self.step_end("Executing code")
             else:
                 break
+            self.full(prev_out+'\n'+out+'\n'+self.build_a_document_block("Script output", "", stdout))
 
-        self.full(prev_out+'\n'+self.build_a_document_block("Script output","",output)+'\n'+out)
+        self.full(prev_out+'\n'+self.build_a_document_block("Script output", "", stdout)+'\n'+out)
 
         return out
 
