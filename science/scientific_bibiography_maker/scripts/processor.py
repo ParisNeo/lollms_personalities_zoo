@@ -195,7 +195,7 @@ class Processor(APScript):
         }        
         relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b>\n{relevance_explanation}'  if relevance_score>float(self.personality_config.relevance_check_severiry) else f'<p style="color: gray;">{relevance}</p>' 
         fn = str(file_name).replace('\\','/')
-        articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<b>File</b>:{self.build_a_file_link(fn,document_file_name)}\n\nRelevance:\n{relevance}\n\n")
+        articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
         self.full("\n".join(articles_checking_text))
         report.append(report_entry)
         return True
@@ -255,6 +255,7 @@ class Processor(APScript):
             keywords = self.fast_gen("\n".join([
                 "!@>system:",
                 "Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.",
+                "Answer with only the keywords and do not make any comments.",
                 "!@>user prompt: {{initial_prompt}}",
                 "!@>query: "
             ]), self.personality_config.max_generation_prompt_size, {
@@ -268,7 +269,7 @@ class Processor(APScript):
                 keywords=query
         else:
             keywords=query
-        articles_checking_text.append(f"### Keywords :\n{keywords}\n")
+        articles_checking_text.append(self.build_a_document_block("Keywords","",keywords))
         self.full("\n".join(articles_checking_text))
         
         self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
@@ -283,7 +284,7 @@ class Processor(APScript):
             search_results =[]
             for i, result in enumerate(search_results_):
                 search_results.append(result)
-            articles_checking_text.append(f"### Searching on arxiv {self.personality_config.nb_arxiv_results} articles.\n### Found : {len(search_results)} articles on the subject\n")
+            articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(search_results)} articles on the subject"))
             self.full("\n".join(articles_checking_text))
             # Download and save articles
             for i, result in enumerate(search_results):
@@ -322,7 +323,7 @@ class Processor(APScript):
                 "sort": "submittedDate_tdate desc"
             }
             search_results = query_server(base_url, query_params)
-            articles_checking_text.append(f"### Searching on hal {self.personality_config.nb_hal_results} articles.\n### Found : {len(search_results['response']['docs'])} articles on the subject\n")
+            articles_checking_text.append(self.build_a_document_block(f"Searching on hal {self.personality_config.nb_hal_results} articles.","",f"Found : {len(search_results['response']['docs'])} articles on the subject\n"))
             self.full("\n".join(articles_checking_text))
             self.step_end(f"Searching articles on hal")
 
