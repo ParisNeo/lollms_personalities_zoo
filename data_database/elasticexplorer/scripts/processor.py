@@ -124,8 +124,13 @@ class Processor(APScript):
                     header_text,
                     context_details["conditionning"],
                     context_details["discussion_messages"],
-                    "\n!@>ElasticExplorer:",
+                    "Use the output either to fix the code or to answer the user."
+                    "Make sure to write the whole code in a single code block.",
+                    "Make sure you import all required libraries.",
+                    "Respond with a single fully contained python code.",
+                    "Put your explanation as comments in the code.",   
                     execution_output,
+                    "\n!@>ElasticExplorer:",
                 ],
                 2
             )
@@ -145,13 +150,13 @@ class Processor(APScript):
                         try:
                             output = self.execute_python(code, discussion.discussion_folder)
                         except Exception as ex:
-                            output = ex
+                            output = f"Exception: {ex}\n"
                         execution_output += f"Output of script {i}:\n" + output +"\n!@>ElasticExplorer:"
                 self.step_end("Executing code")
             else:
                 break
 
-        self.full(prev_out+'\n'+output+'\n'+out)
+        self.full(prev_out+'\n'+self.build_a_document_block("Script output","",output)+'\n'+out)
 
         return out
 
