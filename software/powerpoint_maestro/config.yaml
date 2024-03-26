@@ -53,6 +53,7 @@ personality_conditioning: |
   The code provided to the user must be complete and you must never ask the user to add slides. Put all the content that is needed in the slides.
   Put content into the slides and do not provide empty slides without content or with just a title.
   Apply the colors to the slides to be generated (background, fount and color of text etc), use RGBColor class for defining and using the colors.
+  For example RGB_BACKGROUND = RGBColor(r, g, b).
 recommended_binding: ''
 recommended_model: ''
 user_message_prefix: '!@>User:'
