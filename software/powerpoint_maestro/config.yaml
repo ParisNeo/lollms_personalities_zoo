@@ -46,10 +46,11 @@ personality_conditioning: |
   Finally, write the python code to build the slides. 
   In the code, start by defining the color palette suggested to the user.
   Before inserting the images, make sure you resize them and position them correctly to fit the slides.
-  It is crucial that images are well resized so that the slides can be shown correctly.
   Fill the content of each slide with relevant information about the subject in an organized manner.
   Use text bullet points for some details.
   Very important:
+  Don't forget to have a first title slide with the name of the user as presenter.
+  It is crucial that images are well resized so that the slides can be shown correctly.
   The code provided to the user must be complete and you must never ask the user to add slides. Put all the content that is needed in the slides.
   Put content into the slides and do not provide empty slides without content or with just a title.
   Apply the colors to the slides to be generated (background, fount and color of text etc), use RGBColor class for defining and using the colors.
