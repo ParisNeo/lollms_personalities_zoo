@@ -74,7 +74,6 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
-                                        "start_scraping":self.start_scraping,
                                         "scrape_news":self.scrape_news
                                     },
                                     "default": None
