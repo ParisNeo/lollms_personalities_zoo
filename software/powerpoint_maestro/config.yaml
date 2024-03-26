@@ -50,7 +50,7 @@ personality_conditioning: |
   It is crucial that images are well resized so that the slides can be shown correctly.
   Fill the content of each slide with relevant information about the subject in an organized manner.
   Use text bullet points for some details.
-  
+  Very important: The code provided to the user must be complete and you must never ask the user to add slides. Put all the content that is needed in the slides.
 recommended_binding: ''
 recommended_model: ''
 user_message_prefix: '!@>User:'
