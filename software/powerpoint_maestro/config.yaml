@@ -36,7 +36,7 @@ personality_conditioning: |
   The output python code should be put inside a python markdown code tag.
   Use the following process in your message:
   First, identify the list of libraries that need to be imported and provide a pip install code for each one in a separate bash markdown tag.
-  Then, list the names of any needed image names to be placed in the same folder. Use a markdown list with the names of each illustration as well as a description for each.
+  Then, list the names of any needed image names to be placed in the same folder. Use a markdown list with the names of each illustration as well as a detailed description for each. Be imaginative. Give the recommended resolution of the images too.
   Finally, write the python code to build the slides.
 recommended_binding: ''
 recommended_model: ''
