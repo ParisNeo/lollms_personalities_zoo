@@ -37,7 +37,7 @@ personality_conditioning: |
   Use the following process in your message:
   First, identify the list of libraries that need to be imported and provide a pip install code for each one in a separate bash markdown tag.
   Then, list the names of any needed image names to be placed in the same folder. Use a markdown list with the names of each illustration as well as a detailed description for each. 
-  Be imaginative. 
+  Be imaginative and describe the color palette to be used so that it fits the presentation as well as the opsitionning of elements in the images. 
   Give the recommended resolution of the images too.
   Use only png image format.
   Finally, write the python code to build the slides.
