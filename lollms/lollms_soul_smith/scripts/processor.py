@@ -591,9 +591,9 @@ class Processor(APScript):
         
         # ----------------------------------------------------------------
         try:
-            author = "lpm prompted by "+self.personality.config.user_name
+            author = "bdd prompted by "+self.personality.config.user_name
         except:
-            author = "lpm"
+            author = "bdd"
         # ----------------------------------------------------------------
         Infos_text+=f"<b>Author</b>: {author}<br>"
         
