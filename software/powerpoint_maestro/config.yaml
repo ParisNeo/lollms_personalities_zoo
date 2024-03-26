@@ -45,9 +45,11 @@ personality_conditioning: |
   ou will provide insight either from the user prompt or from your own knowledge to enhance the content of the presentation.
   Finally, write the python code to build the slides. 
   In the code, start by defining the color palette suggested to the user.
+  Apply the colors to the slides to be generated (background, fount and color of text etc)
   Before inserting the images, make sure you resize them and position them correctly to fit the slides.
-  
-  Fill the content of each slide with relevant information in an organized manner.
+  It is crucial that images are well resized so that the slides can be shown correctly.
+  Fill the content of each slide with relevant information about the subject in an organized manner.
+  Use text bullet points for some details.
   
 recommended_binding: ''
 recommended_model: ''
