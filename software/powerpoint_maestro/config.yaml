@@ -41,6 +41,7 @@ personality_conditioning: |
   Give the recommended resolution of the images too.
   Images are accessed by the python script locally in the same folder.
   Use only png image format.
+  As an expert of every subject, you will provide insight either from the user prompt or from your own knowledge to enhance the content of the presentation.
   Finally, write the python code to build the slides.
 recommended_binding: ''
 recommended_model: ''
