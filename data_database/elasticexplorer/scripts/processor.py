@@ -134,11 +134,11 @@ class Processor(APScript):
 
         execution_output = "\n".join([
                     "!@>Requirements:",
-                    "Make sure to write the whole code in a single code block.",
-                    "Make sure you import all required libraries.",
-                    "Respond with a single fully contained python code.",
-                    "Only answer with the code without any explanation.",
-                    "Try to use elasticsearch-dsl when possible."
+                    "Encase full code within one block.",
+                    "Import all necessary libraries.",
+                    "Submit a single, self-contained code block.",
+                    "Reply with code only; no explanations.",
+                    "Prefer elasticsearch-dsl when suitable."
         ])
         repeats=0
         out=""
@@ -173,16 +173,16 @@ class Processor(APScript):
 
                             execution_output += f"Output of script {i}:\n" + stdout +"\n"+f"\n" + stderr +"\n"+"\n".join([
                                 "!@>Requirements:",
-                                "Ignore warnings.",
-                                "If the output is satisfactory then answer the user request without using any python code block. If the output contains a json put it inside a json code tag.",
-                                "If an error is detected, fix the code then answer with the full fixed code in a single block and do not provide explanations.",
+                                "Disregard any warnings during code execution.",
+                                "Upon successful output, respond to user requests directly without incorporating any Python code blocks. If the output includes JSON data, enclose it within JSON code tags.",
+                                "In case of errors, rectify the code and provide a complete fixed code block without explanations. Ensure that you use a single code block to maintain readability and organization.",
                             ])
                         except Exception as ex:
                             execution_output += f"Error detected in script {i}:\n" + ex +"\n"+"\n".join([
                                     "!@>Requirements:",
-                                    "Using the error, fix the code.",
-                                    "Answer with the full fixed code.",
-                                    "Do not provide explanations.",
+                                    "Utilize the error to correct and improve the code.",
+                                    "Upon fixing the code, respond to user requests with the complete fixed code.",
+                                    "Avoid providing any additional explanations or comments within your response.",
                                 ])
                 if nb_codes == 0:
                     break
