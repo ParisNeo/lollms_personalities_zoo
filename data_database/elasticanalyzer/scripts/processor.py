@@ -10,7 +10,7 @@ from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.databases.discussions_database import Discussion
 import subprocess
 from typing import Callable
-import sys
+import json
 import io
 
 import re
@@ -64,7 +64,23 @@ class ElasticSearchConnector:
 
     def add_entry(self, index, body):
         return self.es.index(index=index, body=body)
-    
+
+    def index_data(self, file_path, index_name):
+        try:
+            self.create_index(index_name)
+            with open(file_path, 'r') as file:
+                for line in file:
+                    doc = json.loads(line)
+                    if 'index' in doc:
+                        self.es.index(index=index_name, body=doc['_source'], id=doc['_id'])
+                    else:
+                        self.es.index(index=index_name, body=doc)
+            return True
+        except Exception as e:
+            print(f"Error indexing data: {e}")
+            return False
+        
+
     def ping(self):
         # Ping the Elasticsearch server
         response = self.es.ping()
@@ -219,9 +235,9 @@ class Processor(APScript):
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"])
 
             if fn=="query":
-                if len(params)==1:
+                if len(params)==2:
                     try:
-                        qoutput = es.query(params[0])
+                        qoutput = es.query(params[0], params[1])
                         output = self.fast_gen(full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"])
                     except Exception as ex:
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"])
