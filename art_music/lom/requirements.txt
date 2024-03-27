@@ -1,3 +1,2 @@
-numpy==1.24
 torchaudio
 git+https://github.com/facebookresearch/audiocraft#egg=audiocraft
