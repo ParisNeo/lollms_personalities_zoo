@@ -24,7 +24,7 @@ def parse_query(query):
         query_=query_[0]
         parts = query_.split("|")
         fn = parts[0]
-        if len(parts)>0:
+        if len(parts)>1:
             params = parts[1:]
         else:
             params=[]
