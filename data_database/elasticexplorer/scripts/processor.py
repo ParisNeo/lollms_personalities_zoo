@@ -54,6 +54,7 @@ class Processor(APScript):
             [
                 {"name":"server","type":"str","value":"https://localhost:9200", "help":"List of addresses of the server in form of ip or host name: port"},
                 {"name":"index_name","type":"str","value":"", "help":"The index to be used for querying"},
+                {"name":"mapping","type":"text","value":"", "help":"Mapping of the elastic search index"},
                 {"name":"user","type":"str","value":"", "help":"The user name to connect to the database"},
                 {"name":"password","type":"str","value":"", "help":"The password to connect to the elastic search database"},
                 {"name":"max_execution_depth","type":"int","value":10, "help":"The maximum execution depth"},
@@ -125,6 +126,10 @@ class Processor(APScript):
         self.callback = callback
         header_text = f"!@>Extra infos:\n"
         header_text += f"server:{self.personality_config.server}\n"
+        if self.personality_config.index_name!="":
+            header_text += f"index_name:{self.personality_config.index_name}\n"
+        if self.personality_config.mapping!="":
+            header_text += f"mapping:\n{self.personality_config.mapping}\n"
         if self.personality_config.user!="" and self.personality_config.password!="":
             header_text += f"user:{self.personality_config.user}\n"
             header_text += f"password:{self.personality_config.password}\n"
@@ -179,11 +184,11 @@ class Processor(APScript):
                             ])
                         except Exception as ex:
                             execution_output += f"Error detected in script {i}:\n" + ex +"\n"+"\n".join([
-                                    "!@>Requirements:",
-                                    "Utilize the error to correct and improve the code.",
-                                    "Upon fixing the code, respond to user requests with the complete fixed code.",
-                                    "Avoid providing any additional explanations or comments within your response.",
-                                ])
+                                "!@>Requirements:",
+                                "Utilize the error to correct and improve the code.",
+                                "Upon fixing the code, respond to user requests with the complete fixed code.",
+                                "Avoid providing any additional explanations or comments within your response.",
+                            ])
                 if nb_codes == 0:
                     break
                 self.step_end("Executing code")
