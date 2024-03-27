@@ -19,23 +19,20 @@ def parse_query(query):
     # Match the pattern @@function|param1|param2@@
     lq = len(query)
     parts = query.split("@@")
-    if len(parts)>0:
+    if len(parts)>1:
         query_ = parts[1].split("@@")
-        if len(query_)>0:
-            query_=query_[0]
-            parts = query_.split("|")
-            fn = parts[0]
-            if len(parts)>0:
-                params = parts[1:]
-            else:
-                params=[]
-            try:
-                end_pos = query.index("@@")
-            except:
-                end_pos = lq
-            return fn, params, end_pos
+        query_=query_[0]
+        parts = query_.split("|")
+        fn = parts[0]
+        if len(parts)>0:
+            params = parts[1:]
         else:
-            return None, None
+            params=[]
+        try:
+            end_pos = query.index("@@")
+        except:
+            end_pos = lq
+        return fn, params, end_pos
 
     else:
         return None, None
@@ -67,7 +64,18 @@ class ElasticSearchConnector:
 
     def add_entry(self, index, body):
         return self.es.index(index=index, body=body)
+    
+    def ping(self):
+        # Ping the Elasticsearch server
+        response = self.es.ping()
 
+        # Check if the server is reachable
+        if response:
+            print("Elasticsearch server is reachable")
+            return True
+        else:
+            print("Elasticsearch server is not reachable")
+            return False
 
 class Processor(APScript):
     """
@@ -188,6 +196,13 @@ class Processor(APScript):
         fn, params, next = parse_query(output)
         if fn:
             es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
+            if fn=="ping":
+                try:
+                    status = es.ping()
+                    output = self.fast_gen(full_prompt+output+f"!@>es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"])
+                except Exception as ex:
+                    output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"])
+
             if fn=="list_indexes":
                 if len(params)==1:
                     try:
