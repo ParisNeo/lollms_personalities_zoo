@@ -101,7 +101,7 @@ class Processor(APScript):
                                 {
                                     "name": "idle",
                                     "commands": { # list of commands (don't forget to add these to your config.yaml file)
-                                        "start_detection": self.start_detection,
+                                        "start_documenting": self.start_documenting,
                                         "help":self.help,
                                     },
                                     "default": None
@@ -119,18 +119,18 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
 
-    def build_vulenerabilities_report(self, code, fn):
-        analysis = self.fast_gen(f"!@>system: Analyze this code and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. Give the report a title and split it into sections. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. Use markdown syntax.!@>file name:{fn}!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
+    def build_documentation_report(self, code, fn):
+        analysis = self.fast_gen(f"!@>system: Analyze this code and provide a comprehensive documentation.\n Give the document a title and split it into sections.\nThe documentation is code oriented. Use markdown syntax.\n!@>file name:{fn}!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>documentation:\n")
         self.full(analysis)
         return analysis
 
-    def continue_vulenerabilities_report(self, code):
-        analysis = self.fast_gen(f"!@>system: Analyze this code chunsk and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. This is the continuation of a report started earlyer and we are analysing another chunk if the code. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. Use markdown syntax.!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
+    def continue_documentation_report(self, code):
+        analysis = self.fast_gen(f"!@>system: Analyze this chunk of code and provide a comprehensive documentation.\nThis is the continuation of previous documentation chunk\nGive the document a title and split it into sections.\nThe documentation is code oriented. Use markdown syntax.\n!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>documentation:\n")
         self.full(analysis)
         return analysis
 
 
-    def start_detection(self, prompt="", full_context=""):
+    def start_documenting(self, prompt="", full_context=""):
         if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
             self.full("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
     
@@ -152,7 +152,7 @@ class Processor(APScript):
                         tk = self.personality.model.tokenize(code)
                         nb_tk = len(tk)
                         if nb_tk<max_nb_tokens_in_file:
-                            analysis = self.build_vulenerabilities_report(code, file.name)
+                            analysis = self.build_documentation_report(code, file.name)
                             with open(output_documentation_file_path,"w", encoding="utf-8") as df:
                                 df.write(analysis)
                         else:
@@ -170,11 +170,11 @@ class Processor(APScript):
                                     # Process the current chunk
                                     definition_code = detokenize(chunk)
                                     if nb_processed==0:
-                                        analysis = self.build_vulenerabilities_report(definition_code, file.name)
+                                        analysis = self.build_documentation_report(definition_code, file.name)
                                         with open(output_documentation_file_path,"a", encoding="utf-8") as df:
                                             df.write(analysis)
                                     else:
-                                        analysis = self.continue_vulenerabilities_report(definition_code)
+                                        analysis = self.continue_documentation_report(definition_code)
                                         with open(output_documentation_file_path,"a", encoding="utf-8") as df:
                                             df.write("\n"+analysis)
                                     nb_processed +=1
@@ -184,11 +184,11 @@ class Processor(APScript):
                             if chunk:
                                 definition_code = detokenize(chunk)
                                 if nb_processed>0:
-                                    analysis = self.continue_vulenerabilities_report(definition_code)
+                                    analysis = self.continue_documentation_report(definition_code)
                                     with open(output_documentation_file_path,"a", encoding="utf-8") as df:
                                         df.write(analysis)
                                 else:
-                                    analysis = self.build_vulenerabilities_report(definition_code, file)
+                                    analysis = self.build_documentation_report(definition_code, file)
                                     with open(output_documentation_file_path,"w", encoding="utf-8") as df:
                                         df.write(analysis)
 
