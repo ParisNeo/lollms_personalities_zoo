@@ -207,7 +207,6 @@ class Processor(APScript):
             self.full("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
     
         code_folder_path = Path(self.personality_config.code_folder_path)
-        tests_folder_path = Path(self.personality_config.tests_folder_path)
         docs_folder_path = Path(self.personality_config.docs_folder_path)
         tokenize = self.personality.model.tokenize
         detokenize = self.personality.model.detokenize
