@@ -145,6 +145,8 @@ class Processor(APScript):
                         ):
          
         for file in code_folder_path.iterdir():
+            if file.name.startswith(".") or str(file)==self.personality_config.docs_folder_path:
+                continue
             if file.is_dir():
                 if self.personality_config.process_subfolders:
                     docs_subfolder = docs_folder_path/file.stem
