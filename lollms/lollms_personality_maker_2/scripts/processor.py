@@ -166,7 +166,8 @@ class Processor(APScript):
             shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
             ASCIIColors.success("image Selected successfully")
             return {"status":True}
-        except:
+        except Exception as ex:
+            trace_exception(ex)
             form_data = await request.form()
             ai_icon: Optional[UploadFile] = None
             if 'ai_icon' in form_data:
@@ -514,7 +515,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
-        output_text+= self.build_a_folder_link(self.personality_path,"press this text to access personality path")
+        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
         self.full(output_text)
         self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
 
