@@ -82,10 +82,13 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"code_folder_path","type":"str","value":"", "help":"Folder containing code to check"},
-                {"name":"tests_folder_path","type":"str","value":"", "help":"Folder to put the tests in"},
                 {"name":"docs_folder_path","type":"str","value":"", "help":"Folder to put the documentation to"},
+                {"name":"tests_folder_path","type":"str","value":"", "help":"Folder to put the tests in (not implemented yet)"},
                 {"name":"reprocess_processed_files","type":"bool","value":False, "help":"If true reprocess unprocessed files"},
                 {"name":"context","type":"text","value":"", "help":"More information about the code"},
+                {"name":"files_to_parse","type":"str","value":".py", "help":"File types to be scanned comma separated"},
+                {"name":"process_subfolders","type":"bool","value":True, "help":"If true then process files from the subdirectories"},
+                {"name":"output_format","type":"str","value":"markdown", "options":["markdown","html","latex"], "help":"Output format"},
             ]
         )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -120,15 +123,86 @@ class Processor(APScript):
         self.full(self.personality.help)
 
     def build_vulenerabilities_report(self, code, fn):
-        analysis = self.fast_gen(f"!@>system: Analyze this code and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. Give the report a title and split it into sections. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. Use markdown syntax.!@>file name:{fn}!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
+        analysis = self.fast_gen(f"!@>system: Analyze this code and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. Give the report a title and split it into sections. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. The output format is {self.personality_config.output_format}.!@>file name:{fn}!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
         self.full(analysis)
         return analysis
 
     def continue_vulenerabilities_report(self, code):
-        analysis = self.fast_gen(f"!@>system: Analyze this code chunsk and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. This is the continuation of a report started earlyer and we are analysing another chunk if the code. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. Use markdown syntax.!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
+        analysis = self.fast_gen(f"!@>system: Analyze this code chunk and try to detect any security vulenerabilities.\nCreate a report about any detected vulenerability.\nPoint out the vulenerabilities by showing code snippets. This is the continuation of a report started earlyer and we are analysing another chunk if the code. Show the vulenerabilities potential flaws and especially propose fixes to the code using some code tags. The output format is {self.personality_config.output_format}.!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>report:\n")
         self.full(analysis)
         return analysis
 
+
+
+    def process_folder(
+                            self, 
+                            code_folder_path:Path, 
+                            docs_folder_path:Path, 
+                            max_nb_tokens_in_file:int, 
+                            tokenize:Callable, 
+                            detokenize:Callable,
+                            accepted_file_types:list
+                        ):
+         
+        for file in code_folder_path.iterdir():
+            if file.is_dir():
+                if self.personality_config.process_subfolders:
+                    docs_subfolder = docs_folder_path/file.stem
+                    docs_subfolder.mkdir(exist_ok=True, parents=True)
+                    self.process_folder(file, docs_subfolder, max_nb_tokens_in_file, tokenize, detokenize, accepted_file_types)
+            else:
+                if file.suffix.lower() in accepted_file_types:
+                    output_documentation_file_path = docs_folder_path/f"{file.stem}.md"
+                    if self.personality_config.reprocess_processed_files or not output_documentation_file_path.exists():
+                        self.new_message("")
+                        self.chunk("")
+                        self.step_start(f"Processing file {file}")
+                        with open(file, "r", encoding="utf-8") as f:
+                            code = f.read()
+                            tk = self.personality.model.tokenize(code)
+                            nb_tk = len(tk)
+                            if nb_tk<max_nb_tokens_in_file:
+                                analysis = self.build_vulenerabilities_report(code, file.name)
+                                with open(output_documentation_file_path,"w", encoding="utf-8") as df:
+                                    df.write(analysis)
+                            else:
+                                tokens = tokenize(code)
+                                extractor = FunctionAndMethodExtractor(tokens)
+                                tree = ast.parse(code)
+                                extractor.visit(tree)
+
+                                chunk = []
+                                nb_processed = 0
+                                for definition_type, definition_name, definition_tokens in extractor.definitions:
+                                    if len(chunk) + len(definition_tokens) <= max_nb_tokens_in_file:
+                                        chunk.extend(definition_tokens)
+                                    else:
+                                        # Process the current chunk
+                                        definition_code = detokenize(chunk)
+                                        if nb_processed==0:
+                                            analysis = self.build_vulenerabilities_report(definition_code, file.name)
+                                            with open(output_documentation_file_path,"a", encoding="utf-8") as df:
+                                                df.write(analysis)
+                                        else:
+                                            analysis = self.continue_vulenerabilities_report(definition_code)
+                                            with open(output_documentation_file_path,"a", encoding="utf-8") as df:
+                                                df.write("\n"+analysis)
+                                        nb_processed +=1
+                                        chunk = definition_tokens  # Start a new chunk with the current definition
+
+                                # Process the last chunk if there are any tokens left
+                                if chunk:
+                                    definition_code = detokenize(chunk)
+                                    if nb_processed>0:
+                                        analysis = self.continue_vulenerabilities_report(definition_code)
+                                        with open(output_documentation_file_path,"a", encoding="utf-8") as df:
+                                            df.write(analysis)
+                                    else:
+                                        analysis = self.build_vulenerabilities_report(definition_code, file)
+                                        with open(output_documentation_file_path,"w", encoding="utf-8") as df:
+                                            df.write(analysis)
+
+                            self.step_end(f"Processing file {file}")
 
     def start_detection(self, prompt="", full_context=""):
         if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
@@ -140,59 +214,8 @@ class Processor(APScript):
         tokenize = self.personality.model.tokenize
         detokenize = self.personality.model.detokenize
         max_nb_tokens_in_file = 3*self.personality.config.ctx_size/4
-        for file in code_folder_path.iterdir():
-            if file.suffix.lower()==".py":
-                signatures=[]
-                output_documentation_file_path = docs_folder_path/f"{file.stem}.md"
-                if self.personality_config.reprocess_processed_files or not output_documentation_file_path.exists():
-                    self.new_message("")
-                    self.step_start(f"Processing file {file}")
-                    with open(file, "r", encoding="utf-8") as f:
-                        code = f.read()
-                        tk = self.personality.model.tokenize(code)
-                        nb_tk = len(tk)
-                        if nb_tk<max_nb_tokens_in_file:
-                            analysis = self.build_vulenerabilities_report(code, file.name)
-                            with open(output_documentation_file_path,"w", encoding="utf-8") as df:
-                                df.write(analysis)
-                        else:
-                            tokens = tokenize(code)
-                            extractor = FunctionAndMethodExtractor(tokens)
-                            tree = ast.parse(code)
-                            extractor.visit(tree)
-
-                            chunk = []
-                            nb_processed = 0
-                            for definition_type, definition_name, definition_tokens in extractor.definitions:
-                                if len(chunk) + len(definition_tokens) <= max_nb_tokens_in_file:
-                                    chunk.extend(definition_tokens)
-                                else:
-                                    # Process the current chunk
-                                    definition_code = detokenize(chunk)
-                                    if nb_processed==0:
-                                        analysis = self.build_vulenerabilities_report(definition_code, file.name)
-                                        with open(output_documentation_file_path,"a", encoding="utf-8") as df:
-                                            df.write(analysis)
-                                    else:
-                                        analysis = self.continue_vulenerabilities_report(definition_code)
-                                        with open(output_documentation_file_path,"a", encoding="utf-8") as df:
-                                            df.write("\n"+analysis)
-                                    nb_processed +=1
-                                    chunk = definition_tokens  # Start a new chunk with the current definition
-
-                            # Process the last chunk if there are any tokens left
-                            if chunk:
-                                definition_code = detokenize(chunk)
-                                if nb_processed>0:
-                                    analysis = self.continue_vulenerabilities_report(definition_code)
-                                    with open(output_documentation_file_path,"a", encoding="utf-8") as df:
-                                        df.write(analysis)
-                                else:
-                                    analysis = self.build_vulenerabilities_report(definition_code, file)
-                                    with open(output_documentation_file_path,"w", encoding="utf-8") as df:
-                                        df.write(analysis)
-
-                self.step_end(f"Processing file {file}")
+        accepted_file_types = ["." + extension.strip() if not extension.startswith(".") else extension.strip() for extension in self.personality_config.files_to_parse.split(",")] 
+        self.process_folder(code_folder_path, docs_folder_path, max_nb_tokens_in_file, tokenize, detokenize, accepted_file_types)
 
     def add_file(self, path, client, callback=None):
         """
