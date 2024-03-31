@@ -10,6 +10,7 @@ from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.databases.discussions_database import Discussion
 import subprocess
 from typing import Callable
+import pandas as pd
 import json
 import io
 
@@ -120,6 +121,8 @@ class Processor(APScript):
                 {"name":"user","type":"str","value":"", "help":"The user name to connect to the database"},
                 {"name":"password","type":"str","value":"", "help":"The password to connect to the elastic search database"},
                 {"name":"max_execution_depth","type":"int","value":10, "help":"The maximum execution depth"},
+                {"name":"output_folder_path","type":"str","value":"", "help":"Folder to put the output"},
+                {"name":"output_format","type":"str","value":"markdown", "options":["markdown","html","latex"], "help":"Output format"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -207,7 +210,9 @@ class Processor(APScript):
         full_prompt += context_details["ai_prefix"]
         self.personality.info("Generating")
         self.callback = callback
-        
+
+        max_nb_tokens_in_file = 3*self.personality.config.ctx_size/4
+
         output = self.fast_gen(full_prompt)
         fn, params, next = parse_query(output)
         if fn:
@@ -226,6 +231,7 @@ class Processor(APScript):
                         output = self.fast_gen(full_prompt+output+f"!@>es: indexes {indexes}\n"+context_details["ai_prefix"])
                     except Exception as ex:
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"])
+
             if fn=="view_mapping":
                 if len(params)==1:
                     try:
@@ -239,6 +245,18 @@ class Processor(APScript):
                     try:
                         qoutput = es.query(params[0], params[1])
                         output = self.fast_gen(full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"])
+
+                        #df = pd.DataFrame(qoutput)
+
+
+                        pv = self.personality.model.tokenize(full_prompt+output+f"!@>es: query output:\n{qoutput}\n")
+                        cr = self.personality.model.tokenize(qoutput)
+                        ln = len(pv)
+                        #output=""
+                        #if ln
+                        #while ln+len(cr)>max_nb_tokens_in_file:
+                        #    tk = pv+("!@>es: query output:\n" if o=="" else "!@>es: query output:\n...\n")+cr[:max_nb_tokens_in_file-ln] 
+                        #    output += self.fast_gen(self.personality.model.detokenize(tk)+context_details["ai_prefix"])
                     except Exception as ex:
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"])
 
