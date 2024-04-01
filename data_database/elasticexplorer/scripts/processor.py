@@ -161,6 +161,7 @@ class Processor(APScript):
             )
             prev_out = out
             out = self.fast_gen(prompt, callback=self.sink)
+            self.full(out)
             self.chunk("")
             context_details["discussion_messages"] += "!@>ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
