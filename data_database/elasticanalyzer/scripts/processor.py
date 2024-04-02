@@ -252,7 +252,7 @@ class Processor(APScript):
                     if len(params)==1:
                         try:
                             mappings = es.view_mapping(params[0])
-                            self.full(self.build_a_document_block(f"Execution result:",None,f"{mappings}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            self.full(self.build_a_document_block(f"Execution result:",None,"")+f"\n```json\n{mappings}\n```\n", msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                             output = self.fast_gen(full_prompt+first_generation+f"!@>es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                         except Exception as ex:
                             self.full(f"## Execution result:\n{ex}")
@@ -267,7 +267,7 @@ class Processor(APScript):
                     if len(params)==2:
                         try:
                             qoutput = es.query(params[0], params[1])
-                            self.full(self.build_a_document_block(f"Execution result:",None,f"{qoutput}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            self.full(self.build_a_document_block(f"Execution result:",None,f"")+f"\n```json\n{qoutput}\n```\n", msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                             if "hits" in qoutput.body and len(qoutput.body["hits"]["hits"])>0:
                                 self.step("Found hits")
                                 output = ""
