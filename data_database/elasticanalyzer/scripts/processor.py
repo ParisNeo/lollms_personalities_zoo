@@ -272,7 +272,7 @@ class Processor(APScript):
                                 self.step("Found hits")
                                 output = ""
                                 for hit in qoutput.body["hits"]:
-                                    print(hit)
+                                    ASCIIColors.success(f"HIT:{hit}")
                                     prompt = full_prompt+output+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
                                     output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
                                 if self.personality_config.output_folder_path!="":
