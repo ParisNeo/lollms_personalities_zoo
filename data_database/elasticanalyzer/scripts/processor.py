@@ -209,6 +209,7 @@ class Processor(APScript):
         full_prompt += context_details["negative_boost"]
         full_prompt += context_details["force_language"]
         full_prompt += context_details["fun_mode"]
+        full_prompt += "If you need to issue a code to es, please do not add any extra text or explanations."
         full_prompt += context_details["ai_prefix"]
         self.personality.info("Generating")
         self.callback = callback
@@ -217,74 +218,84 @@ class Processor(APScript):
 
         output = self.fast_gen(full_prompt).replace("\\_","_")
         fn, params, next = parse_query(output)
-        if fn:
-            self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-            es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
-            if fn=="ping":
-                try:
-                    status = es.ping()
-                    self.full(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                    output = self.fast_gen(full_prompt+output+f"!@>es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
-                except Exception as ex:
-                    self.full(f"## Execution result:\n{ex}")
-                    output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
-
-            if fn=="list_indexes":
-                try:
-                    indexes = es.list_indexes()
-                    self.full(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                    output = self.fast_gen(full_prompt+output+f"!@>es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
-                except Exception as ex:
-                    self.full(f"## Execution result:\n{ex}")
-                    output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
-
-            if fn=="view_mapping":
-                if len(params)==1:
+        failed=True
+        while failed:
+            failed=False
+            if fn:
+                self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
+                if fn=="ping":
                     try:
-                        mappings = es.view_mapping(params[0])
-                        self.full(self.build_a_document_block(f"Execution result:",None,f"{mappings}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                        output = self.fast_gen(full_prompt+output+f"!@>es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        status = es.ping()
+                        self.full(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                        output = self.fast_gen(full_prompt+output+f"!@>es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     except Exception as ex:
                         self.full(f"## Execution result:\n{ex}")
-                        output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
-
-            if fn=="query":
-                if len(params)==2:
-                    try:
-                        qoutput = es.query(params[0], params[1])
-                        self.full(self.build_a_document_block(f"Execution result:",None,f"{qoutput}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                        if "hits" in qoutput.body and len(qoutput.body["hits"])>0:
-                            output = ""
-                            for hit in qoutput.body["hits"]:
-                                print(hit)
-                                prompt = full_prompt+output+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
-                                output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
-                            if self.personality_config.output_folder_path!="":
-                                # Get the current date
-                                current_date = datetime.date.today()
-
-                                # Format the date as 'year_month_day'
-                                formatted_date = current_date.strftime('%Y_%m_%d_%H_%M_%S')
-                                with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
-                                    f.write(output)
-
-                        else:
-                            prompt = full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
-                            output = self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
-
-                        #df = pd.DataFrame(qoutput)
-
-                        pv = self.personality.model.tokenize(full_prompt+output+f"!@>es: query output:\n{qoutput}\n")
-                        cr = self.personality.model.tokenize(qoutput)
-                        ln = len(pv)
-                        #output=""
-                        #if ln
-                        #while ln+len(cr)>max_nb_tokens_in_file:
-                        #    tk = pv+("!@>es: query output:\n" if o=="" else "!@>es: query output:\n...\n")+cr[:max_nb_tokens_in_file-ln] 
-                        #    output += self.fast_gen(self.personality.model.detokenize(tk)+context_details["ai_prefix"])
-                    except Exception as ex:
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
 
+                if fn=="list_indexes":
+                    try:
+                        indexes = es.list_indexes()
+                        self.full(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                        output = self.fast_gen(full_prompt+output+f"!@>es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                    except Exception as ex:
+                        self.full(f"## Execution result:\n{ex}")
+                        output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                
+                if fn=="view_mapping":
+                    if len(params)==1:
+                        try:
+                            mappings = es.view_mapping(params[0])
+                            self.full(self.build_a_document_block(f"Execution result:",None,f"{mappings}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            output = self.fast_gen(full_prompt+output+f"!@>es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        except Exception as ex:
+                            self.full(f"## Execution result:\n{ex}")
+                            output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
+                    else:
+                        ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
+                        self.full("The AI issued the wrong number of parameters.\nTrying again")
+                        failed=True
+
+                if fn=="query":
+                    if len(params)==2:
+                        try:
+                            qoutput = es.query(params[0], params[1])
+                            self.full(self.build_a_document_block(f"Execution result:",None,f"{qoutput}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            if "hits" in qoutput.body and len(qoutput.body["hits"])>0:
+                                output = ""
+                                for hit in qoutput.body["hits"]:
+                                    print(hit)
+                                    prompt = full_prompt+output+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
+                                    output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
+                                if self.personality_config.output_folder_path!="":
+                                    # Get the current date
+                                    current_date = datetime.date.today()
+
+                                    # Format the date as 'year_month_day'
+                                    formatted_date = current_date.strftime('%Y_%m_%d_%H_%M_%S')
+                                    with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
+                                        f.write(output)
+
+                            else:
+                                prompt = full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
+                                output = self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
+
+                            #df = pd.DataFrame(qoutput)
+
+                            pv = self.personality.model.tokenize(full_prompt+output+f"!@>es: query output:\n{qoutput}\n")
+                            cr = self.personality.model.tokenize(qoutput)
+                            ln = len(pv)
+                            #output=""
+                            #if ln
+                            #while ln+len(cr)>max_nb_tokens_in_file:
+                            #    tk = pv+("!@>es: query output:\n" if o=="" else "!@>es: query output:\n...\n")+cr[:max_nb_tokens_in_file-ln] 
+                            #    output += self.fast_gen(self.personality.model.detokenize(tk)+context_details["ai_prefix"])
+                        except Exception as ex:
+                            output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                    else:
+                        ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
+                        self.full("The AI issued the wrong number of parameters.\nTrying again")
+                        failed=True
             self.new_message("")
             self.full(output)
 
