@@ -268,10 +268,10 @@ class Processor(APScript):
                         try:
                             qoutput = es.query(params[0], params[1])
                             self.full(self.build_a_document_block(f"Execution result:",None,f"{qoutput}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                            if "hits" in qoutput.body and len(qoutput.body["hits"])>0:
+                            if "hits" in qoutput.body and len(qoutput.body["hits"]["hits"])>0:
                                 self.step("Found hits")
                                 output = ""
-                                for hit in qoutput.body["hits"]:
+                                for hit in qoutput.body["hits"]["hits"]:
                                     ASCIIColors.success(f"HIT:{hit}")
                                     prompt = full_prompt+first_generation+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
                                     output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
