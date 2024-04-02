@@ -228,6 +228,7 @@ class Processor(APScript):
                 self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                 es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
                 if fn=="ping":
+                    self.step("The LLM issued a ping command")
                     try:
                         status = es.ping()
                         self.full(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
@@ -237,6 +238,7 @@ class Processor(APScript):
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
 
                 if fn=="list_indexes":
+                    self.step("The LLM issued a list_indexes command")
                     try:
                         indexes = es.list_indexes()
                         self.full(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
@@ -246,6 +248,7 @@ class Processor(APScript):
                         output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                 
                 if fn=="view_mapping":
+                    self.step("The LLM issued a view mapping command")
                     if len(params)==1:
                         try:
                             mappings = es.view_mapping(params[0])
@@ -260,11 +263,13 @@ class Processor(APScript):
                         failed=True
 
                 if fn=="query":
+                    self.step("The LLM issued a query command")
                     if len(params)==2:
                         try:
                             qoutput = es.query(params[0], params[1])
                             self.full(self.build_a_document_block(f"Execution result:",None,f"{qoutput}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                             if "hits" in qoutput.body and len(qoutput.body["hits"])>0:
+                                self.step("Found hits")
                                 output = ""
                                 for hit in qoutput.body["hits"]:
                                     print(hit)
@@ -280,14 +285,15 @@ class Processor(APScript):
                                         f.write(output)
 
                             else:
+                                self.step("No Hits found")
                                 prompt = full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
                                 output = self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
 
                             #df = pd.DataFrame(qoutput)
 
-                            pv = self.personality.model.tokenize(full_prompt+output+f"!@>es: query output:\n{qoutput}\n")
-                            cr = self.personality.model.tokenize(qoutput)
-                            ln = len(pv)
+                            # pv = self.personality.model.tokenize(full_prompt+output+f"!@>es: query output:\n{qoutput}\n")
+                            # cr = self.personality.model.tokenize(qoutput)
+                            # ln = len(pv)
                             #output=""
                             #if ln
                             #while ln+len(cr)>max_nb_tokens_in_file:
