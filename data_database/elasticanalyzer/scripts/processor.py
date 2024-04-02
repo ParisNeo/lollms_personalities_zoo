@@ -120,7 +120,6 @@ class Processor(APScript):
                 {"name":"server","type":"str","value":"https://localhost:9200", "help":"List of addresses of the server in form of ip or host name: port"},
                 {"name":"index_name","type":"str","value":"", "help":"The index to be used for querying"},
                 {"name":"mapping","type":"text","value":"", "help":"Mapping of the elastic search index"},
-                {"name":"outpu_folder","type":"str","value":"", "help":"Mapping of the elastic search index"},
                 {"name":"user","type":"str","value":"", "help":"The user name to connect to the database"},
                 {"name":"password","type":"str","value":"", "help":"The password to connect to the elastic search database"},
                 {"name":"max_execution_depth","type":"int","value":10, "help":"The maximum execution depth"},
@@ -260,13 +259,13 @@ class Processor(APScript):
                                 print(hit)
                                 prompt = full_prompt+output+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
                                 output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
-                            if self.personality_config.output_folder!="":
+                            if self.personality_config.output_folder_path!="":
                                 # Get the current date
                                 current_date = datetime.date.today()
 
                                 # Format the date as 'year_month_day'
                                 formatted_date = current_date.strftime('%Y_%m_%d_%H_%M_%S')
-                                with open(Path(self.personality_config.output_folder)/f"result_{formatted_date}.md","w") as f:
+                                with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
                                     f.write(output)
 
                         else:
