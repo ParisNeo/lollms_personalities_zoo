@@ -125,6 +125,7 @@ class Processor(APScript):
                 {"name":"max_execution_depth","type":"int","value":10, "help":"The maximum execution depth"},
                 {"name":"output_folder_path","type":"str","value":"", "help":"Folder to put the output"},
                 {"name":"output_format","type":"str","value":"markdown", "options":["markdown","html","latex"], "help":"Output format"},
+                {"name":"max_nb_failures","type":"int","value":3, "help":"Maximum number of failures"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -216,10 +217,12 @@ class Processor(APScript):
 
         max_nb_tokens_in_file = 3*self.personality.config.ctx_size/4
 
-        output = self.fast_gen(full_prompt).replace("\\_","_")
-        fn, params, next = parse_query(output)
         failed=True
-        while failed:
+        nb_failures = 0
+        while failed  and nb_failures<self.personality_config.max_nb_failures:
+            nb_failures += 1
+            output = self.fast_gen(full_prompt).replace("\\_","_")
+            fn, params, next = parse_query(output)
             failed=False
             if fn:
                 self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
