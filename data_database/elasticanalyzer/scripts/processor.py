@@ -222,8 +222,8 @@ class Processor(APScript):
         while failed  and nb_failures<self.personality_config.max_nb_failures:
             failed=False
             nb_failures += 1
-            output = self.fast_gen(full_prompt).replace("\\_","_")
-            fn, params, next = parse_query(output)
+            first_generation = self.fast_gen(full_prompt).replace("\\_","_")
+            fn, params, next = parse_query(first_generation)
             if fn:
                 self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                 es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
@@ -232,20 +232,20 @@ class Processor(APScript):
                     try:
                         status = es.ping()
                         self.full(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                        output = self.fast_gen(full_prompt+output+f"!@>es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"!@>es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     except Exception as ex:
                         self.full(f"## Execution result:\n{ex}")
-                        output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
 
                 if fn=="list_indexes":
                     self.step("The LLM issued a list_indexes command")
                     try:
                         indexes = es.list_indexes()
                         self.full(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                        output = self.fast_gen(full_prompt+output+f"!@>es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"!@>es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     except Exception as ex:
                         self.full(f"## Execution result:\n{ex}")
-                        output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                 
                 if fn=="view_mapping":
                     self.step("The LLM issued a view mapping command")
@@ -253,10 +253,10 @@ class Processor(APScript):
                         try:
                             mappings = es.view_mapping(params[0])
                             self.full(self.build_a_document_block(f"Execution result:",None,f"{mappings}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
-                            output = self.fast_gen(full_prompt+output+f"!@>es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                            output = self.fast_gen(full_prompt+first_generation+f"!@>es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                         except Exception as ex:
                             self.full(f"## Execution result:\n{ex}")
-                            output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
+                            output = self.fast_gen(full_prompt+first_generation+f"!@>es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
                         self.full("The AI issued the wrong number of parameters.\nTrying again")
@@ -273,7 +273,7 @@ class Processor(APScript):
                                 output = ""
                                 for hit in qoutput.body["hits"]:
                                     ASCIIColors.success(f"HIT:{hit}")
-                                    prompt = full_prompt+output+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
+                                    prompt = full_prompt+first_generation+f"!@>query entry:\n{hit}\n"+context_details["ai_prefix"]+"Here is a title followed by a summary of this entries in markdown format:\n"
                                     output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
                                 if self.personality_config.output_folder_path!="":
                                     # Get the current date
@@ -286,7 +286,7 @@ class Processor(APScript):
 
                             else:
                                 self.step("No Hits found")
-                                prompt = full_prompt+output+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
+                                prompt = full_prompt+first_generation+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
                                 output = self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
 
                             #df = pd.DataFrame(qoutput)
@@ -300,11 +300,13 @@ class Processor(APScript):
                             #    tk = pv+("!@>es: query output:\n" if o=="" else "!@>es: query output:\n...\n")+cr[:max_nb_tokens_in_file-ln] 
                             #    output += self.fast_gen(self.personality.model.detokenize(tk)+context_details["ai_prefix"])
                         except Exception as ex:
-                            output = self.fast_gen(full_prompt+output+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                            output = self.fast_gen(full_prompt+first_generation+f"!@>es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
                         self.full("The AI issued the wrong number of parameters.\nTrying again")
                         failed=True
+            else:
+                output = first_generation
             self.new_message("")
             self.full(output)
 
