@@ -220,10 +220,10 @@ class Processor(APScript):
         failed=True
         nb_failures = 0
         while failed  and nb_failures<self.personality_config.max_nb_failures:
+            failed=False
             nb_failures += 1
             output = self.fast_gen(full_prompt).replace("\\_","_")
             fn, params, next = parse_query(output)
-            failed=False
             if fn:
                 self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                 es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
