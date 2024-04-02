@@ -210,7 +210,7 @@ class Processor(APScript):
         full_prompt += context_details["negative_boost"]
         full_prompt += context_details["force_language"]
         full_prompt += context_details["fun_mode"]
-        full_prompt += "If you need to issue a code to es, please do not add any extra text or explanations."
+        full_prompt += "extra_info: If you need to issue a code to es, please do not respond with any extra text or explanations except the command itself.\n"
         full_prompt += context_details["ai_prefix"]
         self.personality.info("Generating")
         self.callback = callback
