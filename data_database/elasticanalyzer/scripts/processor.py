@@ -282,7 +282,32 @@ class Processor(APScript):
                                 for i,hit in enumerate(qoutput.body["hits"]["hits"]):
                                     ASCIIColors.success(f"HIT:{hit}")
                                     self.step(f"Processing hit {i}/{nb_hits}")
-                                    prompt = full_prompt+first_generation+f"\n!@>response hit entry:\n{hit}\n"+"!@>instructions:Write a title and a summary of the content of this hit entry from the request in markdown format. Then report any identification or path if they exist in the result entry. URLs should be hyperlinks. Do not write any code or json text.\nFormat:\n## title of the entry\ncomprehensive summary\n### Identification:\nProvide an identification or a url in form [title](link)"+context_details["ai_prefix"]
+                                    if self.personality_config.output_format=="markdown":
+                                        prompt = full_prompt+first_generation+f"\n".join([
+                                            f"!@>response hit entry:\n{hit}",
+                                            f"!@>instructions:",
+                                            "Create an informative title and write a concise yet detailed summary of the content of this hit entry in markdown format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
+                                            "If you find any URLs in the entry, build a link and include it in your report.",
+                                            context_details["ai_prefix"]
+                                        ])
+                                    elif self.personality_config.output_format=="html":
+                                        prompt = full_prompt+first_generation+f"\n".join([
+                                            f"!@>response hit entry:\n{hit}",
+                                            f"!@>instructions:",
+                                            "Create an informative title and write a concise yet detailed summary of the content of this hit entry in html format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
+                                            "If you find any URLs in the entry, build a link and include it in your report.",
+                                            "The html should not contain HTML, head or body tags.",
+                                            context_details["ai_prefix"]
+                                        ])
+                                    else:
+                                        prompt = full_prompt+first_generation+f"\n".join([
+                                            f"!@>response hit entry:\n{hit}",
+                                            f"!@>instructions:",
+                                            "Create an informative title and write a concise yet detailed summary of the content of this hit entry in markdown format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
+                                            "If you find any URLs in the entry, build a link and include it in your report.",
+                                            context_details["ai_prefix"]
+                                        ])
+                                    
                                     output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")+"\n\n"
                                 if self.personality_config.output_folder_path!="":
                                     # Get the current date
@@ -290,9 +315,21 @@ class Processor(APScript):
 
                                     # Format the date as 'year_month_day'
                                     formatted_date = current_date.strftime('%Y_%m_%d_%H_%M_%S')
-                                    with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
-                                        f.write(output)
-
+                                    if self.personality_config.output_format=="markdown":
+                                        with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
+                                            f.write(output)
+                                    elif self.personality_config.output_format=="html":
+                                        with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
+                                            f.write("<html>\n")
+                                            f.write("<head>\n")
+                                            f.write("</head>\n")
+                                            f.write("<body>\n")
+                                            f.write(output)
+                                            f.write("\n</body>\n")
+                                            f.write("</html>")
+                                    else:
+                                        with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
+                                            f.write(output)
                             else:
                                 self.step("No Hits found")
                                 prompt = full_prompt+first_generation+f"!@>es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
