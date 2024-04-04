@@ -149,6 +149,7 @@ class Processor(APScript):
                 context_details["ai_prefix"],
             ]))
             self.full(output+"\n"+"## Plan:\n"+plan+"---")
+            self.new_message("")
             self.data_base.add_document(title,prompt, add_to_index=True)
             self.data_base.add_document("Plan",plan, add_to_index=True)
             self.step_end("Saving plan to long term memory")
