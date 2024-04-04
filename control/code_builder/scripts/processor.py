@@ -28,7 +28,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"project_folder_path","type":"str","value":"", "help":"A path to a folder where "},
+                {"name":"project_folder_path","type":"str","value":"", "help":"A path to a folder where to build the project"},
                 {"name":"max_coding_attempts","type":"int","value":10, "help":"The maximum number of iteration over the code before give up"},
             ]
             )
@@ -89,6 +89,7 @@ class Processor(APScript):
                 - negative_boost (str): The negative boost information.
                 - force_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
+                - user_prefix (str): The AI prefix information.
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
             client_id: The client ID for code generation.
@@ -136,14 +137,27 @@ class Processor(APScript):
             self.step("Detected a software build request")
             self.step_start("Saving the information to long term memory")
             title = self.make_title(prompt)
+            output = f"### {title}"
+            plan = self.fast_gen("\n".join([
+                "!@>system: build a plan to perform the user request",
+                "Answer only with the ",
+                "Discussion:",
+                context_details["positive_boost"],
+                context_details["negative_boost"],
+                context_details["force_language"],
+                context_details["discussion_messages"],
+                context_details["ai_prefix"],
+            ]))
+            self.full(output+"\n"+"## Plan:\n"+plan+"---")
             self.data_base.add_document(title,prompt, add_to_index=True)
-            self.step_end("Saving the information to long term memory")
+            self.data_base.add_document("Plan",plan, add_to_index=True)
+            self.step_end("Saving plan to long term memory")
             self.callback = callback
 
             attempt =0
             while attempt<self.personality_config.max_coding_attempts:
                 self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                code = self.build_python_code(previous_discussion_text)
+                code = self.build_python_code(previous_discussion_text+"!@>Plan:\n"+plan+"\n")
                 if code!="":
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
                     previous_discussion_text += code

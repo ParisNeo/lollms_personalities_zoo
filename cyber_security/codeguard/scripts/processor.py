@@ -7,6 +7,7 @@ description: # Place holder: personality description
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.utilities import show_yes_no_dialog
 
 from pathlib import Path
 from typing import Callable
@@ -207,17 +208,18 @@ class Processor(APScript):
                             self.step_end(f"Processing file {file}")
 
     def start_detection(self, prompt="", full_context=""):
-        if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
-            self.full("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
-    
-        code_folder_path = Path(self.personality_config.code_folder_path)
-        tests_folder_path = Path(self.personality_config.tests_folder_path)
-        docs_folder_path = Path(self.personality_config.docs_folder_path)
-        tokenize = self.personality.model.tokenize
-        detokenize = self.personality.model.detokenize
-        max_nb_tokens_in_file = 3*self.personality.config.ctx_size/4
-        accepted_file_types = ["." + extension.strip() if not extension.startswith(".") else extension.strip() for extension in self.personality_config.files_to_parse.split(",")] 
-        self.process_folder(code_folder_path, docs_folder_path, max_nb_tokens_in_file, tokenize, detokenize, accepted_file_types)
+        if show_yes_no_dialog("File processing request","Hi! I just received a request to start reading and documenting files on your PC.If this operation was not triggered by you, please press No and investigate your security.\nIf this is requested by you then pres yes to start.\nDo you want to continue?"):
+            if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
+                self.full("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
+        
+            code_folder_path = Path(self.personality_config.code_folder_path)
+            tests_folder_path = Path(self.personality_config.tests_folder_path)
+            docs_folder_path = Path(self.personality_config.docs_folder_path)
+            tokenize = self.personality.model.tokenize
+            detokenize = self.personality.model.detokenize
+            max_nb_tokens_in_file = 3*self.personality.config.ctx_size/4
+            accepted_file_types = ["." + extension.strip() if not extension.startswith(".") else extension.strip() for extension in self.personality_config.files_to_parse.split(",")] 
+            self.process_folder(code_folder_path, docs_folder_path, max_nb_tokens_in_file, tokenize, detokenize, accepted_file_types)
 
     def add_file(self, path, client, callback=None):
         """
