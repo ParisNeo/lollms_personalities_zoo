@@ -6,7 +6,8 @@ from typing import Callable
 
 from safe_store.text_vectorizer import TextVectorizer, VectorizationMethod
 import subprocess
-
+from pathlib import Path
+from typing import List
 # Helper functions
 class Processor(APScript):
     """
@@ -103,6 +104,7 @@ class Processor(APScript):
             self.full("Before starting to talk to me, please define a project folder path in my configuration settings then we can start building the app.")
             return
         
+        project_folder_path = Path(self.personality_config.project_folder_path)
         self.output=""
         self.callback = callback
         operation = self.multichoice_question(
@@ -135,25 +137,68 @@ class Processor(APScript):
         elif operation == 2: #build the software
             ASCIIColors.info("Generating")
             self.step("Detected a software build request")
-            self.step_start("Saving the information to long term memory")
+            self.step_start("Building plan")
             title = self.make_title(prompt)
             output = f"### {title}"
             plan = self.fast_gen("\n".join([
-                "!@>system: build a plan to perform the user request",
-                "Answer only with the ",
+                "!@>system: write a plan to build the project provided by the user.",
+                "Create a summary of your plan without writing the code.",
+                "Then present a file structure in the following format:",
+                "```structure",
+                "placeholder: here you place a file for each line, if the file is inside a subfolder, just place the relative path to the file",
+                "```",
+                "example:",
+                "```structure",
+                "calculator/",
+                "├── main.py",
+                "├── README.md",
+                "└── core/",
+                "    └── calc_functions.py",
+                "```",
+                "It is important that the structure gets put inside a  structure markdown block.",
                 context_details["positive_boost"],
                 context_details["negative_boost"],
                 context_details["force_language"],
                 context_details["discussion_messages"],
                 context_details["ai_prefix"],
             ])).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
-            self.full(output+"\n"+"## Plan:\n"+plan+"---")
-            self.new_message("")
+            code_blocks = self.extract_code_blocks(plan)
             self.data_base.add_document(title,prompt, add_to_index=True)
             self.data_base.add_document("Plan",plan, add_to_index=True)
-            self.step_end("Saving plan to long term memory")
-            self.callback = callback
+            self.step_end("Building plan")
+            self.full(output+"\n"+"## Plan:\n"+plan+"---")
+            self.new_message("")
+            self.step_start("Building files structure")
+            context_details["discussion_messages"] += "\n"+context_details["ai_prefix"]+plan+"\n"
+            for code_block in code_blocks:
+                if code_block["type"]=="structure":
+                   files:List[Path] = [project_folder_path/file for file in self.parse_directory_structure(code_block["content"])]
+                   for file in files:
+                        if file.suffix=="":
+                           file.mkdir(parents=True, exist_ok=True)
+                        else:
+                            plan = self.fast_gen(self.build_prompt([
+                                "!@>system: Write the code of the file in a single markdown code tag.",
+                                "Don't write the code of other files, just the file requested",
+                                "Don't provide explanations, just build the file and write it",
+                                context_details["positive_boost"],
+                                context_details["negative_boost"],
+                                context_details["force_language"],
+                                context_details["discussion_messages"],
+                                f"!@>file:{file}",
+                                context_details["ai_prefix"],
+                            ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
+                            code_blocks = self.extract_code_blocks(plan)
+                            for code_block in code_blocks[:1]:
+                                with open(file, "w") as f:
+                                    f.write(code_block["content"])
+                                self.data_base.add_document(file,code_block["content"], add_to_index=True)
+            self.step_end("Building files structure")
+            self.step_start("preparing environment")
 
+
+            self.callback = callback
+            """
             attempt =0
             while attempt<self.personality_config.max_coding_attempts:
                 self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
@@ -174,7 +219,11 @@ class Processor(APScript):
                     attempt +=1 
                 self.full(self.output)
             self.full(self.output)
-            ASCIIColors.yellow(code)
+            ASCIIColors.yellow(code)            
+            
+            
+            """
+
         elif operation == 3: # updates to the software
             ASCIIColors.info("Generating")
             self.step("Detected a software update request")

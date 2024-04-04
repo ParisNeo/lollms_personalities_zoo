@@ -127,16 +127,19 @@ class Processor(APScript):
                 "Act as document relevance analyzer. Respond with the document relevance level out of 10.",
                 "A document with a relevance of 10 is a document that adresses exactly the subject proposed by the user.",
                 "Make sure the document is not talking about something else that is not really linked with the subject but may use some terms that can be found in the subject.",
+                "Be sure to understand the content of the user prompt in order to determine if the document is really linked to the same requested subject or no.",
                 "!@>document:",
                 "title: {{title}}",
                 "content: {{content}}",
                 "!@>subject:{{initial_prompt}}",
-                "!@>relevance value out of 10: "]), 10, {
+                "!@>relevance value out of 10: "]), 10, 
+                {
                     "title":title,
                     "content":abstract,
                     "initial_prompt":initial_prompt,
                     "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                    }, debug=self.personality.config.debug, callback=self.sink)
+                },
+                debug=self.personality.config.debug, callback=self.sink)
             relevance_score = relevance_score
             relevance_score = self.find_numeric_value(relevance_score)
             if relevance_score is None:
@@ -312,99 +315,96 @@ class Processor(APScript):
                         self.step_start(f"{i}/{self.personality_config.nb_arxiv_results} {result.title}")
                         self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
 
-        # ----------------------------------- HAL ----------------------------------            
-        if self.personality_config.nb_hal_results>0:
-            self.step_start(f"Searching articles on hal")
-            base_url = "http://api.archives-ouvertes.fr/search/"
-            query_params = {
-                "q": f"title_t:{query}",
-                "fl": "label_s,en_title_s,uri_s,abstract_s",
-                "rows": self.personality_config.nb_hal_results,
-                "sort": "submittedDate_tdate desc"
-            }
-            search_results = query_server(base_url, query_params)
-            articles_checking_text.append(self.build_a_document_block(f"Searching on hal {self.personality_config.nb_hal_results} articles.","",f"Found : {len(search_results['response']['docs'])} articles on the subject\n"))
-            self.full("\n".join(articles_checking_text))
-            self.step_end(f"Searching articles on hal")
+        # ----------------------------------- HAL ----------------------------------
+        try:
+            if self.personality_config.nb_hal_results>0:
+                self.step_start(f"Searching articles on hal")
+                base_url = "http://api.archives-ouvertes.fr/search/"
+                query_params = {
+                    "q": f"title_t:{query}",
+                    "fl": "label_s,en_title_s,uri_s,abstract_s",
+                    "rows": self.personality_config.nb_hal_results,
+                    "sort": "submittedDate_tdate desc"
+                }
+                search_results = query_server(base_url, query_params)
+                articles_checking_text.append(self.build_a_document_block(f"Searching on hal {self.personality_config.nb_hal_results} articles.","",f"Found : {len(search_results['response']['docs'])} articles on the subject\n"))
+                self.full("\n".join(articles_checking_text))
+                self.step_end(f"Searching articles on hal")
 
-            # Download and save articles
-            for i, result in enumerate(search_results["response"]["docs"]):
-                if "en_title_s" not in result: result["en_title_s"]=["undefined"]
-                pdf_url = result["uri_s"]
-                if pdf_url:
-                    document_file_name = result["uri_s"].split('/')[-1]
-                    self.step_start(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
-                    # Get the PDF content
-                    response = requests.get(pdf_url)
-                    if response.status_code == 200:
-                        # Create the filename for the downloaded article
-                        filename = download_folder/f"{document_file_name}.pdf"
-                        # Save the PDF to the specified folder
-                        with open(filename, "wb") as file:
-                            file.write(response.content)
-                        ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result['en_title_s'][0]}\n    to {filename}")
-                        self.analyze_pdf(title=result["en_title_s"][0],
-                                authors=result['label_s'],
-                                abstract=result['abstract_s'][0],
-                                initial_prompt = query,
-                                document_file_name = document_file_name)
+                # Download and save articles
+                for i, result in enumerate(search_results["response"]["docs"]):
+                    if "en_title_s" not in result: result["en_title_s"]=["undefined"]
+                    pdf_url = result["uri_s"]
+                    if pdf_url:
+                        document_file_name = result["uri_s"].split('/')[-1]
+                        self.step_start(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
+                        # Get the PDF content
+                        response = requests.get(pdf_url)
+                        if response.status_code == 200:
+                            # Create the filename for the downloaded article
+                            filename = download_folder/f"{document_file_name}.pdf"
+                            # Save the PDF to the specified folder
+                            with open(filename, "wb") as file:
+                                file.write(response.content)
+                            ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result['en_title_s'][0]}\n    to {filename}")
+                            self.analyze_pdf(title=result["en_title_s"][0],
+                                    authors=result['label_s'],
+                                    abstract=result['abstract_s'][0],
+                                    initial_prompt = query,
+                                    document_file_name = document_file_name)
 
-                        self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
+                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
 
-                    else:
-                        ASCIIColors.red(f"Failed to download {result['en_title_s']}")
-                        self.step_start(f"{i}/{self.personality_config.nb_hal_results} {result['en_title_s']}")
-                        self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}", False)
-                    
+                        else:
+                            ASCIIColors.red(f"Failed to download {result['en_title_s']}")
+                            self.step_start(f"{i}/{self.personality_config.nb_hal_results} {result['en_title_s']}")
+                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}", False)
+        except Exception as ex:
+            ASCIIColors.error(ex)                 
 
+        self.new_message("")
+        report = classify_reports(report)
         self.json("Report",report)
         self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
+        self.new_message("")
         if len(report)>0:
-            self.step_start(f"Indexing database")
-            self.abstract_vectorizer.index()
-            self.step_end(f"Indexing database")
-            
+            text_to_summerize = ""
+            for entry in report:
+                if entry["relevance"]!="irrelevant" and entry["relevance"]!="unchecked":
+                    text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n---\n"
+
+            self.step_start(f"Summerizing content")
+            summary = self.summerize_text(text_to_summerize,"Summerize the bibliography entries into a comprehansive scientific bibliography report")
+            self.full(summary)
+            self.step_end(f"Summerizing content")           
 
             self.step_start(f"Building answer")
-            str_docs=""
-            #data = self.abstract_vectorizer.recover_chunk_by_index(0)
-            docs, sorted_similarities, document_ids = self.abstract_vectorizer.recover_text(keywords, top_k=self.personality_config.data_vectorization_nb_chunks)
-            for doc, infos in zip(docs, sorted_similarities):
-                str_docs+=f"->Document<-:\ndocument path: {infos[0]}\nsummary:{doc}"
-
-            if str_docs!="":
-                pr = PromptReshaper("Documentation section:\n{{doc}}\nDiscussion:\n{{content}}")
-                discussion_messages = pr.build({
-                                        "doc":str_docs,
-                                        "content":previous_discussion_text+" Ok, after reading the provided document chunks, here is my answer to your request:"
-                                        }, self.personality.model.tokenize, self.personality.model.detokenize, self.personality.config.ctx_size, place_holders_to_sacrifice=["content"])
-            else:
-                pr = PromptReshaper("{{conditionning}}\n{{content}}")
-                discussion_messages = pr.build({
-                                        "conditionning":conditionning,
-                                        "content":previous_discussion_text
-                                        }, self.personality.model.tokenize, self.personality.model.detokenize, self.personality.config.ctx_size, place_holders_to_sacrifice=["content"])
-            self.print_prompt("Ask to build keywords",discussion_messages)
-            output = self.generate(discussion_messages, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-            self.step_end(f"Building answer")
-            
-            report = classify_reports(report)
             with open(download_folder/"report.json","w") as f:
                 json.dump(report, f)
 
-            summary_text=f"\n<b>Summary</b>:\n{output}"
+            summary_text=f"\n<b>Summary</b>:\n{summary}"
             with open(download_folder/"summary.md","w",encoding="utf-8") as f:
                 f.write(summary_text)
                         
-            ASCIIColors.yellow(output)
             self.new_message("")
             self.full(summary_text)
             if self.personality_config.make_survey:
-                summary = self.summerize_text(str(report),f"create a summary where you keep the author names, the title of the article and any thing important related to the prompt:\nprompt:{query}","summary")
-                summary_latex = self.fast_gen(f"!@>instruction: Write a survey article out of the information provided below about the subject. Use academic style and cite the contributions.\nInput:\n{summary}\nOutput format : a complete latex document that should compile without errors and should contain inline bibliography\n!@>Output:\n```latex\n")
-                with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
-                    f.write(summary_latex)
-                if self.personality_config.pdf_latex_path!="":
-                    self.compile_latex(download_folder/f"{self.personality_config.output_file_name}.tex",self.personality_config.pdf_latex_path)
+                summary_latex = "```latex\n"+self.fast_gen(
+                    self.build_prompt([
+                    f"!@>instruction: Write a survey article out of the summary.",
+                    f"Use academic style and cite the contributions.",
+                    f"Input:",
+                    f"{summary}",
+                    "Output format : a complete latex document that should compile without errors and should contain inline bibliography",
+                    "!@>Output:",
+                    "```latex\n"])
+                    )
+                code_blocks = self.extract_code_blocks(summary_latex)
+                if len(code_blocks)>0:
+                    for code_clock in code_blocks[:1]:
+                        with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
+                            f.write(code_clock["content"])
+                    if self.personality_config.pdf_latex_path!="":
+                        self.compile_latex(download_folder/f"{self.personality_config.output_file_name}.tex",self.personality_config.pdf_latex_path)
         else:
             self.personality.error("No article found about this subject!")
