@@ -120,19 +120,18 @@ class Processor(APScript):
                         document_file_name, 
                         articles_checking_text, 
                         report):
-        
+        fn = str(file_name).replace('\\','/')
         if self.personality_config.read_abstracts:
             relevance_score = self.fast_gen("\n".join([
                 "!@>system:",
-                "Act as document relevance analyzer. Respond with the document relevance level out of 10.",
-                "A document with a relevance of 10 is a document that adresses exactly the subject proposed by the user.",
-                "Make sure the document is not talking about something else that is not really linked with the subject but may use some terms that can be found in the subject.",
-                "Be sure to understand the content of the user prompt in order to determine if the document is really linked to the same requested subject or no.",
+                "Assess the relevance of a document in relation to a user's subject proposal. Provide a relevance score out of 10, with a score of 10 indicating that the document is a precise match with the proposed subject. Carefully examine the document's content and ensure it directly addresses the subject requested, without straying off-topic or loosely linking unrelated concepts through the use of similar terms. Thoroughly understand the user's prompt to accurately determine if the document is indeed pertinent to the requested subject.",
+                "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
+                "Do not answer with text, just a single integer value without explanation."
                 "!@>document:",
                 "title: {{title}}",
                 "content: {{content}}",
                 "!@>subject:{{initial_prompt}}",
-                "!@>relevance value out of 10: "]), 10, 
+                "!@>relevance_value:"]), 10, 
                 {
                     "title":title,
                     "content":abstract,
@@ -140,20 +139,22 @@ class Processor(APScript):
                     "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
                 },
                 debug=self.personality.config.debug, callback=self.sink)
-            relevance_score = relevance_score
             relevance_score = self.find_numeric_value(relevance_score)
             if relevance_score is None:
-                articles_checking_text.append(f"\n\n---\n\n<b>Title</b>: {title}\n\n<b>Authors</b>: {authors}\n<p style='color: red;'>Couldn't determine relevance</p>\n\n<b>File</b>: <a href='file:///{fn}'>{document_file_name}</a>")
+                relevance="unknown"
+                relevance_explanation = ""
                 report_entry={
                     "title":title,
                     "authors":authors,
                     "abstract":abstract,
-                    "relevance":None,
+                    "relevance":relevance,
                     "relevance_score":0,
                     "explanation":relevance_explanation,
                     "url":pdf_url,
                     "file_path":str(file_name)
                 }
+                relevance = f'<p style="color: red;">{relevance}</p>'
+                articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
                 report.append(report_entry)
                 self.full("\n".join(articles_checking_text))
                 self.warning("The AI agent didn't respond to the relevance question correctly")
@@ -194,15 +195,28 @@ class Processor(APScript):
             "relevance_score":relevance_score,
             "explanation":relevance_explanation,
             "url":pdf_url,
-            "file_path":str(file_name)
-        }        
+            "file_path":str(file_name),
+            "fn":fn,
+            "document_file_name":document_file_name
+        }
         relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b><br>{relevance_explanation}'  if relevance_score>float(self.personality_config.relevance_check_severiry) else f'<p style="color: gray;">{relevance}</p>' 
-        fn = str(file_name).replace('\\','/')
+        
         articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
         self.full("\n".join(articles_checking_text))
         report.append(report_entry)
         return True
-        
+    
+    def display_report(self, report):
+        text = ""
+        for entry in report:
+            if entry['relevance']=="irrelevant" or entry['relevance'] is None or entry['relevance']=="unknown":
+                continue 
+            relevance = f'<p style="color: green;">{entry["relevance"]}</p>\n<b>Explanation</b><br>{entry["relevance_explanation"]}' 
+            text+=self.build_a_document_block(f"{entry['title']}","",f"<b>Authors</b>: {entry['authors']}\n<br><b>File</b>:{self.build_a_file_link(entry['fn'],entry['document_file_name'])}<br><b>Relevance:</b>\n{relevance}<br>")
+        self.new_message("")
+        self.full(text)
+        return text
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
         """
         This function generates code based on the given parameters.
@@ -362,9 +376,13 @@ class Processor(APScript):
         except Exception as ex:
             ASCIIColors.error(ex)                 
 
-        self.new_message("")
         report = classify_reports(report)
         self.json("Report",report)
+        try:
+            self.display_report(report)
+        except Exception as ex:
+            ASCIIColors.error(ex)
+
         self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
         self.new_message("")
         if len(report)>0:
@@ -386,8 +404,8 @@ class Processor(APScript):
             with open(download_folder/"summary.md","w",encoding="utf-8") as f:
                 f.write(summary_text)
                         
-            self.new_message("")
             self.full(summary_text)
+            self.new_message("")
             if self.personality_config.make_survey:
                 summary_latex = "```latex\n"+self.fast_gen(
                     self.build_prompt([
@@ -395,15 +413,21 @@ class Processor(APScript):
                     f"Use academic style and cite the contributions.",
                     f"Input:",
                     f"{summary}",
+
                     "Output format : a complete latex document that should compile without errors and should contain inline bibliography",
                     "!@>Output:",
-                    "```latex\n"])
+                    "```latex\n"]), callback=self.sink
                     )
                 code_blocks = self.extract_code_blocks(summary_latex)
                 if len(code_blocks)>0:
-                    for code_clock in code_blocks[:1]:
+                    for code_block in code_blocks[:1]:
+                        self.full(self.build_prompt([
+                            "```latex",
+                            f"{code_block['content']}",
+                            "```"
+                        ]))
                         with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
-                            f.write(code_clock["content"])
+                            f.write(code_block["content"])
                     if self.personality_config.pdf_latex_path!="":
                         self.compile_latex(download_folder/f"{self.personality_config.output_file_name}.tex",self.personality_config.pdf_latex_path)
         else:

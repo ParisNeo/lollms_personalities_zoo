@@ -128,6 +128,7 @@ class Processor(APScript):
             self.step("Detected a software information")
             self.step_start("Saving the information to long term memory")
             title = self.make_title(prompt)
+            self.full(f"{title}\n")
             self.data_base.add_document(title,prompt, add_to_index=True)
             self.step_end("Saving the information to long term memory")
             self.step_start(f"Assimilating the Data")
@@ -192,7 +193,8 @@ class Processor(APScript):
                             for code_block in code_blocks[:1]:
                                 with open(file, "w") as f:
                                     f.write(code_block["content"])
-                                self.data_base.add_document(file,code_block["content"], add_to_index=True)
+                                #self.data_base.add_document(file,code_block["content"], add_to_index=True)
+                            self.chunk("\n")
             self.step_end("Building files structure")
             self.step_start("preparing environment")
 
