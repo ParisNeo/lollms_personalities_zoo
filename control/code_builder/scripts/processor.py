@@ -141,13 +141,12 @@ class Processor(APScript):
             plan = self.fast_gen("\n".join([
                 "!@>system: build a plan to perform the user request",
                 "Answer only with the ",
-                "Discussion:",
                 context_details["positive_boost"],
                 context_details["negative_boost"],
                 context_details["force_language"],
                 context_details["discussion_messages"],
                 context_details["ai_prefix"],
-            ]))
+            ])).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
             self.full(output+"\n"+"## Plan:\n"+plan+"---")
             self.new_message("")
             self.data_base.add_document(title,prompt, add_to_index=True)
