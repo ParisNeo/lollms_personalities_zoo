@@ -273,6 +273,8 @@ class Processor(APScript):
                 "!@>system:",
                 "Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.",
                 "Answer with only the keywords and do not make any comments.",
+                "be consize and just write a list of keywords separated by comma.",
+                "Do not use quotation marks",
                 "!@>user prompt: {{initial_prompt}}",
                 "!@>query: "
             ]), self.personality_config.max_generation_prompt_size, {
@@ -334,8 +336,10 @@ class Processor(APScript):
             if self.personality_config.nb_hal_results>0:
                 self.step_start(f"Searching articles on hal")
                 base_url = "http://api.archives-ouvertes.fr/search/"
+                keywords_fr=self.translate(keywords,"french")
                 query_params = {
-                    "q": f"title_t:{query}",
+                    "q": f"{keywords_fr}",
+                    "wt":"json",
                     "fl": "label_s,en_title_s,uri_s,abstract_s",
                     "rows": self.personality_config.nb_hal_results,
                     "sort": "submittedDate_tdate desc"
