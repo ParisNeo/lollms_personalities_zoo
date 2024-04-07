@@ -84,7 +84,8 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands
                                         "help":self.help,
-                                        "analyze_articles":self.analyze_articles
+                                        "analyze_articles":self.analyze_articles,
+                                        "search_analyze_organize_summerize":self.search_analyze_organize_summerize
                                     },
                                     "default": None
                                 },                           
@@ -138,6 +139,19 @@ class Processor(APScript):
 
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
+
+    def search_analyze_organize_summerize(self, prompt="", full_context="", client = None):
+        if self.personality_config.research_output_path!="":
+            download_folder = Path(self.personality_config.research_output_path)
+        else:
+            download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
+            self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
+        if self.personality_config.research_subject=="":
+            self.personality.InfoMessage("Please set the research subject entry in the personality settings")
+            return
+        
+        self.search_organize_and_summerize(full_context, prompt, None, client)
+
 
     def analyze_articles(self, prompt="", full_context="", client = None):
         if self.personality_config.research_output_path!="":

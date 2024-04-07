@@ -139,7 +139,7 @@ class Processor(APScript):
                     
         
 
-    def start_zipping(self, prompt="", full_context=""):
+    def start_zipping(self, prompt="", full_context="", client:Client=None):
         self.new_message("")
         for file in self.personality.text_files:
             output=""
