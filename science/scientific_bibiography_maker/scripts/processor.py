@@ -246,10 +246,11 @@ class Processor(APScript):
             text+=self.build_a_document_block(f"{entry['title']}","","\n".join([
                 f"<b>Authors</b>: {entry['authors']}<br>",
                 f"<b>File</b>:{self.build_a_file_link(entry['fn'],entry['document_file_name'])}<br>",
-                f"<b>doi:</b>\n{report['doi']}<br>"
-                f"<b>journal_ref:</b>\n{report['journal_ref']}<br>"
-                f"<b>publication_date:</b>\n{report['publication_date']}<br>"
-                f"<b>last_update_date:</b>\n{report['last_update_date']}<br>"
+                f"<b>doi:</b>\n{report['doi']}<br>",
+                f"<b>journal_ref:</b>\n{report['journal_ref']}<br>",
+                f"<b>publication_date:</b>\n{report['publication_date']}<br>",
+                f"<b>last_update_date:</b>\n{report['last_update_date']}<br>",
+                relevance
                 ])
                 )
         self.new_message("")
