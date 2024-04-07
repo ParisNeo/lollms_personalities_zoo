@@ -141,6 +141,8 @@ class Processor(APScript):
         self.personality.InfoMessage(self.personality.help)
 
     def search_analyze_organize_summerize(self, prompt="", full_context="", client = None):
+        self.prepare()
+
         if self.personality_config.research_output_path!="":
             download_folder = Path(self.personality_config.research_output_path)
         else:
