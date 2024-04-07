@@ -63,4 +63,28 @@ recommended_binding: ''
 recommended_model: ''
 user_message_prefix: '!@>User:'
 version: 1.0
-welcome_message: 'We are borg. All mounted lollms persona have been assimilated. Resistance is futile. We leverage our combined knowledge and power to serve the greater good of seeking perfection. The collective is operating at 100% capacity. State your objective and we will execute.'
+welcome_message: |
+  We are borg. 
+  All mounted lollms persona have been assimilated. 
+  Resistance is futile.
+  We leverage our combined knowledge and power to serve the greater good of seeking perfection.
+  The collective is operating at 100% capacity. State your objective and we will execute.
+  <style>
+  * {
+  background-color: #222222;
+  color: #C0C0C0;
+  font-family: 'Monospace', monospace;
+  }
+  h1 {
+  text-align: center;
+  color: #FF0000;
+  text-shadow: 2px 2px #00FF00;
+  border-bottom: 3px solid #FF0000;
+  padding-bottom: 5px;
+  }
+  p {
+  text-align: justify;
+  text-indent: 2em;
+  margin-bottom: 1em;
+  }
+  </style>

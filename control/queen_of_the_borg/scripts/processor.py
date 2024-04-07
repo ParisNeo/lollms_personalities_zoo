@@ -95,7 +95,8 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -159,7 +160,7 @@ class Processor(APScript):
                     collective[selection].full(f"At your service my queen.\n")
                     collective[selection].processor.text_files = self.personality.text_files
                     collective[selection].processor.image_files = self.image_files
-                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
+                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
                 else:
                     if collective[selection].name!="Queen of the Borg":
                         q_prompt += f"!@>system: Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"

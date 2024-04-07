@@ -5,6 +5,8 @@ from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.client_session import Client
+from safe_store.generic_data_loader import GenericDataLoader
 import re
 import importlib
 import requests
@@ -45,23 +47,24 @@ class Processor(APScript):
                 ) -> None:
         self.word_callback = None
         self.arxiv = None
+        self.ieeexplore = None
         # C:\Program Files\MiKTeX\miktex\bin\x64
         # https://developer.ieee.org/Python3_Software_Development_Kit#fullTextExample
         personality_config_template = ConfigTemplate(
             [
-                {"name":"ieee_explore_key","type":"str","value":"", "min":1, "help":"The key to use for accessing ieeexplore api"},                
                 {"name":"research_output_path","type":"str","value":"", "min":1, "help":"path to a folder where to put the downloaded bibliography files as well as the summary and analysis results"},                
                 {"name":"pdf_latex_path","type":"str","value":"", "min":1, "help":"path to the pdflatex file pdf compiler used to compile pdf files"},
-                {"name":"make_survey","type":"bool","value":True, "min":1, "help":"build a survey report"},
-                {"name":"output_file_name","type":"str","value":"summary_latex", "min":1, "help":"Name of the pdf file to generate"},
+                {"name":"ieee_explore_key","type":"str","value":"", "min":1, "help":"The key to use for accessing ieeexplore api"},                
                 {"name":"nb_arxiv_results","type":"int","value":10, "min":1, "help":"number of results to recover for ARXIV"},                
-                {"name":"nb_hal_results","type":"int","value":10, "min":1, "help":"number of results to recover for HAL"},                
-                {"name":"data_vectorization_nb_chunks","type":"int","value":5, "min":1, "help":"number of results to use for final text"},
+                {"name":"nb_ieee_explore_results","type":"int","value":0, "min":1, "help":"number of results to recover for IEEE explore"},                
+                {"name":"nb_hal_results","type":"int","value":0, "min":1, "help":"number of results to recover for HAL (French portal)"},                
+                {"name":"output_file_name","type":"str","value":"summary_latex", "min":1, "help":"Name of the pdf file to generate"},
                 {"name":"Formulate_search_query","type":"bool","value":True, "help":"Before doing the search the AI creates a keywords list that gets sent to the arxiv search engine."},
-                {"name":"read_abstracts","type":"bool","value":True, "help":"With this, the AI reads each abstract and judges if it is related to the work or not and filter out unrelated papers"},
+                {"name":"make_survey","type":"bool","value":True, "min":1, "help":"build a survey report"},
+                {"name":"read_the_whole_article","type":"bool","value":False, "help":"With this, the AI readsthe whole article, summerizes it before doing the classification. This is resource intensive as it requires the AI to dive deep into the article and if you have multiple articles with multiple pages, this may slow down the generation."},
                 {"name":"read_content","type":"bool","value":True, "help":"With this, the AI reads the whole document and judges if it is related to the work or not and filter out unrelated papers"},
-                {"name":"relevance_check_severiry","type":"int","value":5, "min":1, "max":10, "help":"A value that reflects how severe is selection criterion"},
-                {"name":"max_generation_prompt_size","type":"int","value":2048, "min":10, "max":personality.config["ctx_size"]},
+                {"name":"max_generation_prompt_size","type":"int","value":2048, "min":10, "max":personality.config["ctx_size"], "help":"Crop the maximum generation prompt size"},
+                {"name":"relevance_check_severity","type":"int","value":4, "min":0, "max":10, "help":"The severity of the selection is the threshold under which the AI considers the article as irrelevant"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -89,6 +92,16 @@ class Processor(APScript):
                         save_db=False
                     )
 
+    def settings_updated(self):
+        """
+        Updated
+        """
+        if self.personality_config.ieee_explore_key!="" and self.personality_config.nb_ieee_explore_results>0:
+            if not PackageManager.check_package_installed("xploreapi"):
+                PackageManager.install_package("xploreapi")
+
+            from xploreapi import XPLORE
+
         
     def install(self):
         super().install()
@@ -107,84 +120,89 @@ class Processor(APScript):
         if self.arxiv is None:
             import arxiv
             self.arxiv = arxiv
+        if self.arxiv is None:
+            import arxiv
+            self.arxiv = arxiv
 
 
     def analyze_pdf(
                         self,
                         initial_prompt, 
                         pdf_url, 
+                        doi,
+                        journal_ref,
+                        publication_date,
+                        last_update_date,
                         title, 
                         authors, 
-                        abstract, 
+                        abstract,
                         file_name, 
                         document_file_name, 
                         articles_checking_text, 
                         report):
         fn = str(file_name).replace('\\','/')
-        if self.personality_config.read_abstracts:
-            relevance_score = self.fast_gen("\n".join([
-                "!@>system:",
-                "Assess the relevance of a document in relation to a user's subject proposal. Provide a relevance score out of 10, with a score of 10 indicating that the document is a precise match with the proposed subject. Carefully examine the document's content and ensure it directly addresses the subject requested, without straying off-topic or loosely linking unrelated concepts through the use of similar terms. Thoroughly understand the user's prompt to accurately determine if the document is indeed pertinent to the requested subject.",
-                "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
-                "Do not answer with text, just a single integer value without explanation."
-                "!@>document:",
-                "title: {{title}}",
-                "content: {{content}}",
-                "!@>subject:{{initial_prompt}}",
-                "!@>relevance_value:"]), 10, 
-                {
+        if self.personality_config.read_the_whole_article:
+            text = GenericDataLoader.read_file(file_name)
+
+        relevance_score = self.fast_gen("\n".join([
+            "!@>system:",
+            "Assess the relevance of a document in relation to a user's subject proposal. Provide a relevance score out of 10, with a score of 10 indicating that the document is a precise match with the proposed subject. Carefully examine the document's content and ensure it directly addresses the subject requested, without straying off-topic or loosely linking unrelated concepts through the use of similar terms. Thoroughly understand the user's prompt to accurately determine if the document is indeed pertinent to the requested subject.",
+            "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
+            "Do not answer with text, just a single integer value without explanation."
+            "!@>document:",
+            "title: {{title}}",
+            "content: {{content}}",
+            "!@>subject:{{initial_prompt}}",
+            "!@>relevance_value:"]), 10, 
+            {
+                "title":title,
+                "content":abstract,
+                "initial_prompt":initial_prompt,
+                "relevance_check_severity":str(self.personality_config.relevance_check_severity)
+            },
+            debug=self.personality.config.debug, callback=self.sink)
+        relevance_score = self.find_numeric_value(relevance_score)
+        if relevance_score is None:
+            relevance="unknown"
+            relevance_explanation = ""
+            report_entry={
+                "title":title,
+                "authors":authors,
+                "abstract":abstract,
+                "relevance":relevance,
+                "relevance_score":0,
+                "explanation":relevance_explanation,
+                "url":pdf_url,
+                "file_path":str(file_name)
+            }
+            relevance = f'<p style="color: red;">{relevance}</p>'
+            articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
+            report.append(report_entry)
+            self.full("\n".join(articles_checking_text))
+            self.warning("The AI agent didn't respond to the relevance question correctly")
+            return False
+        if relevance_score>=float(self.personality_config.relevance_check_severity):
+            self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
+            relevance = f"relevance score {relevance_score}/10"
+            relevance_explanation = self.fast_gen("\n".join([
+                    "!@>system:",
+                    "Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject."
+                    "!@>document:",
+                    "title: {{title}}",
+                    "authors: {{authors}}",
+                    "content: {{content}}",
+                    "!@>subject: {{initial_prompt}}",
+                    "!@>Explanation: "                    
+                    ]), self.personality_config.max_generation_prompt_size, {
                     "title":title,
-                    "content":abstract,
-                    "initial_prompt":initial_prompt,
-                    "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                },
-                debug=self.personality.config.debug, callback=self.sink)
-            relevance_score = self.find_numeric_value(relevance_score)
-            if relevance_score is None:
-                relevance="unknown"
-                relevance_explanation = ""
-                report_entry={
-                    "title":title,
-                    "authors":authors,
                     "abstract":abstract,
-                    "relevance":relevance,
-                    "relevance_score":0,
-                    "explanation":relevance_explanation,
-                    "url":pdf_url,
-                    "file_path":str(file_name)
-                }
-                relevance = f'<p style="color: red;">{relevance}</p>'
-                articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
-                report.append(report_entry)
-                self.full("\n".join(articles_checking_text))
-                self.warning("The AI agent didn't respond to the relevance question correctly")
-                return False
-            if relevance_score>=float(self.personality_config.relevance_check_severiry):
-                self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
-                relevance = f"relevance score {relevance_score}/10"
-                relevance_explanation = self.fast_gen("\n".join([
-                        "!@>system:",
-                        "Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject."
-                        "!@>document:",
-                        "title: {{title}}",
-                        "authors: {{authors}}",
-                        "content: {{content}}",
-                        "!@>subject: {{initial_prompt}}",
-                        "!@>Explanation: "                    
-                        ]), self.personality_config.max_generation_prompt_size, {
-                        "title":title,
-                        "abstract":abstract,
-                        "initial_prompt":initial_prompt,
-                        "relevance_check_severiry":str(self.personality_config.relevance_check_severiry)
-                    },
-                    debug=self.personality.config.debug,
-                    callback=self.sink)
-            else:
-                relevance = "irrelevant"
-                relevance_explanation = ""
+                    "initial_prompt":initial_prompt,
+                    "relevance_check_severity":str(self.personality_config.relevance_check_severity)
+                },
+                debug=self.personality.config.debug,
+                callback=self.sink)
         else:
-            self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
-            relevance = "unchecked"
+            relevance = "irrelevant"
             relevance_explanation = ""
 
         report_entry={
@@ -195,57 +213,70 @@ class Processor(APScript):
             "relevance_score":relevance_score,
             "explanation":relevance_explanation,
             "url":pdf_url,
+            "doi":doi,
+            "journal_ref":journal_ref,
+            "publication_date":publication_date,            
+            "last_update_date":last_update_date,
             "file_path":str(file_name),
             "fn":fn,
             "document_file_name":document_file_name
         }
-        relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b><br>{relevance_explanation}'  if relevance_score>float(self.personality_config.relevance_check_severiry) else f'<p style="color: gray;">{relevance}</p>' 
+        relevance = f'<p style="color: red;">{relevance}</p>' if relevance=="irrelevant" else f'<p style="color: green;">{relevance}</p>\n<b>Explanation</b><br>{relevance_explanation}'  if relevance_score>float(self.personality_config.relevance_check_severity) else f'<p style="color: gray;">{relevance}</p>' 
         
-        articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
+        articles_checking_text.append(self.build_a_document_block(f"{title}","","\n".join([
+            f"<b>Authors</b>: {authors}<br>",
+            f"<b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br>",
+            f"<b>doi:</b>\n{doi}<br>"
+            f"<b>journal_ref:</b>\n{journal_ref}<br>"
+            f"<b>publication_date:</b>\n{publication_date}<br>"
+            f"<b>last_update_date:</b>\n{last_update_date}<br>"
+            f"<b>Relevance:</b>\n{relevance}<br>"
+            ]))
+            )
         self.full("\n".join(articles_checking_text))
         report.append(report_entry)
         return True
     
-    def display_report(self, report):
-        text = ""
+    def display_report(self, report, title="Report", client:Client=None):
+        text = "<h2> "+title+"</h2>\n"
         for entry in report:
             if entry['relevance']=="irrelevant" or entry['relevance'] is None or entry['relevance']=="unknown":
                 continue 
-            relevance = f'<p style="color: green;">{entry["relevance"]}</p>\n<b>Explanation</b><br>{entry["relevance_explanation"]}' 
-            text+=self.build_a_document_block(f"{entry['title']}","",f"<b>Authors</b>: {entry['authors']}\n<br><b>File</b>:{self.build_a_file_link(entry['fn'],entry['document_file_name'])}<br><b>Relevance:</b>\n{relevance}<br>")
+            relevance = f'<p style="color: green;">{entry["relevance"]}</p>\n<b>Explanation</b><br>{entry["explanation"]}' 
+            text+=self.build_a_document_block(f"{entry['title']}","","\n".join([
+                f"<b>Authors</b>: {entry['authors']}<br>",
+                f"<b>File</b>:{self.build_a_file_link(entry['fn'],entry['document_file_name'])}<br>",
+                f"<b>doi:</b>\n{report['doi']}<br>"
+                f"<b>journal_ref:</b>\n{report['journal_ref']}<br>"
+                f"<b>publication_date:</b>\n{report['publication_date']}<br>"
+                f"<b>last_update_date:</b>\n{report['last_update_date']}<br>"
+                ])
+                )
         self.new_message("")
         self.full(text)
+        
+        if self.personality_config.research_output_path!="":
+            output_file = Path(self.personality_config.research_output_path)/"organized_search_results.html"
+        else:
+            output_file = client.discussion_path/"organized_search_results.html" if client is not None else None
+        if output_file:
+            with open(output_file,"w",encoding="utf-8") as f:
+                f.write("\n".join([
+                    "<html>",
+                    "<head>",
+                    "</head>",
+                    "<body>",
+                    text,
+                    "</body>",
+                    "</html>",
+                ])
+                )
+            text += "\n" + self.build_a_file_link(output_file,"Click here to vew the generated html file")
+            self.full(text)
+
         return text
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
-        """
-        This function generates code based on the given parameters.
-
-        Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
-            context_details (dict): A dictionary containing the following context details for code generation:
-                - conditionning (str): The conditioning information.
-                - documentation (str): The documentation information.
-                - knowledge (str): The knowledge information.
-                - user_description (str): The user description information.
-                - discussion_messages (str): The discussion messages information.
-                - positive_boost (str): The positive boost information.
-                - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
-                - fun_mode (str): The fun mode conditionning text
-                - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
-            client_id: The client ID for code generation.
-            callback (function, optional): The callback function for code generation.
-
-        Returns:
-            None
-        """
-        
-        self.callback = callback
-        self.prepare()
-        conditionning = self.personality.personality_conditioning
+    def search(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
 
         #Prepare full report
         report = []
@@ -273,14 +304,15 @@ class Processor(APScript):
                 "!@>system:",
                 "Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.",
                 "Answer with only the keywords and do not make any comments.",
-                "be consize and just write a list of keywords separated by comma.",
+                "The keywords should be as few as possible and be separated by comma.",
                 "Do not use quotation marks",
                 "!@>user prompt: {{initial_prompt}}",
-                "!@>query: "
+                "!@>keywords: "
             ]), self.personality_config.max_generation_prompt_size, {
                     "previous_discussion":previous_discussion_text,
                     "initial_prompt":query
-                    }, ["previous_discussion"], self.personality.config.debug)
+                    }, ["previous_discussion"], 
+                    self.personality.config.debug)
             self.step_end("Building Keywords...")
             self.full(keywords)
             if keywords=="":
@@ -307,29 +339,59 @@ class Processor(APScript):
             self.full("\n".join(articles_checking_text))
             # Download and save articles
             for i, result in enumerate(search_results):
-                pdf_url = result.pdf_url
-                if pdf_url:
-                    document_file_name = result.entry_id.split('/')[-1]
-                    self.step_start(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
-                    # Get the PDF content
-                    response = requests.get(pdf_url)
-                    if response.status_code == 200:
-                        # Create the filename for the downloaded article
-                        file_name = download_folder/f"{document_file_name}.pdf"
-                        # Save the PDF to the specified folder
-                        with open(file_name, "wb") as file:
-                            file.write(response.content)
-                        ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result.title}\n    to {file_name}")
-                        authors = ",".join([str(a.name) for a in result.authors])
-                        
-                        if self.analyze_pdf(query, pdf_url, result.title, authors, result.summary, file_name, document_file_name, articles_checking_text, report):
-                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
+                try:
+                    pdf_url = result.pdf_url
+                    doi = result.doi
+                    journal_ref = result.journal_ref
+                    try:
+                        publication_date = result.published.strftime("%Y-%m-%d")
+                    except Exception as ex:
+                        publication_date = "Unknown"
+
+                    try:
+                        last_update_date = result.updated.strftime("%Y-%m-%d")
+                    except Exception as ex:
+                        last_update_date = "Unknown"
+                    
+                    if pdf_url:
+                        document_file_name = result.entry_id.split('/')[-1]
+                        self.step_start(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
+                        # Get the PDF content
+                        response = requests.get(pdf_url)
+                        if response.status_code == 200:
+                            # Create the filename for the downloaded article
+                            file_name = download_folder/f"{document_file_name}.pdf"
+                            # Save the PDF to the specified folder
+                            with open(file_name, "wb") as file:
+                                file.write(response.content)
+                            ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result.title}\n    to {file_name}")
+                            authors = ",".join([str(a.name) for a in result.authors])
+                            
+                            if self.analyze_pdf(
+                                                query, 
+                                                pdf_url, 
+                                                doi,
+                                                journal_ref,
+                                                publication_date,
+                                                last_update_date,
+                                                result.title, 
+                                                authors, 
+                                                result.summary, 
+                                                file_name, 
+                                                document_file_name, 
+                                                articles_checking_text, 
+                                                report
+                                            ):
+                                self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
+                            else:
+                                self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
                         else:
+                            ASCIIColors.red(f"Failed to download {result.title}")
+                            self.step_start(f"{i}/{self.personality_config.nb_arxiv_results} {result.title}")
                             self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
-                    else:
-                        ASCIIColors.red(f"Failed to download {result.title}")
-                        self.step_start(f"{i}/{self.personality_config.nb_arxiv_results} {result.title}")
-                        self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
+                except Exception as ex:
+                    ASCIIColors.error(ex)
+                    self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
 
         # ----------------------------------- HAL ----------------------------------
         try:
@@ -378,16 +440,11 @@ class Processor(APScript):
                             self.step_start(f"{i}/{self.personality_config.nb_hal_results} {result['en_title_s']}")
                             self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}", False)
         except Exception as ex:
-            ASCIIColors.error(ex)                 
+            ASCIIColors.error(ex)       
+        
+        return report, articles_checking_text, download_folder
 
-        report = classify_reports(report)
-        self.json("Report",report)
-        try:
-            self.display_report(report)
-        except Exception as ex:
-            ASCIIColors.error(ex)
-
-        self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
+    def summerize_report(self, report, download_folder, client:Client=None):
         self.new_message("")
         if len(report)>0:
             text_to_summerize = ""
@@ -396,7 +453,7 @@ class Processor(APScript):
                     text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n---\n"
 
             self.step_start(f"Summerizing content")
-            summary = self.summerize_text(text_to_summerize,"Summerize the bibliography entries into a comprehansive scientific bibliography report")
+            summary = self.summerize_text(text_to_summerize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.")
             self.full(summary)
             self.step_end(f"Summerizing content")           
 
@@ -415,10 +472,10 @@ class Processor(APScript):
                     self.build_prompt([
                     f"!@>instruction: Write a survey article out of the summary.",
                     f"Use academic style and cite the contributions.",
-                    f"Input:",
+                    f"The author of this survey is Scientific Bibliography Maker AI",
+                    f"summary:",
                     f"{summary}",
-
-                    "Output format : a complete latex document that should compile without errors and should contain inline bibliography",
+                    "Output format : a complete latex document that should compile without errors and should contain inline bibliography.",
                     "!@>Output:",
                     "```latex\n"]), callback=self.sink
                     )
@@ -433,6 +490,60 @@ class Processor(APScript):
                         with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
                             f.write(code_block["content"])
                     if self.personality_config.pdf_latex_path!="":
-                        self.compile_latex(download_folder/f"{self.personality_config.output_file_name}.tex",self.personality_config.pdf_latex_path)
+                        output_file = download_folder/f"{self.personality_config.output_file_name}.tex"
+                        self.compile_latex(output_file,self.personality_config.pdf_latex_path)
+                        self.full(self.build_prompt([
+                            "```latex",
+                            f"{code_block['content']}",
+                            "```",
+                            self.build_a_file_link(str(output_file).replace(".tex",".pdf"),"Click here to vew the generated PDF file")
+                        ]))
+
         else:
             self.personality.error("No article found about this subject!")
+
+    def search_organize_and_summerize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
+        report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details)
+        report = classify_reports(report)
+        self.json("Report",report)
+        try:
+            self.display_report(report, "Organized bibliography report", client)
+        except Exception as ex:
+            ASCIIColors.error(ex)
+
+        self.summerize_report(report, download_folder, client)
+
+
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+        """
+        This function generates code based on the given parameters.
+
+        Args:
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - force_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+            client: The current client information
+
+        Returns:
+            None
+        """
+        
+        self.callback = callback
+        self.prepare()
+
+        conditionning = self.personality.personality_conditioning
+        self.search_organize_and_summerize(previous_discussion_text, prompt, context_details, client)

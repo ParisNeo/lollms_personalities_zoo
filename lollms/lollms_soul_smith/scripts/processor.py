@@ -533,7 +533,8 @@ class Processor(APScript):
         self.new_message(form,MSG_TYPE.MSG_TYPE_UI)
         pass
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
