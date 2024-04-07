@@ -151,8 +151,8 @@ class Processor(APScript):
         if self.personality_config.research_subject=="":
             self.personality.InfoMessage("Please set the research subject entry in the personality settings")
             return
-        
-        self.search_organize_and_summerize(full_context, prompt, None, client)
+        self.new_message("")
+        self.search_organize_and_summerize(full_context, self.personality_config.research_subject, None, client)
 
 
     def analyze_articles(self, prompt="", full_context="", client = None):
@@ -168,6 +168,7 @@ class Processor(APScript):
         if self.personality_config.research_subject=="":
             self.personality.InfoMessage("Please set the research subject entry in the personality settings")
             return
+        self.new_message("")
         report = []
         articles_checking_text=[]
         self.new_message("")
