@@ -52,6 +52,7 @@ class Processor(APScript):
         # https://developer.ieee.org/Python3_Software_Development_Kit#fullTextExample
         personality_config_template = ConfigTemplate(
             [
+                {"name":"research_subject","type":"str","value":"", "min":1, "help":"The subject of your research. This is useful to help the AI identify the relevance of the documents for your research subject"},
                 {"name":"research_output_path","type":"str","value":"", "min":1, "help":"path to a folder where to put the downloaded bibliography files as well as the summary and analysis results"},                
                 {"name":"pdf_latex_path","type":"str","value":"", "min":1, "help":"path to the pdflatex file pdf compiler used to compile pdf files"},
                 {"name":"ieee_explore_key","type":"str","value":"", "min":1, "help":"The key to use for accessing ieeexplore api"},                
@@ -63,8 +64,10 @@ class Processor(APScript):
                 {"name":"make_survey","type":"bool","value":True, "min":1, "help":"build a survey report"},
                 {"name":"read_the_whole_article","type":"bool","value":False, "help":"With this, the AI readsthe whole article, summerizes it before doing the classification. This is resource intensive as it requires the AI to dive deep into the article and if you have multiple articles with multiple pages, this may slow down the generation."},
                 {"name":"read_content","type":"bool","value":True, "help":"With this, the AI reads the whole document and judges if it is related to the work or not and filter out unrelated papers"},
+                {"name":"read_only_first_chunk","type":"bool","value":True, "help":"To reduce processing time, you can just read the first chunks which in general contains the title, the authors and the abstracts"},
                 {"name":"max_generation_prompt_size","type":"int","value":2048, "min":10, "max":personality.config["ctx_size"], "help":"Crop the maximum generation prompt size"},
                 {"name":"relevance_check_severity","type":"int","value":4, "min":0, "max":10, "help":"The severity of the selection is the threshold under which the AI considers the article as irrelevant"},
+                {"name":"chunk_size","type":"int","value":512, "help":"The size of chunks when using document summary"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -76,7 +79,16 @@ class Processor(APScript):
         super().__init__(
                             personality,
                             personality_config,
-                            [],
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "help":self.help,
+                                        "analyze_articles":self.analyze_articles
+                                    },
+                                    "default": None
+                                },                           
+                            ],
                             callback=callback
                         )
         self.previous_versions = []
@@ -124,10 +136,63 @@ class Processor(APScript):
             import arxiv
             self.arxiv = arxiv
 
+    def help(self, prompt="", full_context=""):
+        self.personality.InfoMessage(self.personality.help)
+
+    def analyze_articles(self, prompt="", full_context="", client = None):
+        if self.personality_config.research_output_path!="":
+            download_folder = Path(self.personality_config.research_output_path)
+        else:
+            download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
+            self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
+        
+        if len(self.personality.text_files)==0:
+            self.personality.InfoMessage("Please upload articles to analyze then trigger this command")
+            return
+        if self.personality_config.research_subject=="":
+            self.personality.InfoMessage("Please set the research subject entry in the personality settings")
+            return
+        report = []
+        articles_checking_text=[]
+        self.new_message("")
+        for pdf in self.personality.text_files:
+            text = GenericDataLoader.read_file(pdf)
+            tk = self.personality.model.tokenize(text)
+            cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])
+            title = self.fast_gen(f"!@>request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>document title:")
+            authors = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the list of authors without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>authors list:")
+            if self.personality_config.read_only_first_chunk:
+                abstract = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>abstract:")
+            else:
+                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:")
+            self.analyze_pdf(
+                self.personality_config.research_subject,
+                "",
+                "",
+                "",
+                "",
+                "",
+                title,
+                authors,
+                abstract,
+                pdf,
+                pdf.name,
+                articles_checking_text,
+                report
+            )
+        report = classify_reports(report)
+        self.json("Report",report)
+        try:
+            self.display_report(report, "Organized bibliography report", client)
+        except Exception as ex:
+            ASCIIColors.error(ex)
+
+        self.summerize_report(report, download_folder, client)
+
 
     def analyze_pdf(
                         self,
-                        initial_prompt, 
+                        research_subject, 
                         pdf_url, 
                         doi,
                         journal_ref,
@@ -143,24 +208,29 @@ class Processor(APScript):
         fn = str(file_name).replace('\\','/')
         if self.personality_config.read_the_whole_article:
             text = GenericDataLoader.read_file(file_name)
+            if self.personality_config.read_only_first_chunk:
+                abstract = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>abstract:")
+            else:
+                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:")
 
         relevance_score = self.fast_gen("\n".join([
             "!@>system:",
             "Assess the relevance of a document in relation to a user's subject proposal. Provide a relevance score out of 10, with a score of 10 indicating that the document is a precise match with the proposed subject. Carefully examine the document's content and ensure it directly addresses the subject requested, without straying off-topic or loosely linking unrelated concepts through the use of similar terms. Thoroughly understand the user's prompt to accurately determine if the document is indeed pertinent to the requested subject.",
             "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
-            "Do not answer with text, just a single integer value without explanation."
+            "Do not answer with text, just a single integer value without explanation.",
             "!@>document:",
             "title: {{title}}",
             "content: {{content}}",
-            "!@>subject:{{initial_prompt}}",
+            "!@>subject:{{subject}}",
             "!@>relevance_value:"]), 10, 
             {
                 "title":title,
                 "content":abstract,
-                "initial_prompt":initial_prompt,
+                "subject":research_subject,
                 "relevance_check_severity":str(self.personality_config.relevance_check_severity)
             },
-            debug=self.personality.config.debug, callback=self.sink)
+            debug=self.personality.config.debug, 
+            callback=self.sink)
         relevance_score = self.find_numeric_value(relevance_score)
         if relevance_score is None:
             relevance="unknown"
@@ -191,12 +261,12 @@ class Processor(APScript):
                     "title: {{title}}",
                     "authors: {{authors}}",
                     "content: {{content}}",
-                    "!@>subject: {{initial_prompt}}",
+                    "!@>subject: {{research_subject}}",
                     "!@>Explanation: "                    
                     ]), self.personality_config.max_generation_prompt_size, {
                     "title":title,
                     "abstract":abstract,
-                    "initial_prompt":initial_prompt,
+                    "research_subject":research_subject,
                     "relevance_check_severity":str(self.personality_config.relevance_check_severity)
                 },
                 debug=self.personality.config.debug,
@@ -307,13 +377,14 @@ class Processor(APScript):
                 "Answer with only the keywords and do not make any comments.",
                 "The keywords should be as few as possible and be separated by comma.",
                 "Do not use quotation marks",
-                "!@>user prompt: {{initial_prompt}}",
+                "!@>user prompt: {{research_subject}}",
                 "!@>keywords: "
             ]), self.personality_config.max_generation_prompt_size, {
                     "previous_discussion":previous_discussion_text,
-                    "initial_prompt":query
+                    "research_subject":query
                     }, ["previous_discussion"], 
-                    self.personality.config.debug)
+                    self.personality.config.debug,
+                    self.sink)
             self.step_end("Building Keywords...")
             self.full(keywords)
             if keywords=="":
@@ -431,7 +502,7 @@ class Processor(APScript):
                             self.analyze_pdf(title=result["en_title_s"][0],
                                     authors=result['label_s'],
                                     abstract=result['abstract_s'][0],
-                                    initial_prompt = query,
+                                    research_subject = query,
                                     document_file_name = document_file_name)
 
                             self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
@@ -451,7 +522,7 @@ class Processor(APScript):
             text_to_summerize = ""
             for entry in report:
                 if entry["relevance"]!="irrelevant" and entry["relevance"]!="unchecked":
-                    text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n---\n"
+                    text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n"
 
             self.step_start(f"Summerizing content")
             summary = self.summerize_text(text_to_summerize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.")
@@ -478,7 +549,8 @@ class Processor(APScript):
                     f"{summary}",
                     "Output format : a complete latex document that should compile without errors and should contain inline bibliography.",
                     "!@>Output:",
-                    "```latex\n"]), callback=self.sink
+                    "```latex\n"]), 
+                    callback=self.sink
                     )
                 code_blocks = self.extract_code_blocks(summary_latex)
                 if len(code_blocks)>0:
