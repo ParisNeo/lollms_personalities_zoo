@@ -414,8 +414,8 @@ class Processor(APScript):
                         except Exception as ex:
                             ASCIIColors.error(ex)
                             failed=True
-                            full_prompt += first_generation+f"!@>es: error {ex}\n"+context_details["ai_prefix"]
-                            output = "The AI issued a wrong command.\nRetrying.."
+                            full_prompt += first_generation+f"!@>es: error {ex}\n"+"The error needs to be fixed. This is very important.\n"+context_details["ai_prefix"]
+                            output = f"The AI issued a wrong command.\nRetrying... {nb_failures}/{self.personality_config.max_nb_failures}"
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
                         self.full("The AI issued the wrong number of parameters.\nTrying again")
