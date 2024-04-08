@@ -107,6 +107,7 @@ class Processor(APScript):
                                     "name": "idle",
                                     "commands": { # list of commands (don't forget to add these to your config.yaml file)
                                         "build_database":self.build_database,
+                                        "populate_database":self.populate_database,
                                         "help":self.help,
                                     },
                                     "default": None
@@ -127,24 +128,51 @@ class Processor(APScript):
     def build_database(self, prompt="", full_context="", client:Client=None):
         if len(self.personality.text_files)==0:
             self.personality.InfoMessage("Please upload some files before starting")
-
+            return
+        
+        self.new_message("")
         full_text = ""
         for file in self.personality.text_files:
             try:
                 full_text += GenericDataLoader.read_file(file)
             except:
                 self.error(f"Couldn't load file {file}")
-        data_information_hints = self.summerize_text(full_text,"read the chunk text and use it to build a comprehansive list of tables. each table should contain fields. The objective is that those tables can store all relevant data from the chunk. The output must be a python code that uses sqlight3 to build the database.\nMake sure your answer is placed inside a python markdown tag. sqlite is already installed on the hosted PC. Only answer with the code without explanation. Only provide a single fully functional python code to build the database. Do not provide any code for populating the database. The database should be named data.db","Doc")
-        self.new_message("")
+        data_information_hints = self.smart_data_extraction(full_text,
+                                                            "\n".join([
+                                                            "read the chunk text and use it to build a comprehansive list of relational database tables that can store those information.",
+                                                            "Each table should contain fields.",
+                                                            "The objective is that those tables can store all relevant data from the chunk.",
+                                                            "The output must be a structured text that discribes the tables, their fields and the links."
+                                                            "If the chunk contains multiple redundant tables representations of the same thing, then fuse them into a single table.",
+                                                            "Make sure to keep all the fields needed to store the data."
+                                                            ]),
+                                                            "\n".join([
+                                                            "read the database description and build a sqlite3 database that holds those fields.",
+                                                            "You need to build the tables and make sure the links are consistant with the description",
+                                                            "The output must be a python code that uses sqlight3 to build the database.",
+                                                            "Make sure your answer is placed inside a python markdown tag.",
+                                                            "sqlite is already installed on the hosted PC.",
+                                                            "Only answer with the code without explanation.",
+                                                            "Only provide a single fully functional python code to build the database.",
+                                                            "Do not provide any code for populating the database.",
+                                                            "The database should be named data.db"
+                                                            ]),                                                            
+                                                            "Doc",
+                                                            callback=self.sink).replace("\_","_")
         self.full(data_information_hints)
+        codes = self.extract_code_blocks(data_information_hints)
+        for code in codes:
+            if code["type"].lower()=="python":
+                output = self.execute_python(code["content"], client.discussion_path, "database_builder.py")
+                self.new_message(output)
 
     def populate_database(self, prompt="", full_context="", client:Client=None):
         if len(self.personality.text_files)==0:
             self.personality.InfoMessage("Please upload some files before starting")
-        
+        self.new_message("")
         #db_file = "data.db"
 
-        DBToText
+        db2txt = DBToText("data.db")
 
         full_text = ""
         for file in self.personality.text_files:
@@ -153,9 +181,25 @@ class Processor(APScript):
             except:
                 self.error(f"Couldn't load file {file}")
 
-        data_information_hints = self.summerize_text(full_text,"read the chunk text and use it to build a comprehansive list of tables. each table should contain fields. The objective is that those tables can store all relevant data from the chunk. The output must be a python code that uses sqlight3 to build the database.\nMake sure your answer is placed inside a python markdown tag. sqlite is already installed on the hosted PC. Only answer with the code without explanation. Only provide a single fully functional python code to build the database. Do not provide any code for populating the database.","Doc")
-        self.new_message("")
+        data_information_hints = self.smart_data_extraction("!@>Database structure:\n"+db2txt.convert_to_text()+"\n!@>Document data chunk:"+full_text,
+                                                            "read the chunk text and depending on the database described earlier, extract data that can be put inside the database. If no data needs to be put in the database, just respond with empty output. If some data needs to be added to the database, then return a description to which table should an entry be added and with which parameters. ",
+                                                            "\n".join([
+                                                            "Use the data from the chunk to populate the database. The output should be python code",
+                                                            "The output must be a python code that uses sqlight3 to build the database.",
+                                                            "Make sure your answer is placed inside a python markdown tag.",
+                                                            "sqlite is already installed on the hosted PC.",
+                                                            "Only answer with the code without explanation.",
+                                                            "Only provide a single fully functional python code to build the database.",
+                                                            "Do not provide any code for populating the database.",
+                                                            "The database should is named data.db"
+                                                            ]),"Doc",callback=self.sink).replace("\_","_")
+        
         self.full(data_information_hints)
+        codes = self.extract_code_blocks(data_information_hints)
+        for code in codes:
+            if code["type"].lower()=="python":
+                output = self.execute_python(code["content"], client.discussion_path, "database_builder.py")
+                self.new_message(output)
 
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)

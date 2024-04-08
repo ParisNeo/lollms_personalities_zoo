@@ -213,8 +213,11 @@ class Processor(APScript):
         full_prompt += context_details["negative_boost"]
         full_prompt += context_details["force_language"]
         full_prompt += context_details["fun_mode"]
-        full_prompt += "extra_info: If you need to issue a code to es, please do not respond with any extra text or explanations except the command itself.\n"
-        full_prompt += context_details["ai_prefix"]
+        full_prompt += "extra_info:\n"
+        full_prompt += "If you need to issue a code to es, please do not respond with any extra text or explanations except the command itself.\n"
+        full_prompt += "If you need to explain something to the user, do not issue commands, when a command is detected in your answer, it gets executed and the message is not shown to the user.\n"
+        full_prompt += "Either respond with a command with no comments or a comment without any command.\n"
+
         self.personality.info("Generating")
         self.callback = callback
 
@@ -225,7 +228,7 @@ class Processor(APScript):
         while failed  and nb_failures<self.personality_config.max_nb_failures:
             failed=False
             nb_failures += 1
-            first_generation = self.fast_gen(full_prompt,callback=self.sink).replace("\\_","_")
+            first_generation = self.fast_gen(full_prompt+context_details["ai_prefix"],callback=self.sink).replace("\\_","_")
             fn, params, next = parse_query(first_generation)
             if fn:
                 if self.personality_config.debug_mode:
@@ -281,7 +284,12 @@ class Processor(APScript):
                                 if self.personality_config.output_format=="markdown":
                                     output = "# Output Report"
                                 elif self.personality_config.output_format=="html":
-                                    output = "<h1>Output Report</h1>"
+                                    reformulation=self.fast_gen(full_prompt+"!@>Instruction: Reformulate the user request into a paragraph. Make sure you state the objectives clearely.\nRespond with only a clear explanation of the user request without comments.\n"+context_details["ai_prefix"], callback=self.sink)
+                                    output = "\n".join([
+                                        "<h1>Output Report</h1>",
+                                        f"<div>{reformulation}</div>",
+                                        ""
+                                        ])
                                 else:
                                     output = "# Output Report"
                                 nb_hits = len(qoutput.body["hits"]["hits"])
@@ -290,7 +298,7 @@ class Processor(APScript):
                                     self.step(f"Processing hit {i}/{nb_hits}")
                                     if self.personality_config.output_format=="markdown":
                                         prompt = full_prompt+first_generation+f"\n".join([
-                                            f"!@>response hit entry:\n{hit}",
+                                            f"!@>response hit entry number {i}/{nb_hits}:\n{hit}",
                                             f"!@>instructions:",
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in markdown format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
@@ -303,7 +311,7 @@ class Processor(APScript):
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in html format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
                                             "The html should not contain HTML, head or body tags.",
-                                            "The title should be inside a div with class title",
+                                            "The title should be inside a div with class title and without Title: prefix",
                                             "The content should be inside a div with class content",
                                             "The links and references should be put inside a div with class bibliography",
                                             "The bibliography should have a h2 header with the title References.",
@@ -371,7 +379,7 @@ class Processor(APScript):
                                             f"background-color: {color_scheme['article_bg']};",
                                             "border-radius: 10px;",
                                             f"box-shadow: 2px 2px 5px {color_scheme['article_shadow']};",
-                                            "width: 50%;",
+                                            "width: 80%;",
                                             "margin: 0 auto 20px auto;",
                                             "padding: 20px;",
                                             "}",
