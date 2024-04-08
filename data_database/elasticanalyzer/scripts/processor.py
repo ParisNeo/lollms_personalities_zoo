@@ -300,7 +300,7 @@ class Processor(APScript):
                                             "The html should not contain HTML, head or body tags.",
                                             "the title should be inside a div with class title",
                                             "the content should be inside a div with class content",
-                                            "the links and references should be put inside a div with class bibliography"
+                                            "the links and references should be put inside a div with class bibliography",
                                             context_details["ai_prefix"]
                                         ])
                                         content = "\n".join([
