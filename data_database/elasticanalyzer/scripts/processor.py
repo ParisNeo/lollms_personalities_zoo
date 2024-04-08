@@ -418,6 +418,7 @@ class Processor(APScript):
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
                         self.full("The AI issued the wrong number of parameters.\nTrying again")
+                        output = "The AI issued a wrong command.\nRetrying"
                         failed=True
             else:
                 output = first_generation
