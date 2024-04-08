@@ -394,6 +394,7 @@ class Processor(APScript):
                                             "\n</body>\n",
                                             "</html>",                                            
                                         ])
+                                        self.full(full_html)
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
                                             f.write(full_html)
                                     else:
