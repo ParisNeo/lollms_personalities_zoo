@@ -298,8 +298,17 @@ class Processor(APScript):
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in html format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
                                             "The html should not contain HTML, head or body tags.",
+                                            "the title should be inside a div with class title",
+                                            "the content should be inside a div with class content",
+                                            "the links and references should be put inside a div with class bibliography"
                                             context_details["ai_prefix"]
                                         ])
+                                        content = "\n".join([
+                                            '<div class="article">',
+                                            self.fast_gen(prompt, callback=self.sink).replace("\\_","_"),
+                                            '</div>',
+                                        ])
+                                        output += content
                                     else:
                                         prompt = full_prompt+first_generation+f"\n".join([
                                             f"!@>response hit entry:\n{hit}",
@@ -308,8 +317,7 @@ class Processor(APScript):
                                             "If you find any URLs in the entry, build a link and include it in your report.",
                                             context_details["ai_prefix"]
                                         ])
-                                    
-                                    output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")+"\n\n"
+                                        output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")+"\n\n"
                                 if self.personality_config.output_folder_path!="":
                                     # Get the current date
                                     current_date = datetime.now()
@@ -320,35 +328,67 @@ class Processor(APScript):
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
                                             f.write(output)
                                     elif self.personality_config.output_format=="html":
+                                        color_scheme = {
+                                            'background': '#e6f2ff',
+                                            'text': '#333333',
+                                            'primary': '#0066cc',
+                                            'secondary': '#666666',
+                                            'accent': '#ff6600',
+                                            'article_bg': '#b3cccc',
+                                            'article_shadow': 'rgba(0, 0, 0, 0.1)',
+                                        }
+
+                                        styles = "\n".join([
+                                            "body {",
+                                            f"background-color: {color_scheme['background']};",
+                                            f"color: {color_scheme['text']};",
+                                            "font-family: Arial, sans-serif;",
+                                            "font-size: 16px;",
+                                            "line-height: 1.5;",
+                                            "}",
+                                            ".primary {",
+                                            f"color: {color_scheme['primary']};",
+                                            "}",
+                                            ".secondary {",
+                                            f"color: {color_scheme['secondary']};",
+                                            "}",
+                                            ".accent {",
+                                            f"color: {color_scheme['accent']};",
+                                            "}",
+                                            ".article {",
+                                            f"background-color: {color_scheme['article_bg']};",
+                                            "border-radius: 10px;",
+                                            f"box-shadow: 2px 2px 5px {color_scheme['article_shadow']};",
+                                            "width: 50%;",
+                                            "margin: 0 auto 20px auto;",
+                                            "padding: 20px;",
+                                            "}",
+                                            ".title {",
+                                            f"color: {color_scheme['primary']};",
+                                            "font-size: 24px;",
+                                            "margin-bottom: 12px;",
+                                            "text-align: left;",
+                                            "}",
+                                            ".content {",
+                                            f"color: {color_scheme['text']};",
+                                            "}",
+                                            ".bibliography {",
+                                            "    background-color: transparent;",
+                                            "    font-style: italic;",
+                                            "}"
+                                        ])
+
+
+
+
+
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
                                             f.write("<html>\n")
                                             f.write("<head>\n")
-                                            f.write("<style>\n")
-                                            f.write(".primary {\n")
-                                            f.write("  color: var(--color-primary);\n")
-                                            f.write("}\n")
-                                            f.write(".primary-light {\n")
-                                            f.write("  color: var(--color-primary-light);\n")
-                                            f.write("}\n")
-                                            f.write(".secondary {\n")
-                                            f.write("  color: var(--color-secondary);\n")
-                                            f.write("}\n")
-                                            f.write(".accent {\n")
-                                            f.write("  color: var(--color-accent);\n")
-                                            f.write("}\n")
-                                            f.write("body {\n")
-                                            f.write("  font-family: Arial, sans-serif;\n")
-                                            f.write("  font-size: 16px;\n")
-                                            f.write("  line-height: 1.5;\n")
-                                            f.write("  background-color: #420420;\n")
-                                            f.write("  color: #333;\n")
-                                            f.write("}\n")
-                                            f.write("h1, h2, h3 { margin-bottom: 10px; }\n")                                            
-                                            
-                                            f.write("</style>\n")                                            
+                                            f.write(styles)
                                             f.write("</head>\n")
                                             f.write("<body>\n")
-                                            f.write(output)
+                                            f.write("\n".join(output))
                                             f.write("\n</body>\n")
                                             f.write("</html>")
                                     else:
