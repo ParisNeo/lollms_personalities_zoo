@@ -278,7 +278,12 @@ class Processor(APScript):
                                 self.full(self.build_a_document_block(f"Execution result:",None,f"")+f"\n```json\n{qoutput}\n```\n", msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
                             if "hits" in qoutput.body and len(qoutput.body["hits"]["hits"])>0:
                                 self.step("Found hits")
-                                output = ""
+                                if self.personality_config.output_format=="markdown":
+                                    output = "# Output Report"
+                                elif self.personality_config.output_format=="html":
+                                    output = "<h1>Output Report</h1>"
+                                else:
+                                    output = "# Output Report"
                                 nb_hits = len(qoutput.body["hits"]["hits"])
                                 for i,hit in enumerate(qoutput.body["hits"]["hits"]):
                                     ASCIIColors.success(f"HIT:{hit}")
@@ -385,7 +390,9 @@ class Processor(APScript):
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
                                             f.write("<html>\n")
                                             f.write("<head>\n")
+                                            f.write("<style>\n")
                                             f.write(styles)
+                                            f.write("</style>\n")
                                             f.write("</head>\n")
                                             f.write("<body>\n")
                                             f.write("\n".join(output))
