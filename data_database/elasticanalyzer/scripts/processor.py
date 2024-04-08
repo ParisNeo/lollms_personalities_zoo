@@ -382,18 +382,20 @@ class Processor(APScript):
                                             "    font-style: italic;",
                                             "}"
                                         ])
-
+                                        full_html = "\n".jpoin([
+                                            "<html>\n",
+                                            "<head>\n",
+                                            "<style>\n",
+                                            styles,
+                                            "</style>\n",
+                                            "</head>\n",
+                                            "<body>\n",
+                                            output,
+                                            "\n</body>\n",
+                                            "</html>",                                            
+                                        ])
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
-                                            f.write("<html>\n")
-                                            f.write("<head>\n")
-                                            f.write("<style>\n")
-                                            f.write(styles)
-                                            f.write("</style>\n")
-                                            f.write("</head>\n")
-                                            f.write("<body>\n")
-                                            f.write(output)
-                                            f.write("\n</body>\n")
-                                            f.write("</html>")
+                                            f.write(full_html)
                                     else:
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.md","w") as f:
                                             f.write(output)
