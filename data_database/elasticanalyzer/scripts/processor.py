@@ -303,9 +303,9 @@ class Processor(APScript):
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in html format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
                                             "The html should not contain HTML, head or body tags.",
-                                            "the title should be inside a div with class title",
-                                            "the content should be inside a div with class content",
-                                            "the links and references should be put inside a div with class bibliography",
+                                            "The title should be inside a div with class title",
+                                            "The content should be inside a div with class content",
+                                            "The links and references should be put inside a div with class bibliography",
                                             context_details["ai_prefix"]
                                         ])
                                         content = "\n".join([
@@ -383,10 +383,6 @@ class Processor(APScript):
                                             "}"
                                         ])
 
-
-
-
-
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
                                             f.write("<html>\n")
                                             f.write("<head>\n")
@@ -395,7 +391,7 @@ class Processor(APScript):
                                             f.write("</style>\n")
                                             f.write("</head>\n")
                                             f.write("<body>\n")
-                                            f.write("\n".join(output))
+                                            f.write(output)
                                             f.write("\n</body>\n")
                                             f.write("</html>")
                                     else:
