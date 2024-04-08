@@ -306,6 +306,7 @@ class Processor(APScript):
                                             "The title should be inside a div with class title",
                                             "The content should be inside a div with class content",
                                             "The links and references should be put inside a div with class bibliography",
+                                            "The bibliography should have a h2 header with the title References.",
                                             context_details["ai_prefix"]
                                         ])
                                         content = "\n".join([
@@ -351,6 +352,12 @@ class Processor(APScript):
                                             "font-size: 16px;",
                                             "line-height: 1.5;",
                                             "}",
+                                            "h1 {",
+                                            f"color: {color_scheme['primary']};",
+                                            "font-size: 36px;",
+                                            "text-align: center;",
+                                            "text-shadow: 2px 2px 4px {color_scheme['article_shadow']};",
+                                            "}",
                                             ".primary {",
                                             f"color: {color_scheme['primary']};",
                                             "}",
@@ -382,7 +389,7 @@ class Processor(APScript):
                                             "    font-style: italic;",
                                             "}"
                                         ])
-                                        full_html = "\n".jpoin([
+                                        full_html = "\n".join([
                                             "<html>\n",
                                             "<head>\n",
                                             "<style>\n",
