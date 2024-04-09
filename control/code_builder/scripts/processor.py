@@ -192,7 +192,7 @@ class Processor(APScript):
                             ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
                             code_blocks = self.extract_code_blocks(plan)
                             for code_block in code_blocks[:1]:
-                                with open(file, "w") as f:
+                                with open(file, "w", encoding="utf-8") as f:
                                     f.write(code_block["content"])
                                 #self.data_base.add_document(file,code_block["content"], add_to_index=True)
                             self.chunk("\n")
