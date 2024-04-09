@@ -141,7 +141,7 @@ class Processor(APScript):
             self.step("Detected a software build request")
             self.step_start("Building plan")
             title = self.make_title(prompt)
-            output = f"### {title}"
+            output = f"### {title}\n"
             plan = self.fast_gen("\n".join([
                 "!@>system: write a plan to build the project provided by the user.",
                 "Create a summary of your plan without writing the code.",
