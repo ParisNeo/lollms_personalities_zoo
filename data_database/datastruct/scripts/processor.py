@@ -22,7 +22,6 @@ except Exception as ex:
 
 
 import sqlite3
-import sqlite3
 
 class DBToText:
     def __init__(self, db_name):
@@ -30,7 +29,7 @@ class DBToText:
         self.cursor = self.conn.cursor()
 
     def get_tables(self):
-        query = "SELECT name FROM sqlite_master WHERE type='table'"
+        query = "SELECT name FROM sqlite_master WHERE type='table';"
         self.cursor.execute(query)
         return [i[0] for i in self.cursor.fetchall()]
 
@@ -172,7 +171,7 @@ class Processor(APScript):
         self.new_message("")
         #db_file = "data.db"
 
-        db2txt = DBToText("data.db")
+        db2txt = DBToText(client.discussion_path/"data.db")
 
         full_text = ""
         for file in self.personality.text_files:
