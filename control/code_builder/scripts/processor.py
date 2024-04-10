@@ -179,6 +179,17 @@ class Processor(APScript):
                         if file.suffix=="":
                            file.mkdir(parents=True, exist_ok=True)
                         else:
+                            # plan = self.fast_gen(self.build_prompt([
+                            #     f"!@>system: What other files should you know about in order to be able to build the file {file}",
+                            #     context_details["positive_boost"],
+                            #     context_details["negative_boost"],
+                            #     context_details["force_language"],
+                            #     context_details["discussion_messages"],
+                            #     f"!@>file:{file}",
+                            #     context_details["ai_prefix"],
+                            # ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
+
+
                             plan = self.fast_gen(self.build_prompt([
                                 "!@>system: Write the code of the file in a single markdown code tag.",
                                 "Don't write the code of other files, just the file requested",
