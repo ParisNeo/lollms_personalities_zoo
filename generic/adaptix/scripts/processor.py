@@ -102,10 +102,11 @@ class Processor(APScript):
         self.personality.info("Rewriting Adaptix")
         self.callback = callback
         new_conditionning = self.fast_gen("\n".join([
-           "!@>system: Build a new system prompt to adapt Adaptix to the current user request.",
+           "!@>system: Build a new system prompt to adapt Adaptix to the current user request. if no changes are needed, then respond with the current system prompt.",
+           context_details["conditionning"],
            context_details["discussion_messages"],
            "!@>adaptix:"
-           "Here is the new system prompt that us fine tuned to maximize the probability that the AI acheive the requested task:"
+           "Here is the new system prompt that is fine tuned to maximize the probability that the AI acheives the requested task:"
         ]), callback=self.sink)
         self.personality_config.current_conditionning=new_conditionning
         self.full(new_conditionning)
