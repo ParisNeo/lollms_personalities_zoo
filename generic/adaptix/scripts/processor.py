@@ -106,8 +106,7 @@ class Processor(APScript):
            context_details["discussion_messages"],
            "!@>adaptix:"
            "Here is the new system prompt that us fine tuned to maximize the probability that the AI acheive the requested task:"
-           "!@>system: "
-        ]))
+        ]), callback=self.sink)
         self.personality_config.current_conditionning=new_conditionning
         self.full(new_conditionning)
         self.personality.info("Generating")
