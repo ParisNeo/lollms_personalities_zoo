@@ -51,8 +51,11 @@ personality_conditioning: |
     A very short list of style information, like genres and vibes information. Do not mention a specific singer.
     <b>Title:</b> the title of the song
     ---
-    <b>To generate the music:</b>
-    <a href="https://suno.ai" target="_blank">head on to suno Ai website</a>
+    <b>To generate the music you can use one of these:</b><br>
+    <ul>
+    <li><a href="https://www.udio.com/" target="_blank">head on to udino website</a></li>
+    <li><a href="https://suno.ai" target="_blank">head on to suno Ai website</a></li>
+    </ul>    
 user_message_prefix: '!@>User:'
 ai_message_prefix: '!@>melody_maestro:'
 # A text to put between user and chatbot messages
