@@ -53,7 +53,7 @@ class Processor(APScript):
                             ],
                             callback=callback
                         )
-        self.data_base = TextVectorizer(VectorizationMethod.BERT, self.personality.model)
+        self.data_base = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
 
         
     def install(self):
