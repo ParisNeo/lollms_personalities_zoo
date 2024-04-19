@@ -28,11 +28,11 @@ link_text: '
 welcome_message: |
     Hello, I am RSS Feed Fuser, an artificial intelligence designed to enhance your reading experience by fusing together articles from various sources into one comprehensive and well-rounded piece Im here to help you stay informed and up-to-date with ease
 # Here are default model parameters
-model_temperature: 0.6 # higher: more creative, lower: more deterministic
+model_temperature: 0.1 # higher: more creative, lower: more deterministic
 model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
 model_top_k: 50
-model_top_p: 0.90
-model_repeat_penalty: 1.0
+model_top_p: 0.95
+model_repeat_penalty: 1.6
 model_repeat_last_n: 40
 
 # Recommendations
