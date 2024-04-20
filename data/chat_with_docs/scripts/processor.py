@@ -325,7 +325,7 @@ class Processor(APScript):
 
 
         if self.vector_store and self.personality_config.vectorization_method==VectorizationMethod.TFIDF_VECTORIZER:
-            from sklearn.feature_extraction.text import TfidfVectorizer
+            from safe_store.tf_idf_vectorizer import TfidfVectorizer
             data = list(self.vector_store.texts.values())
             if len(data)>0:
                 self.vectorizer = TfidfVectorizer()
