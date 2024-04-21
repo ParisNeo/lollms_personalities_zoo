@@ -78,22 +78,25 @@ class Processor(APScript):
         if self.personality_config.test_file_path=="":
             msg.append("Please set the test file path to be used in my settings first then try again. I need that file to test the AIs")
         if self.personality_config.models_to_test=="":
-            msg.appen("Please set the list of models to be tested first (in form binding_name/model_name) It is case sensitive so be careful.")
+            msg.append("Please set the list of models to be tested first (in form binding_name/model_name) It is case sensitive so be careful.")
         self.full("\n".join(msg))
-
+        if len(msg)>0:
+            return
         models_list = [{"binding": entry.split('/')[0].strip(), "model": entry.split('/')[1].strip()} for entry in self.personality_config.models_to_test.split(",")]
-        with open(self.personality_config.test_file_path,"r",encoding="utf-8") as f:
+        with open(self.personality_config.test_file_path,"r",encoding="utf-8", errors="ignore") as f:
             prompts = json.load(f)
 
         for model in models_list:
-            self.personality.change_model(model["binding"],model["model"])
+            self.step_start(f'Started testing model {model["binding"]}/{model["model"]}')
+            self.select_model(model["binding"], model["model"])
             for prompt in prompts:
                 reworked_prompt = f"!@>system:{self.personality_config.system_message}\n!@>prompt:{prompt['prompt']}\n!@>assistant:"
-                answer = self.fast_gen(reworked_prompt)
+                answer = self.fast_gen(reworked_prompt, callback=self.sink)
                 prompt[f'answer_{model["binding"]}_{model["model"]}']=answer
+            self.step_end(f'Started testing model {model["binding"]}/{model["model"]}')
 
-        with open(self.personality_config.output_file_path,"w",encoding="utf-8") as f:
-            json.dump(prompts, f)
+        with open(self.personality_config.output_file_path,"w",encoding="utf-8", errors="ignore") as f:
+            json.dump(prompts, f, indent=4)
     
     def add_file(self, path, client, callback=None):
         """

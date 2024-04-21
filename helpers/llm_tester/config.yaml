@@ -44,3 +44,14 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ['!@>']
+
+commands:
+  - name: Start Testing
+    value: start_testing
+    icon: 'feather:file'
+    help: start 
+  - name: Help
+    value: help
+    icon: 'feather:help-circle'
+    help: shows the stable diffusion settings
+
