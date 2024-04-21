@@ -86,6 +86,8 @@ class Processor(APScript):
         with open(self.personality_config.test_file_path,"r",encoding="utf-8", errors="ignore") as f:
             prompts = json.load(f)
 
+        previous_binding = self.personality.config["binding_name"]
+        previous_model = self.personality.config["model_name"]
         for model in models_list:
             self.step_start(f'Started testing model {model["binding"]}/{model["model"]}')
             self.select_model(model["binding"], model["model"])
@@ -95,6 +97,8 @@ class Processor(APScript):
                 prompt[f'answer_{model["binding"]}_{model["model"]}']=answer
             self.step_end(f'Started testing model {model["binding"]}/{model["model"]}')
 
+        self.step(f'Back to model {model["binding"]}/{model["model"]}')
+        self.select_model(previous_binding, previous_model)
         with open(self.personality_config.output_file_path,"w",encoding="utf-8", errors="ignore") as f:
             json.dump(prompts, f, indent=4)
     
