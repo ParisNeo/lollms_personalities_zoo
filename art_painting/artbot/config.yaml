@@ -47,7 +47,7 @@ commands:
     help: start 
   - name: Show Stable diffusion UI
     value: show_sd
-    icon: personalities/art/artbot/assets/open_sd.svg
+    icon: personalities/art_painting/artbot/assets/open_sd.svg
     help: shows the full stable diffusion ui for more options.
   - name: Regenerate with last prompt
     value: regenerate
