@@ -148,7 +148,7 @@ class Processor(APScript):
 
         self.step_start(f'Saving test results')
         with open(self.personality_config.output_file_path,"w",encoding="utf-8", errors="ignore") as f:
-            json.dump(prompts, f, indent=4)
+            json.dump(results, f, indent=4)
         
         self.step_end(f'Saving test results')
     
