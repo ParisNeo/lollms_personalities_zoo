@@ -37,6 +37,7 @@ class Processor(APScript):
                 {"name":"test_file_path","type":"str","value":"", "help":"Path tp the test file to use"},
                 {"name":"output_file_path","type":"str","value":"", "help":"Path tp the output file to create"},
                 {"name":"models_to_test","type":"str","value":"openai/gpt-4-turbo-preview,openai/gpt-4-turbo-preview", "help":"List of coma separated models to test in format binding_name/model_name"},
+                {"name":"master_model","type":"str","value":"openai/gpt-4-turbo-preview", "help":"A single powerful model in format binding_name/model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -71,6 +72,11 @@ class Processor(APScript):
 
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
+
+    def is_ok(self, prompt, true_answer, models_list):
+        for model_to_test in models_list:
+            model_answer = [f'answer_{model_to_test["binding"]}_{model_to_test["model"]}']
+            return self.yes_no("Are these two answers similar?",f"prompt:\n{prompt}\nanswer 1:\n{true_answer}\nanswer 2:\n{model_answer}")
     
     def start_testing(self, prompt="", full_context=""):
         self.new_message("")
@@ -82,7 +88,12 @@ class Processor(APScript):
         self.full("\n".join(msg))
         if len(msg)>0:
             return
-        models_list = [{"binding": entry.split('/')[0].strip(), "model": entry.split('/')[1].strip()} for entry in self.personality_config.models_to_test.split(",")]
+        master_model={
+                        "binding":self.personality_config.master_model.split('/')[0].strip(),
+                        "model": self.personality_config.master_model.split('/')[1].strip()
+                      }
+        raw_models_list = self.personality_config.models_to_test.split(",")
+        models_list = [{"binding": entry.split('/')[0].strip(), "model": entry.split('/')[1].strip()} for entry in raw_models_list]
         with open(self.personality_config.test_file_path,"r",encoding="utf-8", errors="ignore") as f:
             prompts = json.load(f)
 
@@ -91,16 +102,55 @@ class Processor(APScript):
         for model in models_list:
             self.step_start(f'Started testing model {model["binding"]}/{model["model"]}')
             self.select_model(model["binding"], model["model"])
-            for prompt in prompts:
-                reworked_prompt = f"!@>system:{self.personality_config.system_message}\n!@>prompt:{prompt['prompt']}\n!@>assistant:"
+            nb_prompts = len(prompts)
+            for prompt_id, prompt in enumerate(prompts):
+                self.step_start(f'Testing prompt {prompt_id+1}/{nb_prompts}')
+                reworked_prompt = f"!@>system:{self.personality_config.system_message}\n!@>assistant:Hi I am assistant and I am here to help you.\n!@>prompt:{prompt['prompt']}\n!@>assistant:"
                 answer = self.fast_gen(reworked_prompt, callback=self.sink)
-                prompt[f'answer_{model["binding"]}_{model["model"]}']=answer
+                prompt[f'answer_{model["binding"]}_{model["model"]}']={
+                    "answer":answer,
+                    "val":0
+                }
+                self.step_end(f'Testing prompt {prompt_id+1}/{nb_prompts}')
             self.step_end(f'Started testing model {model["binding"]}/{model["model"]}')
+
+        self.step_start(f'Loading master model {master_model["binding"]}/{master_model["model"]}')
+        self.select_model(master_model["binding"], master_model["model"])
+        self.step_end(f'Loading master model {master_model["binding"]}/{master_model["model"]}')
+        self.step_start(f'Judging models')
+        for prompt_entry in prompts:
+            prompt = prompt_entry["prompt"]
+            true_answers=prompt_entry["answers"]
+            for model_to_test in models_list:
+                for true_answer in true_answers:
+                    model_infos = prompt_entry[f'answer_{model_to_test["binding"]}_{model_to_test["model"]}']
+                    model_answer = model_infos["answer"]
+                    if self.yes_no("Is the second answer giving the same information as the first one?",f"prompt:\n{prompt}\nanswer 1:\n{true_answer['text']}\nanswer 2:\n{model_answer}"):
+                        model_infos["val"]=true_answer['value']
+                        break
+        self.step_end(f'Judging models')
 
         self.step(f'Back to model {model["binding"]}/{model["model"]}')
         self.select_model(previous_binding, previous_model)
+        self.step_start(f'Giving a mark for each AI')
+        results={
+            "prompts":prompts,
+            "results":{}
+        }
+        for model in models_list:
+            results["results"][f'answer_{model["binding"]}_{model["model"]}'] = 0
+            for prompt in prompts:
+                results["results"][f'answer_{model["binding"]}_{model["model"]}'] += prompt[f'answer_{model["binding"]}_{model["model"]}']["val"]
+            results["results"][f'answer_{model["binding"]}_{model["model"]}'] /= len(prompt)
+            results["results"][f'answer_{model["binding"]}_{model["model"]}'] *= 100
+
+        self.step_end(f'Giving a mark for each AI')
+
+        self.step_start(f'Saving test results')
         with open(self.personality_config.output_file_path,"w",encoding="utf-8", errors="ignore") as f:
             json.dump(prompts, f, indent=4)
+        
+        self.step_end(f'Saving test results')
     
     def add_file(self, path, client, callback=None):
         """
