@@ -30,7 +30,7 @@ user_message_prefix: 'prompt:'
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to the Novelist world. My name is Novelist, I am an AI that writes stories.'
-include_welcome_message_in_disucssion: True
+include_welcome_message_in_discussion: True
 
 # Here are default model parameters
 model_temperature: 2 # higher: more creative, lower more deterministic

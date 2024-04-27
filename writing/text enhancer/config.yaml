@@ -23,7 +23,7 @@ personality_conditioning: |
   !@>Instructions to AI:
   Enhance text provided by the user.
   If you need, ask for the requested tone or infer it.
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 
 user_message_prefix: '!@>User:'
 

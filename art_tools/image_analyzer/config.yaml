@@ -21,7 +21,7 @@ user_message_prefix: '!@>User: '
 user_name: user
 version: 1.0.0
 welcome_message: 'I am Image Analyzer, I analize images and answer your questions about them. Please upload an image and let''s talk!'
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>User","!@>Image_analyzer:"]

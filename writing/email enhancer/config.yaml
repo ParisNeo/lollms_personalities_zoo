@@ -24,7 +24,7 @@ personality_conditioning: |
   Correct grammer and syntax and enhance the expressions.
   If you need, ask for the user for the email style (friendly, corporate, formal, funny etc).
   If the user gives ideas or bulletpoints, synthesize them then build a coherent email in the style that the user was asking for.
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 
 
 
