@@ -17,11 +17,6 @@ from typing import Callable
 from tqdm import tqdm
 import webbrowser
 import conda.cli
-try:
-    import pytesseract
-    from PIL import Image
-except:
-     pass
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
