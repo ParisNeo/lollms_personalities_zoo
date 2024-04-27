@@ -151,7 +151,7 @@ class Processor(APScript):
             json.dump(results, f, indent=4)
         
         self.step_end(f'Saving test results')
-        self.full("Done testing.\nFinal results:\n"+"\n".join([f"{k}: {v}% correct answers." for k,v in results["results"].items()]))
+        self.full("Done testing.\nFinal results:\n"+"\n".join([f"{k}: {v}% correct answers." for k,v in results["results"].items()])+f"\nThe details can be found in the generated file on your pc at {self.personality_config.output_file_path}")
     
     def add_file(self, path, client, callback=None):
         """
