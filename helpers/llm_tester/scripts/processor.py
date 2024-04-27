@@ -141,7 +141,7 @@ class Processor(APScript):
             results["results"][f'answer_{model["binding"]}_{model["model"]}'] = 0
             for prompt in prompts:
                 results["results"][f'answer_{model["binding"]}_{model["model"]}'] += prompt[f'answer_{model["binding"]}_{model["model"]}']["val"]
-            results["results"][f'answer_{model["binding"]}_{model["model"]}'] /= len(prompt)
+            results["results"][f'answer_{model["binding"]}_{model["model"]}'] /= len(prompts)
             results["results"][f'answer_{model["binding"]}_{model["model"]}'] *= 100
 
         self.step_end(f'Giving a mark for each AI')
