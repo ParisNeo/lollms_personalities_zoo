@@ -104,14 +104,14 @@ class Processor(APScript):
             self.select_model(model["binding"], model["model"])
             nb_prompts = len(prompts)
             for prompt_id, prompt in enumerate(prompts):
-                self.step_start(f'Testing prompt {prompt_id+1}/{nb_prompts}')
+                self.step_start(f'Testing prompt {prompt_id+1}/{nb_prompts} for model {model["model"]}')
                 reworked_prompt = f"!@>system:{self.personality_config.system_message}\n!@>assistant:Hi I am assistant and I am here to help you.\n!@>prompt:{prompt['prompt']}\n!@>assistant:"
                 answer = self.fast_gen(reworked_prompt, callback=self.sink)
                 prompt[f'answer_{model["binding"]}_{model["model"]}']={
                     "answer":answer,
                     "val":0
                 }
-                self.step_end(f'Testing prompt {prompt_id+1}/{nb_prompts}')
+                self.step_end(f'Testing prompt {prompt_id+1}/{nb_prompts} for model {model["model"]}')
             self.step_end(f'Started testing model {model["binding"]}/{model["model"]}')
 
         self.step_start(f'Loading master model {master_model["binding"]}/{master_model["model"]}')
@@ -151,6 +151,7 @@ class Processor(APScript):
             json.dump(results, f, indent=4)
         
         self.step_end(f'Saving test results')
+        self.full("Done testing.\nFinal results:\n"+"\n".join([f"{k}: {v}% correct answers." for k,v in results["results"].items()]))
     
     def add_file(self, path, client, callback=None):
         """
