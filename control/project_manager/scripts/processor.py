@@ -7,9 +7,9 @@ from typing import Callable
 
 from pathlib import Path
 from typing import List
-
+import json
 import subprocess
-
+from ascii_colors import trace_exception
 # Helper functions
 class Processor(APScript):
     """
@@ -115,60 +115,96 @@ class Processor(APScript):
         self.personality.info("Generating")
         members:List[AIPersonality] = self.personality.app.mounted_personalities
         output = ""
-
-        q_prompt = "!@instructions>Act as a highly efficient and organized AI that excels in problem-solving and task management. It possesses excellent communication skills and can effectively coordinate and delegate tasks to a team of mounted AIs. It is proactive, adaptable, and results-oriented, ensuring that projects are executed smoothly and efficiently.\nTeam members:\n"
-        collective_infos = ""
-        for i,drone in enumerate(members):
-            collective_infos +=  f"member id: {i}\n"
-            collective_infos +=  f"member name: {drone.name}\n"
-            collective_infos +=  f"member description: {drone.personality_description[:126]}...\n"
-        q_prompt += collective_infos
-        answer = ""
-        q_prompt += f"Using the skills of some members, elaborate a plan to solve the problem exposed by the user\nSome members are useless to your plan, so only use the minimum necessary members"
-        q_prompt += f"!@>user:{prompt}\n"
-        q_prompt += "!@>project_manager_ai: To reach the objective set by the user, here is a comprehensive plan using some of the available project members.\n1. Member id "
-        attempts = 0
+        
         self.step_start("Making plan")
-        answer = self.fast_gen(q_prompt, 1024, show_progress=True)
-        q_prompt += answer
-        answer = "1. Member id " +answer
-        output += answer
-        self.full(output)
+        attempts = 0
+        done =  False
+        while attempts<self.personality_config.nb_attempts and not done:
+            q_prompt = "\n".join([
+                "!@>system:",
+                "Utilizing the abilities of a select few team members, devise a strategy to address the issue presented by the user. Engage only the indispensable members to contribute to this solution.",
+                "Team members:\n"
+            ]) 
+            collective_infos = ""
+            for i,drone in enumerate(members):
+                if drone.name!=self.personality.name:
+                    collective_infos +=  f"member id: {i}\n"
+                    collective_infos +=  f"member name: {drone.name}\n"
+                    collective_infos +=  f"member description: {drone.personality_description[:126]}...\n"
+            q_prompt += collective_infos
+            answer = ""
+            q_prompt += "\n".join([
+                "Utilizing the abilities of a select few team members, devise a strategy to address the issue presented by the user.",
+                "Engage only the indispensable members to contribute to this solution.",
+                "Answer in form of a valid json text in this format:",
+                "```json",
+                "[",
+                "    {",
+                '        "member_id":id,'
+                '        "task":"task to be done"'
+                "    },",
+                "    {",
+                '        "member_id":id,'
+                '        "task":"task to be done"'
+                "    }",
+                "]",
+                "```",
+                "Do not add any comments to your answer."
+            ])
+            q_prompt += f"!@>user:{prompt}\n"
+            q_prompt += "\n".join([
+                "!@>project_manager_ai:\n"
+            ])
+            answer = self.fast_gen(q_prompt, 1024, show_progress=True)
+            code = self.extract_code_blocks(answer)
+            if len(code)>0:
+                plan = json.loads(code[0]["content"])
+            for member in plan:
+                output += "<h2>"+members[member["member_id"]].name+"</h2>"
+                output += "<p>"+member["task"]+"</p>"
+            q_prompt = prompt
+            self.full(output)
+            self.step_end("Making plan")
 
-        plan_steps = answer.split("\n")
-        self.step_end("Making plan")
-        for step in plan_steps:
-            self.step_start(step)
-            while attempts<self.personality_config.nb_attempts:
-                val = step[step.index("id")+2:].strip()
-                val = val.split(" ")[0].replace(".","").replace(",","")
+            self.step("Executing plan")
+            for step in plan:
+                member_id = step["member_id"]
                 try:
-                    selection = int(val)
+                    member_id = int(member_id)
                 except Exception as ex:
-                    self.error(f"{ex}")
-                members[selection].callback=callback
-                if members[selection].processor and members[selection].name!="project_manager":
-                    q_prompt += f"!@>sytsem:Starting task by {members[selection].name}, provide details\n!@>project_manager_ai: "
-                    reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                    members[selection].new_message("")
-                    output = ""
-                    self.full(output)
-                    previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
-                    members[selection].new_message("")
-                    members[selection].processor.text_files = self.personality.text_files
-                    members[selection].processor.image_files = self.personality.image_files
-                    members[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
-                else:
-                    if members[selection].name!="project_manager":
-                        q_prompt += f"!@>system: Reformulate the question for the member.\n!@>project_manager: {members[selection].name},"
-                        reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                        members[selection].processor.full(f"{members[selection].name}, {reformulated_request}")
-                        previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
-                        members[selection].new_message("")
-                    output = members[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
-                    members[selection].processor.full(output)
-                break
-            self.step_end(step)
-
+                    self.exception(ex)
+                self.step(members[member_id].name)
+                attempts = 0
+                while attempts<self.personality_config.nb_attempts:
+                    try:
+                        members[member_id].callback=callback
+                        if members[member_id].processor:
+                            q_prompt += f"!@>sytsem: Starting task by {members[member_id].name}, provide details\n!@>project_manager_ai: "
+                            reformulated_request=self.fast_gen(q_prompt, show_progress=True)
+                            members[member_id].new_message("")
+                            output = ""
+                            self.full(output)
+                            previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
+                            members[member_id].new_message("")
+                            members[member_id].processor.text_files = self.personality.text_files
+                            members[member_id].processor.image_files = self.personality.image_files
+                            members[member_id].processor.run_workflow(reformulated_request, previous_discussion_text, callback,context_details, client)
+                        else:
+                            previous_discussion_text_= previous_discussion_text.replace(prompt,"\n".join([
+                                "!@>user:",
+                                f"{prompt}",
+                                "!@>AI name:",
+                                members[member_id].name,
+                                "!@>task:",
+                                step["task"],
+                            ]))
+                            members[member_id].new_message("")
+                            output = members[member_id].generate(previous_discussion_text_,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
+                            members[member_id].full(output)
+                        break
+                    except Exception as ex:
+                        trace_exception(ex)
+                        self.step("Failed. Retrying...")
+                        attempts += 1
         return answer
 
