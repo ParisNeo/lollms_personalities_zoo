@@ -7,13 +7,7 @@ from typing import Callable
 
 from pathlib import Path
 from typing import List
-if PackageManager.check_package_installed("pygame"):
-    import pygame
-else:
-    PackageManager.install_package("pygame")
-    import pygame
 
-pygame.mixer.init()
 import subprocess
 
 # Helper functions
@@ -36,7 +30,7 @@ class Processor(APScript):
         # str, int, float, bool, list
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
-            [                
+            [
                 {"name":"nb_attempts","type":"int","value":5, "help":"Maximum number of attempts to summon a member"},
             ]
             )

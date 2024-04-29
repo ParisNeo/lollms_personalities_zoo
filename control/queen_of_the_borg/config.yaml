@@ -83,4 +83,28 @@ welcome_message: |
   text-indent: 2em;
   margin-bottom: 1em;
   }
+  .bg-bg-light-panel {
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-light-tone {
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-light-discussion-odd{
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-light-discussion{
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-dark-discussion-even{
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-light-tone-panel{
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-light-discussion{
+      background-color: #222222; /* Sets the background color to black */
+  }
+  .bg-bg-dark-tone {
+      background-color: #222222; /* Sets the background color to black */
+  }
   </style>
