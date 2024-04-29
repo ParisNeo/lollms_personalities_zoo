@@ -9,7 +9,7 @@ from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
 from lollms.client_session import Client
-
+from lollms.types import SUMMARY_MODE
 # Helper functions
 class Processor(APScript):
     """
@@ -31,7 +31,7 @@ class Processor(APScript):
         # options can be added using : "options":["option1","option2"...]        
         personality_config_template = ConfigTemplate(
             [
-                {"name":"zip_mode","type":"str","value":"hierarchical","options":["hierarchical","one_shot"], "help":"algorithm"},
+                {"name":"zip_mode","type":"str","value":"sequencial","options":["sequencial", "hierarchical"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
@@ -112,14 +112,16 @@ class Processor(APScript):
                         f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                         f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                     ]),
-                    "Document chunk"
+                    "Document chunk",
+                    summary_mode=SUMMARY_MODE.SUMMARY_MODE_SEQUENCIAL if self.personality_config.zip_mode=="sequencial" else SUMMARY_MODE.SUMMARY_MODE_HIERARCHICAL,
+                    callback=self.sink
                     )
                 tk = self.personality.model.tokenize(document_text)
                 self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
         self.step_start(f"Last composition")
-        document_text = self.summerize_chunks(document_chunks,"\n".join([
+        document_text = self.summerize_chunks([document_text],"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -129,7 +131,8 @@ class Processor(APScript):
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
             ]),
-            "Document chunk"
+            "Document chunk",
+            callback=self.sink
             )
 
         self.step_end(f"Last composition")
@@ -142,6 +145,15 @@ class Processor(APScript):
 
     def start_zipping(self, prompt="", full_context="", client:Client=None):
         self.new_message("")
+        if len(self.personality.text_files)==0:
+
+            self.full("\n".join([
+                "Hey there! 🌟 It looks like you're itching for a bit of that magic summary action.",
+                "📜✨ Well, I'm all revved up and ready to dive into the world of summarization, but here's the kicker—I can't exactly pull off my magic tricks without a hat... or in this case, without any documents. 🎩🚫 So, how about we make this a team effort? 🤝 Go ahead and press that shiny send documents button 📤, pick out some documents for me to sink my teeth into 📄🔍, and then let's reconvene. Summon me back into the arena 📣, and I promise, I'll zip through those documents faster than you can say \"LoLLMs, Lord of Large Language Multimodal Systems,\" extracting the juicy bits and serving you exactly what you need. 🚀 Looking forward to our next encounter.",
+                "See ya! 👋"  
+            ])
+            )
+            return
         for file in self.personality.text_files:
             output=""
             file = Path(file)
