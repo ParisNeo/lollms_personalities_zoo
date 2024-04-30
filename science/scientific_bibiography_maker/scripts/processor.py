@@ -394,6 +394,8 @@ class Processor(APScript):
                 "Answer with only the keywords and do not make any comments.",
                 "The keywords should be as few as possible and be separated by comma.",
                 "Do not use quotation marks",
+                "!@>context discussion:",
+                "{{previous_discussion}}",
                 "!@>user prompt: {{research_subject}}",
                 "!@>keywords: "
             ]), self.personality_config.max_generation_prompt_size, {
