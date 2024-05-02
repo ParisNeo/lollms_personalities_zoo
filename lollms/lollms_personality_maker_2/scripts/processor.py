@@ -475,7 +475,7 @@ class Processor(APScript):
                 '"folder_path": {self.scripts_path}'
                 }};
 
-                fetch('/open_code_folder', {{
+                fetch('/open_folder', {{
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json'
@@ -494,7 +494,7 @@ class Processor(APScript):
                 '"folder_path": {self.scripts_path}'
                 }};
 
-                fetch('/open_code_folder_in_vs_code', {{
+                fetch('/open_discussion_folder_in_vs_code', {{
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json'
