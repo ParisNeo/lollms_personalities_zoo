@@ -5,6 +5,7 @@ from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.client_session import Client
 from safe_store.generic_data_loader import GenericDataLoader
 import requests
 import json
@@ -600,7 +601,6 @@ class Processor(APScript):
         self.summerize_report(report, download_folder, client)
 
 
-    from lollms.client_session import Client
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
