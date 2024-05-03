@@ -2,25 +2,17 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors
 from lollms.utilities import PackageManager
-from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
+from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.client_session import Client
 from safe_store.generic_data_loader import GenericDataLoader
-import re
-import importlib
 import requests
-from tqdm import tqdm
-import shutil
-from lollms.types import GenerationPresets
 import json
-from functools import partial
-import os
-from lollms.utilities import PromptReshaper
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
-from urllib.parse import quote
 import requests 
 from typing import Callable
+if not PackageManager.check_package_installed("arxiv"):
+    PackageManager.install_package("arxiv")
 
 def query_server(base_url, query_params):
     url = base_url + "?" + "&".join([f"{key}={value}" for key, value in query_params.items()])
@@ -176,12 +168,12 @@ class Processor(APScript):
             text = GenericDataLoader.read_file(pdf)
             tk = self.personality.model.tokenize(text)
             cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])
-            title = self.fast_gen(f"!@>request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>document title:")
-            authors = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the list of authors without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>authors list:")
+            title = self.fast_gen(f"!@>request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>document title:", callback=self.sink)
+            authors = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the list of authors without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>authors list:", callback=self.sink)
             if self.personality_config.read_only_first_chunk:
-                abstract = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>abstract:")
+                abstract = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>abstract:", callback=self.sink)
             else:
-                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:")
+                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:", callback=self.sink)
             self.analyze_pdf(
                 self.personality_config.research_subject,
                 "",
@@ -225,10 +217,12 @@ class Processor(APScript):
         fn = str(file_name).replace('\\','/')
         if self.personality_config.read_the_whole_article:
             text = GenericDataLoader.read_file(file_name)
+            tk = self.personality.model.tokenize(text)
+            cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])            
             if self.personality_config.read_only_first_chunk:
                 abstract = self.fast_gen(f"!@>request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>abstract:")
             else:
-                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:")
+                abstract = self.summerize_text(text,f"!@>request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.\n!@> Document chunk:\n{cropped}\n!@>sumary:", callback=self.sink)
 
         relevance_score = self.fast_gen("\n".join([
             "!@>system:",
@@ -544,7 +538,7 @@ class Processor(APScript):
                     text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n"
 
             self.step_start(f"Summerizing content")
-            summary = self.summerize_text(text_to_summerize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.")
+            summary = self.summerize_text(text_to_summerize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.", callback=self.sink)
             self.full(summary)
             self.step_end(f"Summerizing content")           
 
