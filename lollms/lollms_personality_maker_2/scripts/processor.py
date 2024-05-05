@@ -716,7 +716,7 @@ class Processor(APScript):
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
-        conditioning = f"{name} is "+conditioning
+        conditioning = conditioning
         self.step_end("Coming up with the conditionning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
         output_text+=self.build_a_document_block('conditioning',"",conditioning)
