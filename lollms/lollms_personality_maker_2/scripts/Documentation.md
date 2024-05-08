@@ -1,8 +1,3 @@
-"""
-project: lollms
-personality: # Place holder: Personality name 
-Author: # Place holder: creator name 
-description: # Place holder: personality description
 APScript useful methods:
 fast_gen:
     Fast way to generate text from prompt
