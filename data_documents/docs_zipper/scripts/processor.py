@@ -103,7 +103,7 @@ class Processor(APScript):
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
                 document_text = self.summerize_chunks(document_chunks,"\n".join([
-                        f"Summerize the document chunk and do not add any comments after the summary.",
+                        f"Summerize the document chunk in a detailed comprehensive manner.",
                         "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
                         f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
