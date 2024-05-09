@@ -119,10 +119,12 @@ class Processor(APScript):
                     callback=self.sink
                     )
                 tk = self.personality.model.tokenize(document_text)
-                if self.personality_config.zip_mode!="sequencial":
-                    self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
+                if self.personality_config.zip_mode!="sequencial":
+                    self.step_end(f"Comprerssing.. [depth {depth}]")
+                else:
+                    break
         self.step_start(f"Last composition")
         document_text = self.summerize_chunks([document_text],"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
