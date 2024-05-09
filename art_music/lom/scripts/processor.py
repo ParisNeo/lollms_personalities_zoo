@@ -272,7 +272,7 @@ The generation ai has no access to the previous text so do not do references and
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.

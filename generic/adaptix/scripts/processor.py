@@ -89,7 +89,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
@@ -123,7 +123,7 @@ class Processor(APScript):
            prompt,
            context_details["positive_boost"],
            context_details["negative_boost"],
-           context_details["force_language"],
+           context_details["current_language"],
            context_details["fun_mode"],
            "!@>adaptix:"]))
         self.full(out)
