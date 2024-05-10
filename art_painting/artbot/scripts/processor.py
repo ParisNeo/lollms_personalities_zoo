@@ -50,7 +50,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3", "comfyui"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
@@ -79,8 +79,8 @@ class Processor(APScript):
                 {"name":"restore_faces","type":"bool","value":True,"help":"Restore faces"},
                 {"name":"caption_received_files","type":"bool","value":False,"help":"If active, the received file will be captioned"},
 
-                {"name":"width","type":"int","value":512, "min":10, "max":2048},
-                {"name":"height","type":"int","value":512, "min":10, "max":2048},
+                {"name":"width","type":"int","value":1024, "min":64, "max":4096},
+                {"name":"height","type":"int","value":1024, "min":64, "max":4096},
 
                 {"name":"thumbneil_ratio","type":"int","value":2, "min":1, "max":5},
 
@@ -185,22 +185,22 @@ class Processor(APScript):
         return text_without_image_links
 
 
-    def help(self, prompt="", full_context=""):
+    def help(self, prompt="", full_context="", client:Client=None):
         self.personality.InfoMessage(self.personality.help)
     
-    def new_image(self, prompt="", full_context=""):
+    def new_image(self, prompt="", full_context="", client:Client=None):
         self.personality.image_files=[]
         self.personality.info("Starting fresh :)")
         
         
-    def show_sd(self, prompt="", full_context=""):
+    def show_sd(self, prompt="", full_context="", client:Client=None):
         self.prepare()
         
         webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
         self.personality.info("Showing Stable diffusion UI")
         
         
-    def show_settings(self, prompt="", full_context=""):
+    def show_settings(self, prompt="", full_context="", client:Client=None):
         self.prepare()
         webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
         self.full("Showing Stable diffusion settings UI")
@@ -244,7 +244,7 @@ class Processor(APScript):
         else:    
             self.full(f"File added successfully\n", callback=callback)
         
-    def regenerate(self, prompt="", full_context=""):
+    def regenerate(self, prompt="", full_context="", client=None):
         self.prepare()
         if self.previous_sd_positive_prompt:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
@@ -252,7 +252,7 @@ class Processor(APScript):
             output = output0
             self.full(output)
 
-            infos, output = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt, self.previous_sd_title, output)
+            infos = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt, self.previous_sd_title, output)
          
             self.step_end("Regenerating using the previous prompt")
         else:
@@ -260,7 +260,7 @@ class Processor(APScript):
 
     
 
-    def get_styles(self, prompt, full_context):
+    def get_styles(self, prompt, full_context, client= None):
         self.step_start("Selecting style")
         styles=[
             "Oil painting",
@@ -466,8 +466,8 @@ class Processor(APScript):
                                                            [
                                                                "The user is making an affirmation",
                                                                "The user is asking a question",
-                                                               "The user is requesting to generate an artwork",
-                                                               "The user is requesting to modify the artwork"
+                                                               "The user is requesting to generate, build or make",
+                                                               "The user is requesting to modify"
                                                             ], "!@>user: "+initial_prompt)
 
                 if classification<=1:
