@@ -41,16 +41,16 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
-                {"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
+                #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
                 # String configuration with options
-                {"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
+                #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
                 # Integer configuration example
-                {"name":"max_attempts", "type":"int", "value":3, "help":"Maximum number of attempts for retryable operations."},
+                #{"name":"max_attempts", "type":"int", "value":3, "help":"Maximum number of attempts for retryable operations."},
                 
                 # List configuration example
-                {"name":"favorite_topics", "type":"list", "value":["AI", "Robotics", "Space"], "help":"List of favorite topics for personalized responses."}
+                #{"name":"favorite_topics", "type":"list", "value":["AI", "Robotics", "Space"], "help":"List of favorite topics for personalized responses."}
             ]
         )
         
@@ -76,12 +76,21 @@ class Processor(APScript):
                             callback=callback
                         )
     
-    def help(self):
+
+    def mounted(self):
         """
-        Provides help information about the personality and its commands.
+        triggered when mounted
         """
-        # Implementation of the help method
         pass
+
+
+    def selected(self):
+        """
+        triggered when selected
+        """
+        pass
+        # self.play_mp3(Path(__file__).parent.parent/"assets"/"borg_threat.mp3")
+
 
     # Note: Remember to add command implementations and additional states as needed.
 
