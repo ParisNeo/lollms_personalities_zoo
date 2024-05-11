@@ -654,7 +654,7 @@ class Processor(APScript):
         self.callback = callback
         out = self.multichoice_question("classify last user prompt.",[
             "asking to build or create a new course",
-            "asking a question or a clarification or asking to start a course step or asking to perform a task",
+            "asking a question or a clarification or asking to start a course step or asking to perform a task, to visualize notes or tabs or just chatting",
             "asking to visualize his progress",
             "returning feedback on his progress",
             "show the course steps",
