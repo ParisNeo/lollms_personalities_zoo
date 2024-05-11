@@ -616,10 +616,10 @@ class Processor(APScript):
         memory_data = self.user_profile_db.get_last_ai_state(user_id)
         course_step = self.user_profile_db.get_current_course_step(user_id)
         prompt = self.build_prompt([
-            "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+            context_details["conditionning"] if context_details["conditionning"] else "",
             "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
             "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-            "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+            context_details["user_description"] if context_details["user_description"] else "",
             "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
             "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
             "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
@@ -627,7 +627,7 @@ class Processor(APScript):
             "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
             "!@>memory_data:\n"+memory_data if memory_data is not None else "",
             "!@>course_step:\n"+course_step if course_step is not None else "",
-            "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+            "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
         ], 
         8)
         self.callback = callback
@@ -642,10 +642,10 @@ class Processor(APScript):
         ],prompt)
         if out==0: # Create course
             prompt = self.build_prompt([
-                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                context_details["conditionning"] if context_details["conditionning"] else "",
                 "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
                 "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                context_details["user_description"] if context_details["user_description"] else "",
                 "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
                 "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
                 "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
@@ -654,7 +654,14 @@ class Processor(APScript):
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
                 "!@>upgrading: Let's build a course for the user. Th course is in for mof json list where each entry is a dictionary with the following keys:",
                 "step_type (cord, scale, song, technique, challenge), description (description of the course step)",
-                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+                "example:",
+                "```json",
+                "[",
+                '{"step_type":"cord","description":"In this step, we will learn how to play the E cord through a set of exercises"}',
+                '{"step_type":"song","description":"In this step, we will learn how to play the first riff of Nothing else matters of metallica"}',
+                "]",
+                "```",
+                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
             ], 
             8)
             self.step_start("Building new course")
@@ -671,10 +678,10 @@ class Processor(APScript):
             self.full("<h2>Course created successfully</h2>")
         if out==1: # generic question
             prompt = self.build_prompt([
-                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                context_details["conditionning"] if context_details["conditionning"] else "",
                 "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
                 "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                context_details["user_description"] if context_details["user_description"] else "",
                 "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
                 "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
                 "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
@@ -682,7 +689,7 @@ class Processor(APScript):
                 "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
                 "!@>course_step:\n"+course_step if course_step is not None else "",
-                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
             ], 
             8)
             self.callback = callback
@@ -705,10 +712,10 @@ class Processor(APScript):
                     "challenge_completed":0
                 }
             prompt = self.build_prompt([
-                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                context_details["conditionning"] if context_details["conditionning"] else "",
                 "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
                 "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                context_details["user_description"] if context_details["user_description"] else "",
                 "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
                 "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
                 "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
@@ -719,7 +726,7 @@ class Processor(APScript):
                 f"!@>current_user_level:\n{current_progress}",
                 "!@>upgrading: Let's update our memory database.\nTo do that we need to issue a function call using these parameters as a json in a json markdown tag:",
                 "level (int), chords (number of learned chords), scales (progress in learning scales in %), songs (number of leaned songs), techniques (number of techniques learned), challenge_completed (int representing the number of challenges performed with succeess)",
-                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
             ], 
             8)
             self.step_start("Building new grades")
@@ -739,10 +746,10 @@ class Processor(APScript):
                                                 )
             current_progress_2 = self.user_profile_db.get_user_overall_progress(user_id)
             prompt = self.build_prompt([
-                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                context_details["conditionning"] if context_details["conditionning"] else "",
                 "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
                 "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                context_details["user_description"] if context_details["user_description"] else "",
                 "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
                 "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
                 "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
@@ -751,8 +758,8 @@ class Processor(APScript):
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
                 "!@>course_step:\n"+course_step if course_step is not None else "",
                 f"!@>current_user_level:\n{current_progress}",
-                "!@>upgrading: "+context_details["ai_prefix"].replace("!@>","")+" needs to build a memory note for himself so that in the next session he can remember. The memory note is in form of plauin text written inside a markdown code tag.",
-                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+                "!@>upgrading: "+context_details["ai_prefix"].replace("!@>","").replace(":","")+" needs to build a memory note for himself so that in the next session he can remember. The memory note is in form of plauin text written inside a markdown code tag.",
+                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
             ], 
             8)
             self.step_start("Building memory notes")
