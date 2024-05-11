@@ -12,6 +12,8 @@ import subprocess
 from typing import Callable
 
 
+import matplotlib
+matplotlib.use('TkAgg')  # Set the backend to TkAgg
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import sqlite3
@@ -435,7 +437,7 @@ class Processor(APScript):
             "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
             "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
             "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-            "!@>"+context_details["fun_mode"].replace("!@>","")+":"
+            "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
         ], 
         8)
         self.callback = callback
@@ -456,7 +458,7 @@ class Processor(APScript):
                 "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
                 "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-                "!@>"+context_details["fun_mode"].replace("!@>","")+":"
+                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
             ], 
             8)
             self.callback = callback
@@ -489,14 +491,14 @@ class Processor(APScript):
                 f"!@>current_user_level:\n{current_progress}",
                 "!@>upgrading: Let's update our memory database.\nTo do that we need to issue a function call using these parameters as a json in a json markdown tag:",
                 "level (float from 0 to 100), chords (float from 0 to 100), scales (float from 0 to 100), songs (float from 0 to 100), techniques (float from 0 to 100), challenge_completed (int from 0 to the number of challenges)",
-                "!@>"+context_details["fun_mode"].replace("!@>","")+":"
+                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
             ], 
             8)
             self.step_start("Building new grades")
             out = self.fast_gen(prompt, callback=self.sink)
             self.step_end("Building new grades")
             code = self.extract_code_blocks(out)
-            if len(out)>0:
+            if len(code)>0:
                 parameters = json.loads(code[0]["content"])
                 self.user_profile_db.log_progress(
                                                     user_id, 
@@ -508,7 +510,30 @@ class Processor(APScript):
                                                     parameters.get('challenge_completed',current_progress['challenge_completed']),
                                                 )
             current_progress_2 = self.user_profile_db.get_user_overall_progress(user_id)
+            prompt = self.build_prompt([
+                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
+                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
+                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
+                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
+                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
+                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
+                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+                f"!@>current_user_level:\n{current_progress}",
+                "!@>upgrading: "+context_details["ai_prefix"].replace("!@>","")+" needs to build a memory note for himself so that in the next session he can remember. The memory note is in form of plauin text written inside a markdown code tag.",
+                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+            ], 
+            8)
+            self.step_start("Building memory notes")
+            out = self.fast_gen(prompt, callback=self.sink)
+            self.step_end("Building memory notes")
+            code = self.extract_code_blocks(out)
             self.full(f"User level updated:\nprevious_user_level:\n{current_progress}\ncurrent_user_level:\n{current_progress_2}")
-
+            if len(code)>0:
+                memory = code[0]["content"]
+                self.user_profile_db.set_ai_state(user_id, memory)
+                self.full(f"User level updated:\nprevious_user_level:\n{current_progress}\ncurrent_user_level:\n{current_progress_2}\nMemory information: {memory}")
         return out
 
