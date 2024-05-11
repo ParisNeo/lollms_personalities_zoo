@@ -153,14 +153,30 @@ class GuitarLearningDB:
         conn.commit()
         conn.close()
 
-    def add_course_step(self, step_type, description):
+    # Method to add a new course step and set it as the current step for a user if no steps are associated
+    def add_course_step(self, user_id, step_type, description):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        # Insert the new step into CoursePlan
         cursor.execute('''
             INSERT INTO CoursePlan (step_type, description)
             VALUES (?, ?)
         ''', (step_type, description))
         step_id = cursor.lastrowid
+
+        # Check if the user has any associated steps
+        cursor.execute('''
+            SELECT current_step FROM UserProfile WHERE user_id = ?
+        ''', (user_id,))
+        result = cursor.fetchone()
+
+        # If no steps are associated, set the current_step to the new step
+        if result is None or result[0] is None:
+            cursor.execute('''
+                UPDATE UserProfile SET current_step = ? WHERE user_id = ?
+            ''', (step_id, user_id,))
+
         conn.commit()
         conn.close()
         return step_id
