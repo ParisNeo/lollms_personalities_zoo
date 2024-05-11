@@ -8,6 +8,7 @@ Description: # Placeholder: Personality description (e.g., "A personality design
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.client_session import Client
 import subprocess
 from typing import Callable
 
@@ -34,12 +35,24 @@ class GuitarLearningDB:
     def create_tables(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        # New table CoursePlan
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS CoursePlan (
+                step_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                step_type TEXT NOT NULL,
+                description TEXT NOT NULL
+            )
+        ''')
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS UserProfile (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 email TEXT,
-                current_level TEXT NOT NULL
+                current_level TEXT NOT NULL,
+                current_step INTEGER,
+                FOREIGN KEY (current_step) REFERENCES CoursePlan (step_id)
+                       
             )
         ''')
         cursor.execute('''
@@ -64,6 +77,7 @@ class GuitarLearningDB:
                 FOREIGN KEY (user_id) REFERENCES UserProfile (user_id)
             )
         ''')
+        
         conn.commit()
         conn.close()
 
@@ -139,6 +153,59 @@ class GuitarLearningDB:
         conn.commit()
         conn.close()
 
+    def add_course_step(self, step_type, description):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO CoursePlan (step_type, description)
+            VALUES (?, ?)
+        ''', (step_type, description))
+        step_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return step_id
+
+    def get_current_course_step(self, user_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT cp.step_id, cp.step_type, cp.description
+            FROM UserProfile up
+            JOIN CoursePlan cp ON up.current_step = cp.step_id
+            WHERE up.user_id = ?
+        ''', (user_id,))
+        result = cursor.fetchone()
+        conn.close()
+        return {
+            'step_id': result[0],
+            'step_type': result[1],
+            'code': result[2],
+        } if result else None
+
+    def update_course_step(self, step_id, step_type=None, code=None):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE CoursePlan
+            SET step_type = COALESCE(?, step_type),
+                code = COALESCE(?, code)
+            WHERE step_id = ?
+        ''', (step_type, code, step_id))
+        conn.commit()
+        conn.close()
+
+    def set_user_current_step(self, user_id, step_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE UserProfile
+            SET current_step = ?
+            WHERE user_id = ?
+        ''', (step_id, user_id))
+        conn.commit()
+        conn.close()
+
+
     def log_progress(self, user_id, level, chords, scales, songs, techniques, challenge_completed):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -192,6 +259,90 @@ class GuitarLearningDB:
             'challenge_completed': result[5],
         } if result else {}
 
+    # New method to clear the course for a user
+    def clear_course_for_user(self, user_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE UserProfile
+            SET current_step = 0
+            WHERE user_id = ?
+        ''', (user_id,))
+        conn.commit()
+
+        # New method to remove all course steps for a user
+        cursor.execute('''
+            DELETE FROM CoursePlan
+            WHERE step_id IN (
+                SELECT current_step FROM UserProfile WHERE user_id = ?
+            )
+        ''', (user_id,))
+        conn.commit()
+        conn.close()
+
+    # Method to get all course steps for a user
+    def get_course_steps(self, user_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT CP.step_id, CP.step_type, CP.description
+            FROM UserProfile UP
+            INNER JOIN CoursePlan CP ON UP.current_step = CP.step_id
+            WHERE UP.user_id = ?
+        ''', (user_id,))
+        # Fetch all results
+        course_steps = cursor.fetchall()
+        conn.close()
+        return course_steps
+
+    
+    # Method to get the current course step for a user
+    def get_current_course_step(self, user_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT CP.step_id, CP.step_type, CP.description
+            FROM UserProfile UP
+            JOIN CoursePlan CP ON UP.current_step = CP.step_id
+            WHERE UP.user_id = ?
+        ''', (user_id,))
+        # Fetch the result
+        current_step = cursor.fetchone()
+        conn.close()
+        return current_step if current_step else None
+
+    # Method to advance to the next course step for a user
+    def next_step(self, user_id):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Get the current step for the user
+        cursor.execute('''
+            SELECT current_step FROM UserProfile WHERE user_id = ?
+        ''', (user_id,))
+        result = cursor.fetchone()
+        if result:
+            current_step = result[0]
+            # Check if there is a next step available
+            cursor.execute('''
+                SELECT EXISTS(SELECT 1 FROM CoursePlan WHERE step_id = ? + 1)
+            ''', (current_step,))
+            has_next_step = cursor.fetchone()[0]
+            
+            if has_next_step:
+                # Update the current step to the next step
+                cursor.execute('''
+                    UPDATE UserProfile SET current_step = current_step + 1 WHERE user_id = ?
+                ''', (user_id,))
+                conn.commit()
+                message = "User has been advanced to the next step."
+            else:
+                message = "No more steps available. Course completed."
+        else:
+            message = "User ID does not exist."
+
+        conn.close()
+        return message
 
     def plot_user_progress(self, user_id, image_path, html_path):
         conn = sqlite3.connect(self.db_path)
@@ -355,7 +506,7 @@ class Processor(APScript):
 
         return status_text
 
-    def get_welcome(self):
+    def get_welcome(self, client):
         user_level = self.get_or_create_user_profile()
         if user_level:
             return self.fast_gen(f"!@>system: Build a better  welcome message for the user.\n!@>current_welcome_message: {self.personality.welcome_message}\n!@>last session data: {user_level}\n!@>adapted welcome message:")
@@ -424,8 +575,17 @@ class Processor(APScript):
         # available commands, and user context.
         self.full(self.personality.help)
 
+    def format_course_steps_as_markdown(self, course_steps):
+        if not course_steps:
+            return "No course steps available for this user."
 
-    from lollms.client_session import Client
+        markdown_output = "## User's Course Steps\n\n"
+        for step in course_steps:
+            step_id, step_type, description = step
+            markdown_output += f"### Step {step_id}: {step_type}\n"
+            markdown_output += f"{description}\n\n"
+        return markdown_output
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
@@ -454,6 +614,7 @@ class Processor(APScript):
         user_id = self.user_profile_db.get_user_id_by_name(self.personality_config.user_profile_name)
         self.personality.info("Generating")
         memory_data = self.user_profile_db.get_last_ai_state(user_id)
+        course_step = self.user_profile_db.get_current_course_step(user_id)
         prompt = self.build_prompt([
             "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
             "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
@@ -465,16 +626,21 @@ class Processor(APScript):
             "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
             "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
             "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+            "!@>course_step:\n"+course_step if course_step is not None else "",
             "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
         ], 
         8)
         self.callback = callback
         out = self.multichoice_question("classify last user prompt.",[
-            "asking a question or clarification",
+            "asking to build a course",
+            "asking a question or a clarification or asking to start the course",
             "asking to visualize his progress",
             "returning feedback on his progress",
+            "show the course steps",
+            "show the current step",
+            "move to next step in the course"
         ],prompt)
-        if out==0:
+        if out==0: # Create course
             prompt = self.build_prompt([
                 "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
                 "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
@@ -486,18 +652,48 @@ class Processor(APScript):
                 "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
                 "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+                "!@>upgrading: Let's build a course for the user. Th course is in for mof json list where each entry is a dictionary with the following keys:",
+                "step_type (cord, scale, song, technique, challenge), description (description of the course step)",
+                "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
+            ], 
+            8)
+            self.step_start("Building new course")
+            out = self.fast_gen(prompt, callback=self.sink)
+            self.step_end("Building new course")
+            code = self.extract_code_blocks(out)
+            self.step_start("Adding course to the database")
+            if len(code)>0:
+                steps = json.loads(code[0]["content"])
+                self.user_profile_db.clear_course_for_user(user_id)
+                for step in steps:
+                    self.user_profile_db.add_course_step(step.get("step_type","generic"), step["description"])
+            self.step_end("Adding course to the database")
+            self.full("<h2>Course created successfully</h2>")
+        if out==1: # generic question
+            prompt = self.build_prompt([
+                "!@>system:\n"+context_details["conditionning"] if context_details["conditionning"] else "",
+                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
+                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
+                "!@>user_description:\n"+context_details["user_description"] if context_details["user_description"] else "",
+                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
+                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
+                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
+                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
+                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+                "!@>course_step:\n"+course_step if course_step is not None else "",
                 "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
             ], 
             8)
             self.callback = callback
             out = self.fast_gen(prompt)
-            self.full(out)
-        elif out==1:
+            self.full(out)            
+        elif out==2: # Show user progress
             img_path = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.png"
             interactive_ui = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.html"
             self.user_profile_db.plot_user_progress(user_id, str(img_path), str(interactive_ui))
             self.full(f"<img src='{discussion_path_to_url(img_path)}'></img>\n<a href='{discussion_path_to_url(interactive_ui)}' target='_blank'>click here for an interactive version</a>")
-        elif out==2:
+        elif out==3: # updating the database
             current_progress = self.user_profile_db.get_user_overall_progress(user_id)
             if not current_progress:
                 current_progress = {
@@ -519,9 +715,10 @@ class Processor(APScript):
                 "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
                 "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+                "!@>course_step:\n"+course_step if course_step is not None else "",
                 f"!@>current_user_level:\n{current_progress}",
                 "!@>upgrading: Let's update our memory database.\nTo do that we need to issue a function call using these parameters as a json in a json markdown tag:",
-                "level (float from 0 to 100), chords (float from 0 to 100), scales (float from 0 to 100), songs (float from 0 to 100), techniques (float from 0 to 100), challenge_completed (int from 0 to the number of challenges)",
+                "level (int), chords (number of learned chords), scales (progress in learning scales in %), songs (number of leaned songs), techniques (number of techniques learned), challenge_completed (int representing the number of challenges performed with succeess)",
                 "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
             ], 
             8)
@@ -552,6 +749,7 @@ class Processor(APScript):
                 "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
                 "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
                 "!@>memory_data:\n"+memory_data if memory_data is not None else "",
+                "!@>course_step:\n"+course_step if course_step is not None else "",
                 f"!@>current_user_level:\n{current_progress}",
                 "!@>upgrading: "+context_details["ai_prefix"].replace("!@>","")+" needs to build a memory note for himself so that in the next session he can remember. The memory note is in form of plauin text written inside a markdown code tag.",
                 "!@>"+context_details["ai_prefix"].replace("!@>","")+":"
@@ -566,5 +764,29 @@ class Processor(APScript):
                 memory = code[0]["content"]
                 self.user_profile_db.set_ai_state(user_id, memory)
                 self.full(f"User level updated:\nprevious_user_level:\n{current_progress}\ncurrent_user_level:\n{current_progress_2}\nMemory information: {memory}")
+        elif out==4: # Show the course steps
+            course_steps =self.user_profile_db.get_course_steps(user_id)
+            out =  "# Course\n"+self.format_course_steps_as_markdown(course_steps)
+            self.full(out)
+        elif out==5: # Show the current course step
+            if course_step:
+                out =  "# Course step\n"
+                step_id, step_type, description = course_step
+                out += f"### Step {step_id}: {step_type}\n"
+                out += f"{description}\n\n"
+                self.full(out)
+            else:
+                self.full("No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs.")
+        elif out==6: # Move to next course
+            if course_step:
+                self.user_profile_db.next_step()
+                out =  "# New course step:\n"
+                step_id, step_type, description = course_step
+                out += f"### Step {step_id}: {step_type}\n"
+                out += f"{description}\n\n"
+                self.full(out)
+            else:
+                self.full("No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs.")
+
         return out
 
