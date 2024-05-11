@@ -452,7 +452,7 @@ class Processor(APScript):
         self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)        
         return infos
 
-    def main_process(self, initial_prompt, full_context,context_details:dict=None):
+    def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
         sd_title = "unnamed"    
         metadata_infos=""
         try:
@@ -674,7 +674,7 @@ Given this image description prompt and negative prompt, make a consize title
             None
         """
         self.callback = callback
-        self.main_process(prompt, previous_discussion_text,context_details)
+        self.main_process(prompt, previous_discussion_text,context_details,client)
 
         return ""
 
