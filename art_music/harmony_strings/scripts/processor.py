@@ -37,24 +37,26 @@ class GuitarLearningDB:
         cursor = conn.cursor()
         # New table CoursePlan
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS CoursePlan (
-                step_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                step_type TEXT NOT NULL,
-                description TEXT NOT NULL
-            )
-        ''')
-
-        cursor.execute('''
             CREATE TABLE IF NOT EXISTS UserProfile (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 email TEXT,
                 current_level TEXT NOT NULL,
-                current_step INTEGER,
-                FOREIGN KEY (current_step) REFERENCES CoursePlan (step_id)
-                       
+                current_step INTEGER
             )
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS CoursePlan (
+                step_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                step_title TEXT NOT NULL,
+                step_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                user_id INTEGER,
+                FOREIGN KEY (user_id) REFERENCES UserProfile (user_id)
+            )
+        ''')
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ProgressTrack (
                 progress_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,15 +156,15 @@ class GuitarLearningDB:
         conn.close()
 
     # Method to add a new course step and set it as the current step for a user if no steps are associated
-    def add_course_step(self, user_id, step_type, description):
+    def add_course_step(self, user_id, step_type, step_title, description):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         # Insert the new step into CoursePlan
         cursor.execute('''
-            INSERT INTO CoursePlan (step_type, description)
-            VALUES (?, ?)
-        ''', (step_type, description))
+            INSERT INTO CoursePlan (step_type, step_title, description, user_id)
+            VALUES (?, ?, ?, ?)
+        ''', (step_type, step_title, description, user_id))
         step_id = cursor.lastrowid
 
         # Check if the user has any associated steps
@@ -172,7 +174,7 @@ class GuitarLearningDB:
         result = cursor.fetchone()
 
         # If no steps are associated, set the current_step to the new step
-        if result is None or result[0] is None:
+        if result is None or result[0] is None or result[0]==0:
             cursor.execute('''
                 UPDATE UserProfile SET current_step = ? WHERE user_id = ?
             ''', (step_id, user_id,))
@@ -301,10 +303,9 @@ class GuitarLearningDB:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT CP.step_id, CP.step_type, CP.description
-            FROM UserProfile UP
-            INNER JOIN CoursePlan CP ON UP.current_step = CP.step_id
-            WHERE UP.user_id = ?
+            SELECT step_id, step_title, step_type, description
+            FROM CoursePlan
+            WHERE user_id = ?
         ''', (user_id,))
         # Fetch all results
         course_steps = cursor.fetchall()
@@ -597,8 +598,8 @@ class Processor(APScript):
 
         markdown_output = "## User's Course Steps\n\n"
         for step in course_steps:
-            step_id, step_type, description = step
-            markdown_output += f"### Step {step_id}: {step_type}\n"
+            step_id, step_title, step_type, description = step
+            markdown_output += f"### Step {step_id}: {step_title} ({step_type})\n"
             markdown_output += f"{description}\n\n"
         return markdown_output
 
@@ -627,7 +628,11 @@ class Processor(APScript):
         Returns:
             None
         """
+        self.get_or_create_user_profile()
         user_id = self.user_profile_db.get_user_id_by_name(self.personality_config.user_profile_name)
+        if user_id is None:
+            self.full(self.personality.welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n")
+            return
         self.personality.info("Generating")
         memory_data = self.user_profile_db.get_last_ai_state(user_id)
         course_step = self.user_profile_db.get_current_course_step(user_id)
@@ -648,12 +653,12 @@ class Processor(APScript):
         8)
         self.callback = callback
         out = self.multichoice_question("classify last user prompt.",[
-            "asking to build a new course",
-            "asking a question or a clarification or asking to start a course step",
+            "asking to build or create a new course",
+            "asking a question or a clarification or asking to start a course step or asking to perform a task",
             "asking to visualize his progress",
             "returning feedback on his progress",
             "show the course steps",
-            "show the current step",
+            "show the current course step information",
             "move to next step in the course"
         ],prompt)
         if out==0: # Create course
@@ -673,8 +678,8 @@ class Processor(APScript):
                 "example:",
                 "```json",
                 "[",
-                '{"step_type":"cord","description":"In this step, we will learn how to play the E cord through a set of exercises"},',
-                '{"step_type":"song","description":"In this step, we will learn how to play the first riff of Nothing else matters of metallica"}',
+                '{"step_type":"cord","step_title":"Learning E cord","description":"In this step, we will learn how to play the E cord through a set of exercises"},',
+                '{"step_type":"song","step_title":"Learning your first riff","description":"In this step, we will learn how to play the first riff of Nothing else matters of metallica"}',
                 "]",
                 "```",
                 "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
@@ -689,7 +694,7 @@ class Processor(APScript):
                 steps = json.loads(code[0]["content"])
                 self.user_profile_db.clear_course_for_user(user_id)
                 for step in steps:
-                    self.user_profile_db.add_course_step(step.get("step_type","generic"), step["description"])
+                    self.user_profile_db.add_course_step(user_id, step.get("step_type","generic"), step.get("step_title","learning step"), step["description"])
             self.step_end("Adding course to the database")
             self.full("<h2>Course created successfully</h2>")
         if out==1: # generic question
