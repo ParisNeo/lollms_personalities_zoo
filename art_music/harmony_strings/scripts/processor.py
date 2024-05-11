@@ -657,7 +657,7 @@ class Processor(APScript):
                 "example:",
                 "```json",
                 "[",
-                '{"step_type":"cord","description":"In this step, we will learn how to play the E cord through a set of exercises"}',
+                '{"step_type":"cord","description":"In this step, we will learn how to play the E cord through a set of exercises"},',
                 '{"step_type":"song","description":"In this step, we will learn how to play the first riff of Nothing else matters of metallica"}',
                 "]",
                 "```",
