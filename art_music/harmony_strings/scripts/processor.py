@@ -12,13 +12,19 @@ import subprocess
 from typing import Callable
 
 
-import matplotlib
-matplotlib.use('TkAgg')  # Set the backend to TkAgg
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import sqlite3
 import json
 from datetime import datetime
+from lollms.utilities import PackageManager, discussion_path_to_url
+if not PackageManager.check_package_installed("plotly"):
+    PackageManager.install_package("plotly")
+if not PackageManager.check_package_installed("matplotlib"):
+    PackageManager.install_package("matplotlib")
+import plotly.graph_objs as go
+from plotly.offline import plot
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
 
 class GuitarLearningDB:
     def __init__(self, db_path='guitar_learning.db'):
@@ -187,7 +193,7 @@ class GuitarLearningDB:
         } if result else {}
 
 
-    def plot_user_progress(self, user_id):
+    def plot_user_progress(self, user_id, image_path, html_path):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -213,7 +219,7 @@ class GuitarLearningDB:
         # Convert levels to numeric values if they are not already numeric
         levels_numeric = [float(level) if level.isdigit() else float(index) for index, level in enumerate(levels)]
 
-        # Plotting
+        # Plotting with Matplotlib
         plt.figure(figsize=(10, 6))
         plt.plot(dates, levels_numeric, label='Level')
         plt.plot(dates, chords, label='Chords learned')
@@ -231,7 +237,29 @@ class GuitarLearningDB:
         plt.ylabel('Progress')
         plt.legend()
         plt.tight_layout()
-        plt.show()
+
+        # Save the figure
+        plt.savefig(image_path)
+        plt.close()
+
+        # Plotting with Plotly for an interactive plot
+        trace1 = go.Scatter(x=dates, y=levels_numeric, mode='lines', name='Level')
+        trace2 = go.Scatter(x=dates, y=chords, mode='lines', name='Chords learned')
+        trace3 = go.Scatter(x=dates, y=scales, mode='lines', name='Scales learned')
+        trace4 = go.Scatter(x=dates, y=songs, mode='lines', name='Songs learned')
+        trace5 = go.Scatter(x=dates, y=techniques, mode='lines', name='Techniques learned')
+
+        data = [trace1, trace2, trace3, trace4, trace5]
+
+        layout = go.Layout(
+            title='User Progress Over Time',
+            xaxis=dict(title='Date'),
+            yaxis=dict(title='Progress'),
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+
+        fig = go.Figure(data=data, layout=layout)
+        plot(fig, filename=html_path, auto_open=False)
 
 
 class Processor(APScript):
@@ -465,7 +493,10 @@ class Processor(APScript):
             out = self.fast_gen(prompt)
             self.full(out)
         elif out==1:
-            self.user_profile_db.plot_user_progress(user_id)
+            img_path = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.png"
+            interactive_ui = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.html"
+            self.user_profile_db.plot_user_progress(user_id, str(img_path), str(interactive_ui))
+            self.full(f"<img src='{discussion_path_to_url(img_path)}'></img>\n<a href='{discussion_path_to_url(interactive_ui)}' target='_blank'>click here for an interactive version</a>")
         elif out==2:
             current_progress = self.user_profile_db.get_user_overall_progress(user_id)
             if not current_progress:
