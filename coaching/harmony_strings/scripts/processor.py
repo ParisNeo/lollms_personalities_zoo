@@ -9,23 +9,23 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
+from lollms.utilities import file_path_to_url
+from functools import partial
+from ascii_colors import trace_exception
 import subprocess
 from typing import Callable
-
-
+from pathlib import Path
+import sys
 import sqlite3
 import json
 from datetime import datetime
 from lollms.utilities import PackageManager, discussion_path_to_url
 if not PackageManager.check_package_installed("plotly"):
     PackageManager.install_package("plotly")
-if not PackageManager.check_package_installed("matplotlib"):
-    PackageManager.install_package("matplotlib")
+
 import plotly.graph_objs as go
 from plotly.offline import plot
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
+import plotly.io as pio  # Import Plotly IO for image saving
 
 class GuitarLearningDB:
     def __init__(self, db_path='guitar_learning.db'):
@@ -361,6 +361,7 @@ class GuitarLearningDB:
         conn.close()
         return message
 
+
     def plot_user_progress(self, user_id, image_path, html_path):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -387,47 +388,29 @@ class GuitarLearningDB:
         # Convert levels to numeric values if they are not already numeric
         levels_numeric = [float(level) if level.isdigit() else float(index) for index, level in enumerate(levels)]
 
-        # Plotting with Matplotlib
-        plt.figure(figsize=(10, 6))
-        plt.plot(dates, levels_numeric, label='Level')
-        plt.plot(dates, chords, label='Chords learned')
-        plt.plot(dates, scales, label='Scales learned')
-        plt.plot(dates, songs, label='Songs learned')
-        plt.plot(dates, techniques, label='Techniques learned')
-
-        # Formatting the plot
-        plt.gcf().autofmt_xdate()  # Auto format the date on x-axis
-        date_format = mdates.DateFormatter('%Y-%m-%d')
-        plt.gca().xaxis.set_major_formatter(date_format)
-
-        plt.title('User Progress Over Time')
-        plt.xlabel('Date')
-        plt.ylabel('Progress')
-        plt.legend()
-        plt.tight_layout()
-
-        # Save the figure
-        plt.savefig(image_path)
-        plt.close()
-
-        # Plotting with Plotly for an interactive plot
-        trace1 = go.Scatter(x=dates, y=levels_numeric, mode='lines', name='Level')
-        trace2 = go.Scatter(x=dates, y=chords, mode='lines', name='Chords learned')
-        trace3 = go.Scatter(x=dates, y=scales, mode='lines', name='Scales learned')
-        trace4 = go.Scatter(x=dates, y=songs, mode='lines', name='Songs learned')
-        trace5 = go.Scatter(x=dates, y=techniques, mode='lines', name='Techniques learned')
+        # Plotting with Plotly
+        trace1 = go.Scatter(x=dates, y=levels_numeric, mode='lines+markers', name='Level', marker=dict(color='RoyalBlue'), line=dict(width=2))
+        trace2 = go.Scatter(x=dates, y=chords, mode='lines+markers', name='Chords learned', marker=dict(color='Crimson'), line=dict(width=2, dash='dot'))
+        trace3 = go.Scatter(x=dates, y=scales, mode='lines+markers', name='Scales learned', marker=dict(color='GoldenRod'), line=dict(width=2, dash='dash'))
+        trace4 = go.Scatter(x=dates, y=songs, mode='lines+markers', name='Songs learned', marker=dict(color='ForestGreen'), line=dict(width=2, dash='dashdot'))
+        trace5 = go.Scatter(x=dates, y=techniques, mode='lines+markers', name='Techniques learned', marker=dict(color='DarkViolet'), line=dict(width=2, dash='longdash'))
 
         data = [trace1, trace2, trace3, trace4, trace5]
 
         layout = go.Layout(
             title='User Progress Over Time',
-            xaxis=dict(title='Date'),
+            xaxis=dict(title='Date', tickangle=-45),
             yaxis=dict(title='Progress'),
-            margin=dict(l=40, r=40, t=40, b=40)
+            margin=dict(l=40, r=40, t=40, b=130),
+            legend=dict(x=0, y=1.0, bgcolor='rgba(255,255,255,0)'),
+            hovermode='closest'
         )
 
         fig = go.Figure(data=data, layout=layout)
         plot(fig, filename=html_path, auto_open=False)
+        
+        # Save the plot as a static image
+        pio.write_image(fig, image_path)
 
 
 class Processor(APScript):
@@ -523,12 +506,12 @@ class Processor(APScript):
 
         return status_text
 
-    def get_welcome(self, client):
+    def get_welcome(self, welcome_message:str, client):
         user_level = self.get_or_create_user_profile()
         if user_level:
-            return self.fast_gen(f"!@>system: Build a better  welcome message for the user.\n!@>current_welcome_message: {self.personality.welcome_message}\n!@>last session data: {user_level}\n!@>adapted welcome message:")
+            return self.fast_gen(f"!@>system: Build a better  welcome message for the user.\n!@>current_welcome_message: {welcome_message}\n!@>last session data: {user_level}\n!@>adapted welcome message:")
         else:
-            return self.personality.welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n"
+            return welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n"
 
     def help(self):
         """
@@ -602,6 +585,106 @@ class Processor(APScript):
             markdown_output += f"### Step {step_id}: {step_title} ({step_type})\n"
             markdown_output += f"{description}\n\n"
         return markdown_output
+    # ---------------------- functions ---------------
+    def create_a_new_course(self, steps, user_id):
+        self.user_profile_db.clear_course_for_user(user_id)
+        if type(steps)==dict:
+            steps = steps["steps"]
+        for step in steps:
+            self.user_profile_db.add_course_step(user_id, step.get("step_type","generic"), step.get("step_title","learning step"), step["description"])
+        return "### Course created successfuly"
+    
+    def show_metronome(self):
+        # Determine the directory of the current script
+        current_script_dir = Path(__file__).parent
+
+        # Construct the path to metronome.py
+        metronome_script_path = current_script_dir / 'tools' / 'metronome.py'
+
+        # Use subprocess.Popen to run the script without waiting for it to finish
+        subprocess.Popen([sys.executable, str(metronome_script_path)])
+        return "Metronome is now running. Adjust the BPM and press start. You can press stop to stop it"
+
+    def show_user_progress(self, user_id, client:Client):
+        img_path = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.png"
+        interactive_ui = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.html"
+        self.user_profile_db.plot_user_progress(user_id, str(img_path), str(interactive_ui))
+        return f"<img src='{discussion_path_to_url(img_path)}'></img>\n<a href='{discussion_path_to_url(interactive_ui)}' target='_blank'>click here for an interactive version</a>"
+        
+    def log_progress(self, parameters, user_id):
+        if type(parameters)==dict and "parameters" in list(parameters.keys()):
+            parameters=parameters["parameters"]
+        current_progress = self.user_profile_db.get_user_overall_progress(user_id)
+        if not current_progress:
+            current_progress = {
+                "level":0,
+                "chords":0,
+                "scales":0,
+                "songs":0,
+                "techniques":0,
+                "challenge_completed":0
+            }
+
+        self.user_profile_db.log_progress(
+                                            user_id, 
+                                            parameters.get('level',current_progress['level']),
+                                            parameters.get('chords',current_progress['chords']),
+                                            parameters.get('scales',current_progress['scales']),
+                                            parameters.get('songs',current_progress['songs']),
+                                            parameters.get('techniques',current_progress['techniques']),
+                                            parameters.get('challenge_completed',current_progress['challenge_completed']),
+                                        )
+        return "progress logged successfully"
+    
+    def get_course_steps(self, user_id):
+        course_steps =self.user_profile_db.get_course_steps(user_id)
+        out =  "# Course\n"+self.format_course_steps_as_markdown(course_steps)
+        return out
+
+    def get_current_course_step(self, user_id):
+        course_step =self.user_profile_db.get_current_course_step(user_id)
+        if course_step:
+            out =  "# Course step\n"
+            step_id, step_type, description = course_step
+            out += f"### Step {step_id}: {step_type}\n"
+            out += f"{description}\n\n"
+            return out
+        else:
+            return "No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs."
+
+    def next_course(self, user_id):
+        course_step =self.user_profile_db.get_current_course_step(user_id)
+        if course_step:
+            self.user_profile_db.next_step(user_id)
+            out =  "# New course step:\n"
+            step_id, step_type, description = course_step
+            out += f"### Step {step_id}: {step_type}\n"
+            out += f"{description}\n\n"
+            return out
+        else:
+            return "No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs."
+
+    def build_image(self, prompt, width, height):
+        try:
+            if not hasattr(self, "sd"):
+                from lollms.services.sd.lollms_sd import LollmsSD
+                self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            file, infos = self.sd.paint(
+                            prompt, 
+                            "",
+                            self.personality.image_files,
+                            width = width,
+                            height = height
+                        )
+            file = str(file)
+            escaped_url =  file_path_to_url(file)
+            return f'\n![]({escaped_url})'
+        except Exception as ex:
+            trace_exception(ex)
+            return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
+
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
@@ -628,6 +711,7 @@ class Processor(APScript):
         Returns:
             None
         """
+        self.callback = callback
         self.get_or_create_user_profile()
         user_id = self.user_profile_db.get_user_id_by_name(self.personality_config.user_profile_name)
         if user_id is None:
@@ -636,6 +720,7 @@ class Processor(APScript):
         self.personality.info("Generating")
         memory_data = self.user_profile_db.get_last_ai_state(user_id)
         course_step = self.user_profile_db.get_current_course_step(user_id)
+
         prompt = self.build_prompt([
             context_details["conditionning"] if context_details["conditionning"] else "",
             "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
@@ -647,174 +732,67 @@ class Processor(APScript):
             "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
             "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
             "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-            "!@>course_step:\n"+course_step if course_step is not None else "",
+            "!@>happiness_index:\n"+str(course_step) if course_step is not None else "",
             "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
         ], 
         8)
-        self.callback = callback
-        out = self.multichoice_question("classify last user prompt.",[
-            "asking to build or create a new course",
-            "asking a question or a clarification or asking to start a course step or asking to perform a task, to visualize notes or tabs or just chatting",
-            "asking to visualize his progress",
-            "returning feedback on his progress",
-            "show the course steps",
-            "show the current course step information",
-            "move to next step in the course"
-        ],prompt)
-        if out==0: # Create course
-            prompt = self.build_prompt([
-                context_details["conditionning"] if context_details["conditionning"] else "",
-                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                context_details["user_description"] if context_details["user_description"] else "",
-                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-                "!@>upgrading: Let's build a course for the user. Th course is in for mof json list where each entry is a dictionary with the following keys:",
-                "step_type (cord, scale, song, technique, challenge), description (description of the course step)",
-                "example:",
-                "```json",
-                "[",
-                '{"step_type":"cord","step_title":"Learning E cord","description":"In this step, we will learn how to play the E cord through a set of exercises"},',
-                '{"step_type":"song","step_title":"Learning your first riff","description":"In this step, we will learn how to play the first riff of Nothing else matters of metallica"}',
-                "]",
-                "```",
-                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-            ], 
-            8)
-            self.step_start("Building new course")
-            out = self.fast_gen(prompt, callback=self.sink)
-            self.step_end("Building new course")
-            code = self.extract_code_blocks(out)
-            self.step_start("Adding course to the database")
-            if len(code)>0:
-                steps = json.loads(code[0]["content"])
-                self.user_profile_db.clear_course_for_user(user_id)
-                for step in steps:
-                    self.user_profile_db.add_course_step(user_id, step.get("step_type","generic"), step.get("step_title","learning step"), step["description"])
-            self.step_end("Adding course to the database")
-            self.full("<h2>Course created successfully</h2>")
-        if out==1: # generic question
-            prompt = self.build_prompt([
-                context_details["conditionning"] if context_details["conditionning"] else "",
-                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                context_details["user_description"] if context_details["user_description"] else "",
-                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-                "!@>course_step:\n"+course_step if course_step is not None else "",
-                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-            ], 
-            8)
-            self.callback = callback
-            out = self.fast_gen(prompt)
-            self.full(out)            
-        elif out==2: # Show user progress
-            img_path = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.png"
-            interactive_ui = client.discussion.discussion_folder/f"current_status_{client.discussion.current_message.id}.html"
-            self.user_profile_db.plot_user_progress(user_id, str(img_path), str(interactive_ui))
-            self.full(f"<img src='{discussion_path_to_url(img_path)}'></img>\n<a href='{discussion_path_to_url(interactive_ui)}' target='_blank'>click here for an interactive version</a>")
-        elif out==3: # updating the database
-            current_progress = self.user_profile_db.get_user_overall_progress(user_id)
-            if not current_progress:
-                current_progress = {
-                    "level":0,
-                    "chords":0,
-                    "scales":0,
-                    "songs":0,
-                    "techniques":0,
-                    "challenge_completed":0
-                }
-            prompt = self.build_prompt([
-                context_details["conditionning"] if context_details["conditionning"] else "",
-                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                context_details["user_description"] if context_details["user_description"] else "",
-                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-                "!@>course_step:\n"+course_step if course_step is not None else "",
-                f"!@>current_user_level:\n{current_progress}",
-                "!@>upgrading: Let's update our memory database.\nTo do that we need to issue a function call using these parameters as a json in a json markdown tag:",
-                "level (int), chords (number of learned chords), scales (progress in learning scales in %), songs (number of leaned songs), techniques (number of techniques learned), challenge_completed (int representing the number of challenges performed with succeess)",
-                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-            ], 
-            8)
-            self.step_start("Building new grades")
-            out = self.fast_gen(prompt, callback=self.sink)
-            self.step_end("Building new grades")
-            code = self.extract_code_blocks(out)
-            if len(code)>0:
-                parameters = json.loads(code[0]["content"])
-                self.user_profile_db.log_progress(
-                                                    user_id, 
-                                                    parameters.get('level',current_progress['level']),
-                                                    parameters.get('chords',current_progress['chords']),
-                                                    parameters.get('scales',current_progress['scales']),
-                                                    parameters.get('songs',current_progress['songs']),
-                                                    parameters.get('techniques',current_progress['techniques']),
-                                                    parameters.get('challenge_completed',current_progress['challenge_completed']),
-                                                )
-            current_progress_2 = self.user_profile_db.get_user_overall_progress(user_id)
-            prompt = self.build_prompt([
-                context_details["conditionning"] if context_details["conditionning"] else "",
-                "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-                "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-                context_details["user_description"] if context_details["user_description"] else "",
-                "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-                "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-                "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-                "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-                "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-                "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-                "!@>course_step:\n"+course_step if course_step is not None else "",
-                f"!@>current_user_level:\n{current_progress}",
-                "!@>upgrading: "+context_details["ai_prefix"].replace("!@>","").replace(":","")+" needs to build a memory note for himself so that in the next session he can remember. The memory note is in form of plauin text written inside a markdown code tag.",
-                "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-            ], 
-            8)
-            self.step_start("Building memory notes")
-            out = self.fast_gen(prompt, callback=self.sink)
-            self.step_end("Building memory notes")
-            code = self.extract_code_blocks(out)
-            self.full(f"User level updated:\nprevious_user_level:\n{current_progress}\ncurrent_user_level:\n{current_progress_2}")
-            if len(code)>0:
-                memory = code[0]["content"]
-                self.user_profile_db.set_ai_state(user_id, memory)
-                self.full(f"User level updated:\nprevious_user_level:\n{current_progress}\ncurrent_user_level:\n{current_progress_2}\nMemory information: {memory}")
-        elif out==4: # Show the course steps
-            course_steps =self.user_profile_db.get_course_steps(user_id)
-            out =  "# Course\n"+self.format_course_steps_as_markdown(course_steps)
-            self.full(out)
-        elif out==5: # Show the current course step
-            if course_step:
-                out =  "# Course step\n"
-                step_id, step_type, description = course_step
-                out += f"### Step {step_id}: {step_type}\n"
-                out += f"{description}\n\n"
-                self.full(out)
-            else:
-                self.full("No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs.")
-        elif out==6: # Move to next course
-            if course_step:
-                self.user_profile_db.next_step()
-                out =  "# New course step:\n"
-                step_id, step_type, description = course_step
-                out += f"### Step {step_id}: {step_type}\n"
-                out += f"{description}\n\n"
-                self.full(out)
-            else:
-                self.full("No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs.")
-
+        function_definitions = [
+            {
+                "function_name": "create_a_new_course",
+                "function": partial(self.create_a_new_course, user_id=user_id),
+                "function_description": 'Creates a new course from a list of course steps. Each step is a dict in the form:\n{"step_type":"type of the course step (Mastering Chords,Strumming Patterns,Fingerpicking,Scales and Soloing,Music Theory for Guitarists,Ear Training,Guitar Maintenance,Playing Techniques,Learning Songs,Performance Skills)","step_title":"The title of this course step","description":"A detailed description of the course, theory, practice, tests, and evaluation"}',
+                "function_parameters": [{"name": "steps", "type": "list of dicts"}]                
+            },
+            {
+                "function_name": "plot_user_progress",
+                "function":  partial(self.show_user_progress,user_id=user_id, client=client),
+                "function_description": "Plots the user progress over time.",
+                "function_parameters": []                
+            },
+            {
+                "function_name": "log_progress",
+                "function":  partial(self.log_progress,user_id=user_id),
+                "function_description": "Logs the progress of the user. The function_parameters must be a list with a single entry.",
+                "function_parameters": [{"name": "parameters", "type": "dict with the following entries (level,chords,scales,songs,techniques,challenge_completed)"}]                
+            },
+            {
+                "function_name": "get_course_steps",
+                "function": partial(self.get_course_steps,user_id=user_id),
+                "function_description": "Shows all course steps to the user.",
+                "function_parameters": []                
+            },
+            {
+                "function_name": "get_current_course_step",
+                "function": partial(self.get_current_course_step,user_id=user_id),
+                "function_description": "Shows the current course content.",
+                "function_parameters": []                
+            },
+            {
+                "function_name": "next_course",
+                "function": partial(self.next_course,user_id=user_id),
+                "function_description": "Move to next course step.",
+                "function_parameters": []                
+            },
+            {
+                "function_name": "build_image",
+                "function": self.build_image,
+                "function_description": "Builds and shows an image from a detailed description prompt and width and height parameters. A typical square resolution is 1024x1024, a portrait resolution is 1024x1820 and landscape resolution is 1820x1024.",
+                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
+            },            
+            {
+                "function_name": "show_metronome",
+                "function": self.show_metronome,
+                "function_description": "Shows a metronome for the uset to use",
+                "function_parameters": []                
+            },            
+        ]
+        
+        if len(self.personality.image_files)>0:
+            out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
+        else:
+            out, function_calls = self.generate_with_function_calls(prompt,function_definitions)
+        if len(function_calls)>0:
+            outputs = self.execute_function_calls(function_calls,function_definitions)
+            out += "\n" + "\n".join([str(o) for o in outputs])
+        self.full(out)
         return out
-

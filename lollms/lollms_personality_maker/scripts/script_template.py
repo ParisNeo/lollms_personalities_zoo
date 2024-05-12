@@ -8,8 +8,10 @@ Description: # Placeholder: Personality description (e.g., "A personality design
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.utilities import file_path_to_url
 import subprocess
 from typing import Callable
+from functools import partial
 
 class Processor(APScript):
     """
@@ -174,9 +176,82 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.personality.info("Generating")
+
+    def build_image(self, prompt, width, height):
+        try:
+            if hasattr(self, "sd"):
+                from lollms.services.sd.lollms_sd import LollmsSD
+                self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            file, infos = self.sd.paint(
+                            prompt, 
+                            "",
+                            self.personality.image_files,
+                            width = width,
+                            height = height
+                        )
+            file = str(file)
+            escaped_url =  file_path_to_url(file)
+            return f'\n![]({escaped_url})'
+        except:
+            return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
+
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+        """
+        This function generates code based on the given parameters.
+
+        Args:
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
+        Returns:
+            None
+        """
         self.callback = callback
-        out = self.fast_gen(previous_discussion_text)
+        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
+        prompt = self.build_prompt([
+            context_details["conditionning"] if context_details["conditionning"] else "",
+            "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
+            "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
+            context_details["user_description"] if context_details["user_description"] else "",
+            "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
+            "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
+            "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
+            "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
+            "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+            "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
+        ], 
+        8)
+        # TODO: add more functions to call
+        function_definitions = [
+            {
+                "function_name": "build_image",
+                "function": self.build_image,
+                "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
+                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
+            },
+        ]
+        if len(self.personality.image_files)>0:
+            out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
+        else:
+            out, function_calls = self.generate_with_function_calls(prompt, function_definitions)
+        if len(function_calls)>0:
+            outputs = self.execute_function_calls(function_calls,function_definitions)
+            out += "\n" + "\n".join([str(o) for o in outputs])
         self.full(out)
-        return out
 
