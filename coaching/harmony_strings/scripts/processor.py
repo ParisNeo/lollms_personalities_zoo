@@ -444,6 +444,7 @@ class Processor(APScript):
             [
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
+                {"name":"image_generation_engine", "type":"string", "value":"", "options":["autosd","dall-e-2","dall-e-3"], "help":"The image generation engine to be used by the tool for generating images.\nPlease make sure that the service is available and for remote services, verify that you have set the key in the service settings"},
                 
                 # String configuration with options
                 {"name":"user_profile_name", "type":"string", "value":"", "help":"The profile name of the user. Used to store progress data."},
@@ -666,18 +667,31 @@ class Processor(APScript):
 
     def build_image(self, prompt, width, height):
         try:
-            if not hasattr(self, "sd"):
-                from lollms.services.sd.lollms_sd import LollmsSD
-                self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
-                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            file, infos = self.sd.paint(
-                            prompt, 
-                            "",
-                            self.personality.image_files,
-                            width = width,
-                            height = height
-                        )
+            if self.personality_config.image_generation_engine=="autosd":
+                if not hasattr(self, "sd"):
+                    from lollms.services.sd.lollms_sd import LollmsSD
+                    self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                    self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
+                    self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                file, infos = self.sd.paint(
+                                prompt, 
+                                "",
+                                self.personality.image_files,
+                                width = width,
+                                height = height
+                            )
+            elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
+                if not hasattr(self, "dalle"):
+                    from lollms.services.dalle.lollms_dalle import LollmsDalle
+                    self.step_start("Loading dalle service")
+                    self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
+                    self.step_end("Loading dalle service")
+                file = self.dalle.paint(
+                                prompt, 
+                                width = width,
+                                height = height
+                            )
+
             file = str(file)
             escaped_url =  file_path_to_url(file)
             return f'\n![]({escaped_url})'
