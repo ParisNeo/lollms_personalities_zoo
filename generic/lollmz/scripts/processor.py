@@ -239,9 +239,11 @@ class Processor(APScript):
             return "\nWebcam is not connected."
         
         # Capture a single frame
+        n = time.time()
         ret, frame = cap.read()
-        time.sleep(2)
-        ret, frame = cap.read()
+        while(time.time()-n<2):
+            ret, frame = cap.read()
+
         
         if not ret:
             return "Failed to capture image."
@@ -333,11 +335,15 @@ class Processor(APScript):
                 ai_response, function_calls = self.generate_with_function_calls(prompt, function_definitions)
             if len(function_calls)>0:
                 outputs = self.execute_function_calls(function_calls,function_definitions)
-                out = ai_response + "\n" + "\n".join([str(o) for o in outputs])
+                out = ai_response + "\n" + "\n".join([str(o) for o in outputs]) +"\n"
+                self.full(out)
                 if "@<NEXT>@" in ai_response: # The AI needs to get the output and regenerate
                     continue_generation = True
                     prompt += ai_response + "!@>function outputs:\n" +"\n".join([str(o) for o in outputs]) + "\n!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
                 else:
                     continue_generation=False
-        self.full(out)
+            else:
+                out = ai_response
+                continue_generation=False
+            self.full(out)
 
