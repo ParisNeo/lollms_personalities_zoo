@@ -665,7 +665,7 @@ class Processor(APScript):
         else:
             return "No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs."
 
-    def build_image(self, prompt, width, height):
+    def build_image(self, prompt, width, height, client:Client):
         try:
             if self.personality_config.image_generation_engine=="autosd":
                 if not hasattr(self, "sd"):
@@ -678,7 +678,8 @@ class Processor(APScript):
                                 "",
                                 self.personality.image_files,
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
             elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
                 if not hasattr(self, "dalle"):
@@ -689,11 +690,12 @@ class Processor(APScript):
                 file = self.dalle.paint(
                                 prompt, 
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
 
             file = str(file)
-            escaped_url =  file_path_to_url(file)
+            escaped_url =  discussion_path_to_url(file)
             return f'\n![]({escaped_url})'
         except Exception as ex:
             trace_exception(ex)
@@ -789,7 +791,7 @@ class Processor(APScript):
             },
             {
                 "function_name": "build_image",
-                "function": self.build_image,
+                "function": partial(self.build_image, client=client),
                 "function_description": "Builds and shows an image from a detailed description prompt and width and height parameters. A typical square resolution is 1024x1024, a portrait resolution is 1024x1820 and landscape resolution is 1820x1024.",
                 "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
             },            

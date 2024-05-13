@@ -8,7 +8,8 @@ Description: # Placeholder: Personality description (e.g., "A personality design
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
-from lollms.utilities import file_path_to_url
+from lollms.utilities import discussion_path_to_url
+from lollms.client_session import Client
 import subprocess
 from typing import Callable
 from functools import partial
@@ -150,36 +151,7 @@ class Processor(APScript):
         # available commands, and user context.
         self.full(self.personality.help)
 
-
-    from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
-        """
-        This function generates code based on the given parameters.
-
-        Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
-            context_details (dict): A dictionary containing the following context details for code generation:
-                - conditionning (str): The conditioning information.
-                - documentation (str): The documentation information.
-                - knowledge (str): The knowledge information.
-                - user_description (str): The user description information.
-                - discussion_messages (str): The discussion messages information.
-                - positive_boost (str): The positive boost information.
-                - negative_boost (str): The negative boost information.
-                - current_language (str): The force language information.
-                - fun_mode (str): The fun mode conditionning text
-                - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
-            client_id: The client ID for code generation.
-            callback (function, optional): The callback function for code generation.
-
-        Returns:
-            None
-        """
-
-
-    def build_image(self, prompt, width, height):
+    def build_image(self, prompt, width, height, client:Client):
         try:
             if self.personality_config.image_generation_engine=="autosd":
                 if not hasattr(self, "sd"):
@@ -192,7 +164,8 @@ class Processor(APScript):
                                 "",
                                 self.personality.image_files,
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
             elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
                 if not hasattr(self, "dalle"):
@@ -203,16 +176,18 @@ class Processor(APScript):
                 file = self.dalle.paint(
                                 prompt, 
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
 
             file = str(file)
-            escaped_url =  file_path_to_url(file)
+            escaped_url =  discussion_path_to_url(file)
             return f'\n![]({escaped_url})'
         except Exception as ex:
             trace_exception(ex)
             return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
         
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
@@ -257,7 +232,7 @@ class Processor(APScript):
         function_definitions = [
             {
                 "function_name": "build_image",
-                "function": self.build_image,
+                "function": partial(self.build_image, client=client),
                 "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
                 "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
             },

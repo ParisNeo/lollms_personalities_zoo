@@ -428,9 +428,8 @@ class Processor(APScript):
         create_and_save_happiness_index_plot(happiness_index, interactive_ui, img_path)
 
         return f"<img src='{discussion_path_to_url(img_path)}'></img>\n<a href='{discussion_path_to_url(interactive_ui)}' target='_blank'>click here for an interactive version</a>"
-    
 
-    def build_image(self, prompt, width, height):
+    def build_image(self, prompt, width, height, client:Client):
         try:
             if self.personality_config.image_generation_engine=="autosd":
                 if not hasattr(self, "sd"):
@@ -443,7 +442,8 @@ class Processor(APScript):
                                 "",
                                 self.personality.image_files,
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
             elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
                 if not hasattr(self, "dalle"):
@@ -454,15 +454,17 @@ class Processor(APScript):
                 file = self.dalle.paint(
                                 prompt, 
                                 width = width,
-                                height = height
+                                height = height,
+                                output_path=client.discussion.discussion_folder
                             )
 
             file = str(file)
-            escaped_url =  file_path_to_url(file)
+            escaped_url =  discussion_path_to_url(file)
             return f'\n![]({escaped_url})'
         except Exception as ex:
             trace_exception(ex)
             return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
+
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
@@ -545,7 +547,7 @@ class Processor(APScript):
             },
             {
                 "function_name": "build_image",
-                "function": self.build_image,
+                "function": partial(self.build_image, client=client),
                 "function_description": "Builds and shows an image from a detailed description prompt and width and height parameters. A typical square resolution is 1024x1024, a portrait resolution is 1024x1820 and landscape resolution is 1820x1024.",
                 "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
             },            
