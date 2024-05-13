@@ -8,12 +8,25 @@ Description: # Placeholder: Personality description (e.g., "A personality design
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
-from lollms.utilities import discussion_path_to_url
+from lollms.utilities import discussion_path_to_url, PackageManager, find_first_available_file_index
 from lollms.client_session import Client
 import subprocess
+import math
+import time
+
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
+
+if not PackageManager.check_package_installed("pyautogui"):
+    PackageManager.install_package("pyautogui")
+if not PackageManager.check_package_installed("cv2"):
+    PackageManager.install_package("opencv-python")
+
+import cv2
+import pyautogui
+
+
 class Processor(APScript):
     """
     Defines the behavior of a personality in a programmatic manner, inheriting from APScript.
@@ -173,12 +186,14 @@ class Processor(APScript):
                     self.step_start("Loading dalle service")
                     self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
                     self.step_end("Loading dalle service")
+                self.step_start("Painting")
                 file = self.dalle.paint(
                                 prompt, 
                                 width = width,
                                 height = height,
                                 output_path=client.discussion.discussion_folder
                             )
+                self.step_end("Painting")
 
             file = str(file)
             escaped_url =  discussion_path_to_url(file)
@@ -186,8 +201,62 @@ class Processor(APScript):
         except Exception as ex:
             trace_exception(ex)
             return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
-        
 
+    def move_mouse_to(self, x, y):
+        pyautogui.moveTo(x, y)
+
+    def click_mouse(self, x, y):
+        pyautogui.click(x, y)
+
+    def calculator_function(self, expression: str) -> float:
+        try:
+            # Add the math module functions to the local namespace
+            allowed_names = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
+            
+            # Evaluate the expression safely using the allowed names
+            result = eval(expression, {"__builtins__": None}, allowed_names)
+            return result
+        except Exception as e:
+            return str(e)
+
+    def take_screenshot(self,client:Client):
+        screenshot = pyautogui.screenshot()
+        view_image = client.discussion.discussion_folder/"view_images"
+        image = client.discussion.discussion_folder/"images"
+        index = find_first_available_file_index(view_image,"screen_shot","png")
+        fn_view = view_image/f"screen_shot_{index}.png"
+        screenshot.save(fn_view)
+        fn = image/f"screen_shot_{index}.png"
+        screenshot.save(fn)
+        client.discussion.image_files.append(fn)
+        return f'<img src="{discussion_path_to_url(fn_view)}" width="80%"></img>'
+
+    def take_photo(self, client):
+        # Attempt to access the webcam
+        cap = cv2.VideoCapture(0)
+        
+        if not cap.isOpened():
+            return "\nWebcam is not connected."
+        
+        # Capture a single frame
+        ret, frame = cap.read()
+        time.sleep(2)
+        ret, frame = cap.read()
+        
+        if not ret:
+            return "Failed to capture image."
+        
+        view_image = client.discussion.discussion_folder/"view_images"
+        image = client.discussion.discussion_folder/"images"
+        index = find_first_available_file_index(view_image,"screen_shot","png")
+        fn_view = view_image/f"screen_shot_{index}.png"
+        cv2.imwrite(str(fn_view), frame)
+        fn = image/f"screen_shot_{index}.png"
+        cv2.imwrite(str(fn), frame)
+        client.discussion.image_files.append(fn)
+        return f'<img src="{discussion_path_to_url(fn_view)}" width="80%"></img>'
+
+        
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
@@ -236,13 +305,39 @@ class Processor(APScript):
                 "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
                 "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
             },
+            {
+                "function_name": "calculator_function",
+                "function": self.calculator_function,
+                "function_description": "Whenever you need to perform mathematic computations, you can call this function with the math expression and you will get the answer.",
+                "function_parameters": [{"name": "expression", "type": "str"}]                
+            },
+            {
+                "function_name": "take_screenshot",
+                "function": partial(self.take_screenshot, client=client),
+                "function_description": "Takes a screenshot and adds it to the discussion.",
+                "function_parameters": []                
+            },
+            {
+                "function_name": "take_photo",
+                "function": partial(self.take_photo, client=client),
+                "function_description": "Takes a photo using the webcam.",
+                "function_parameters": []                
+            },
+            
         ]
-        if len(self.personality.image_files)>0:
-            out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
-        else:
-            out, function_calls = self.generate_with_function_calls(prompt, function_definitions)
-        if len(function_calls)>0:
-            outputs = self.execute_function_calls(function_calls,function_definitions)
-            out += "\n" + "\n".join([str(o) for o in outputs])
+        continue_generation = True
+        while continue_generation:
+            if len(self.personality.image_files)>0:
+                ai_response, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
+            else:
+                ai_response, function_calls = self.generate_with_function_calls(prompt, function_definitions)
+            if len(function_calls)>0:
+                outputs = self.execute_function_calls(function_calls,function_definitions)
+                out = ai_response + "\n" + "\n".join([str(o) for o in outputs])
+                if "@<NEXT>@" in ai_response: # The AI needs to get the output and regenerate
+                    continue_generation = True
+                    prompt += ai_response + "!@>function outputs:\n" +"\n".join([str(o) for o in outputs]) + "\n!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
+                else:
+                    continue_generation=False
         self.full(out)
 

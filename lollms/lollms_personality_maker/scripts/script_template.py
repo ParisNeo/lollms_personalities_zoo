@@ -176,12 +176,14 @@ class Processor(APScript):
                     self.step_start("Loading dalle service")
                     self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
                     self.step_end("Loading dalle service")
+                self.step_start("Painting")
                 file = self.dalle.paint(
                                 prompt, 
                                 width = width,
                                 height = height,
                                 output_path=client.discussion.discussion_folder
                             )
+                self.step_end("Painting")
 
             file = str(file)
             escaped_url =  discussion_path_to_url(file)
