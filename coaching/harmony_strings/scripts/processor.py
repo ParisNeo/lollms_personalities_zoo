@@ -10,6 +10,9 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.utilities import file_path_to_url
+from lollms.functions.generate_image import build_image
+from lollms.functions.take_a_photo import take_photo
+
 from functools import partial
 from ascii_colors import trace_exception
 import subprocess
@@ -19,7 +22,7 @@ import sys
 import sqlite3
 import json
 from datetime import datetime
-from lollms.utilities import PackageManager, discussion_path_to_url
+from lollms.utilities import PackageManager, discussion_path_to_url, personality_path_to_url
 if not PackageManager.check_package_installed("plotly"):
     PackageManager.install_package("plotly")
 
@@ -442,13 +445,16 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 {"name":"image_generation_engine", "type":"string", "value":"", "options":["autosd","dall-e-2","dall-e-3"], "help":"The image generation engine to be used by the tool for generating images.\nPlease make sure that the service is available and for remote services, verify that you have set the key in the service settings"},
+                {"name":"show_screenshot_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
+                {"name":"take_photo_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
                 
                 # String configuration with options
                 {"name":"user_profile_name", "type":"string", "value":"", "help":"The profile name of the user. Used to store progress data."},
-                {"name":"user_level", "type":"string", "value":"beginner", "options":["beginner"], "help":"The profile name of the user. Used to store progress data."},
+                {"name":"user_level", "type":"string", "value":"beginner", "options":["beginner","medium","advanced"], "help":"The profile name of the user. Used to store progress data."},
                  
                 
                 # Integer configuration example
@@ -665,43 +671,10 @@ class Processor(APScript):
         else:
             return "No course step is present since I did not yet build your own course. Please ask me to build a customized course for you. you can also give me more details so that I build a course that fits your needs."
 
-    def build_image(self, prompt, width, height, client:Client):
-        try:
-            if self.personality_config.image_generation_engine=="autosd":
-                if not hasattr(self, "sd"):
-                    from lollms.services.sd.lollms_sd import LollmsSD
-                    self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                    self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
-                    self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                file, infos = self.sd.paint(
-                                prompt, 
-                                "",
-                                self.personality.image_files,
-                                width = width,
-                                height = height,
-                                output_path=client.discussion.discussion_folder
-                            )
-            elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
-                if not hasattr(self, "dalle"):
-                    from lollms.services.dalle.lollms_dalle import LollmsDalle
-                    self.step_start("Loading dalle service")
-                    self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
-                    self.step_end("Loading dalle service")
-                self.step_start("Painting")
-                file = self.dalle.paint(
-                                prompt, 
-                                width = width,
-                                height = height,
-                                output_path=client.discussion.discussion_folder
-                            )
-                self.step_end("Painting")
-
-            file = str(file)
-            escaped_url =  discussion_path_to_url(file)
-            return f'\n![]({escaped_url})'
-        except Exception as ex:
-            trace_exception(ex)
-            return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
+    def show_chord(self, chord_name:str):
+        path:Path = self.personality.assets_path/"chords"/f"{chord_name}.png"
+        if path.exists():
+            return f'<img src="{personality_path_to_url(path)}" width="80%"></img>'
 
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
@@ -754,6 +727,7 @@ class Processor(APScript):
             "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
         ], 
         8)
+        chords_folder:Path = self.personality.assets_path/"chords"
         function_definitions = [
             {
                 "function_name": "create_a_new_course",
@@ -771,7 +745,7 @@ class Processor(APScript):
                 "function_name": "log_progress",
                 "function":  partial(self.log_progress,user_id=user_id),
                 "function_description": "Logs the progress of the user. The function_parameters must be a list with a single entry.",
-                "function_parameters": [{"name": "parameters", "type": "dict with the following entries (level,chords,scales,songs,techniques,challenge_completed)"}]                
+                "function_parameters": [{"name": "parameters", "type": "dict with the following entries (level,chords,scales,songs,techniques,challenge_completed) each entry is an integer"}]                
             },
             {
                 "function_name": "get_course_steps",
@@ -792,17 +766,31 @@ class Processor(APScript):
                 "function_parameters": []                
             },
             {
-                "function_name": "build_image",
-                "function": partial(self.build_image, client=client),
-                "function_description": "Builds and shows an image from a detailed description prompt and width and height parameters. A typical square resolution is 1024x1024, a portrait resolution is 1024x1820 and landscape resolution is 1820x1024.",
-                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
-            },            
-            {
                 "function_name": "show_metronome",
                 "function": self.show_metronome,
                 "function_description": "Shows a metronome for the uset to use",
                 "function_parameters": []                
             },            
+            {
+                "function_name": "show_chord",
+                "function": self.show_chord,
+                "function_description": f"Shows a chord. Currently supported ones are :{[f.stem for f in chords_folder.iterdir()]}",
+                "function_parameters": [{"name": "chord_name", "type": "str"}]                
+            },            
+            {
+                "function_name": "build_image",
+                "function": partial(build_image, self=self, client=client),
+                "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
+                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
+            },
+            {
+                "function_name": "take_photo",
+                "function": partial(take_photo, use_ui=self.personality_config.take_photo_ui, client=client),
+                "function_description": "Takes a photo using the webcam.",
+                "function_parameters": []                
+            },
+            
+
         ]
         
         if len(self.personality.image_files)>0:

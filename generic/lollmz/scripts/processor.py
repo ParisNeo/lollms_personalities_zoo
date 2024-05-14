@@ -10,6 +10,9 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.utilities import discussion_path_to_url, PackageManager, find_first_available_file_index
 from lollms.client_session import Client
+from lollms.functions.take_screen_shot import take_screenshot
+from lollms.functions.take_a_photo import take_photo
+from lollms.functions.generate_image import build_image
 import subprocess
 import math
 import time
@@ -56,9 +59,10 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
-                {"name":"image_generation_engine", "type":"string", "value":"autosd", "options":["autosd","dall-e-2","dall-e-3"], "help":"The profile name of the user. Used to store progress data."},
                 # Boolean configuration for enabling scripted AI
-                #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
+                {"name":"image_generation_engine", "type":"string", "value":"autosd", "options":["autosd","dall-e-2","dall-e-3"], "help":"The profile name of the user. Used to store progress data."},
+                {"name":"show_screenshot_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
+                {"name":"take_photo_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
                 
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
@@ -164,43 +168,7 @@ class Processor(APScript):
         # available commands, and user context.
         self.full(self.personality.help)
 
-    def build_image(self, prompt, width, height, client:Client):
-        try:
-            if self.personality_config.image_generation_engine=="autosd":
-                if not hasattr(self, "sd"):
-                    from lollms.services.sd.lollms_sd import LollmsSD
-                    self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                    self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
-                    self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                file, infos = self.sd.paint(
-                                prompt, 
-                                "",
-                                self.personality.image_files,
-                                width = width,
-                                height = height,
-                                output_path=client.discussion.discussion_folder
-                            )
-            elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
-                if not hasattr(self, "dalle"):
-                    from lollms.services.dalle.lollms_dalle import LollmsDalle
-                    self.step_start("Loading dalle service")
-                    self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
-                    self.step_end("Loading dalle service")
-                self.step_start("Painting")
-                file = self.dalle.paint(
-                                prompt, 
-                                width = width,
-                                height = height,
-                                output_path=client.discussion.discussion_folder
-                            )
-                self.step_end("Painting")
 
-            file = str(file)
-            escaped_url =  discussion_path_to_url(file)
-            return f'\n![]({escaped_url})'
-        except Exception as ex:
-            trace_exception(ex)
-            return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
 
     def move_mouse_to(self, x, y):
         pyautogui.moveTo(x, y)
@@ -219,44 +187,6 @@ class Processor(APScript):
         except Exception as e:
             return str(e)
 
-    def take_screenshot(self,client:Client):
-        screenshot = pyautogui.screenshot()
-        view_image = client.discussion.discussion_folder/"view_images"
-        image = client.discussion.discussion_folder/"images"
-        index = find_first_available_file_index(view_image,"screen_shot","png")
-        fn_view = view_image/f"screen_shot_{index}.png"
-        screenshot.save(fn_view)
-        fn = image/f"screen_shot_{index}.png"
-        screenshot.save(fn)
-        client.discussion.image_files.append(fn)
-        return f'<img src="{discussion_path_to_url(fn_view)}" width="80%"></img>'
-
-    def take_photo(self, client):
-        # Attempt to access the webcam
-        cap = cv2.VideoCapture(0)
-        
-        if not cap.isOpened():
-            return "\nWebcam is not connected."
-        
-        # Capture a single frame
-        n = time.time()
-        ret, frame = cap.read()
-        while(time.time()-n<2):
-            ret, frame = cap.read()
-
-        
-        if not ret:
-            return "Failed to capture image."
-        
-        view_image = client.discussion.discussion_folder/"view_images"
-        image = client.discussion.discussion_folder/"images"
-        index = find_first_available_file_index(view_image,"screen_shot","png")
-        fn_view = view_image/f"screen_shot_{index}.png"
-        cv2.imwrite(str(fn_view), frame)
-        fn = image/f"screen_shot_{index}.png"
-        cv2.imwrite(str(fn), frame)
-        client.discussion.image_files.append(fn)
-        return f'<img src="{discussion_path_to_url(fn_view)}" width="80%"></img>'
 
         
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
@@ -303,7 +233,7 @@ class Processor(APScript):
         function_definitions = [
             {
                 "function_name": "build_image",
-                "function": partial(self.build_image, client=client),
+                "function": partial(build_image, client=client),
                 "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
                 "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
             },
@@ -315,13 +245,13 @@ class Processor(APScript):
             },
             {
                 "function_name": "take_screenshot",
-                "function": partial(self.take_screenshot, client=client),
+                "function": partial(take_screenshot, use_ui=self.personality_config.show_screenshot_ui, client=client),
                 "function_description": "Takes a screenshot and adds it to the discussion.",
                 "function_parameters": []                
             },
             {
                 "function_name": "take_photo",
-                "function": partial(self.take_photo, client=client),
+                "function": partial(take_photo, use_ui=self.personality_config.take_photo_ui, client=client),
                 "function_description": "Takes a photo using the webcam.",
                 "function_parameters": []                
             },
