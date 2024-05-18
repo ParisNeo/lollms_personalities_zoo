@@ -108,21 +108,14 @@ class Processor(APScript):
 
     def prepare(self):
         if self.sd is None:
+            from lollms.services.sd.lollms_sd import LollmsSD
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Personality maker", max_retries=-1)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-
-    def get_sd(self):
-        
-        sd_script_path = self.sd_folder / "lollms_sd.py"
-        git_pull(self.sd_folder)
-        
-        if sd_script_path.exists():
-            module_name = sd_script_path.stem  # Remove the ".py" extension
-            # use importlib to load the module from the file path
-            loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
-            sd_module = loader.load_module()
-            return sd_module
+            sd = LollmsSD.get(self.personality.app)
+            if sd is not None:
+                self.sd = sd(self.personality.lollms_paths, "Personality maker", max_retries=-1)
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            else:
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", False)
 
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
