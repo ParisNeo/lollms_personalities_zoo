@@ -210,6 +210,7 @@ class Processor(APScript):
         ]
         photo = take_photo(client, False)
         self.full(photo)
+        self.new_message("")
         if len(client.discussion.image_files)>0:
             out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
         else:
@@ -217,5 +218,5 @@ class Processor(APScript):
         if len(function_calls)>0:
             outputs = self.execute_function_calls(function_calls,function_definitions)
             out = "\n".join([str(o) for o in outputs])
-        self.full(photo+"\n"+out)
+        self.full(out)
 
