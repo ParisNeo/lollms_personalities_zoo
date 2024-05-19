@@ -11,6 +11,7 @@ from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
+from lollms.functions.take_a_photo import take_a_photo_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -187,6 +188,7 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
+            take_a_photo_function(self, client),
             select_image_file_function(self, client)
         ]
 
