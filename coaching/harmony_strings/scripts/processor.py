@@ -10,7 +10,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.utilities import file_path_to_url
-from lollms.functions.generate_image import build_image
+from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.take_a_photo import take_photo
 
 from functools import partial
@@ -777,12 +777,7 @@ class Processor(APScript):
                 "function_description": f"Shows a chord. Currently supported ones are :{[f.stem for f in chords_folder.iterdir()]}",
                 "function_parameters": [{"name": "chord_name", "type": "str"}]                
             },            
-            {
-                "function_name": "build_image",
-                "function": partial(build_image, self=self, client=client),
-                "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
-                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
-            },
+            build_image_function(self, client),
             {
                 "function_name": "take_photo",
                 "function": partial(take_photo, use_ui=self.personality_config.take_photo_ui, client=client),

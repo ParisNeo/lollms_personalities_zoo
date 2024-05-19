@@ -12,7 +12,7 @@ from lollms.utilities import discussion_path_to_url, PackageManager, find_first_
 from lollms.client_session import Client
 from lollms.functions.take_screen_shot import take_screenshot
 from lollms.functions.take_a_photo import take_photo
-from lollms.functions.generate_image import build_image
+from lollms.functions.generate_image import build_image_function
 import subprocess
 import math
 import time
@@ -216,27 +216,10 @@ class Processor(APScript):
         """
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        prompt = self.build_prompt([
-            context_details["conditionning"] if context_details["conditionning"] else "",
-            "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-            "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-            context_details["user_description"] if context_details["user_description"] else "",
-            "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-            "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-            "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-            "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-            "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-            "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-        ], 
-        8)
+        prompt = self.build_prompt_from_context_details(context_details)
         # TODO: add more functions to call
         function_definitions = [
-            {
-                "function_name": "build_image",
-                "function": partial(build_image, client=client),
-                "function_description": "Builds and shows an image from a prompt and width and height parameters. A square 1024x1024, a portrait woudl be 1024x1820 or landscape 1820x1024.",
-                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
-            },
+            build_image_function(self, client),
             {
                 "function_name": "calculator_function",
                 "function": self.calculator_function,

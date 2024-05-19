@@ -9,12 +9,10 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
-
-from lollms.utilities import discussion_path_to_url
-from lollms.functions.take_a_photo import take_photo
-from lollms.functions.generate_image import build_image_function
+from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 
+from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
 from functools import partial
@@ -49,9 +47,7 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
-                # Boolean configuration for enabling scripted 
-                {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a photo the AI shows a ui."},
-                
+                # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
                 # String configuration with options
@@ -159,7 +155,6 @@ class Processor(APScript):
         self.full(self.personality.help)
 
 
-       
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.

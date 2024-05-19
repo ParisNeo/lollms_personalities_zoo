@@ -10,6 +10,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.utilities import file_path_to_url
+from lollms.functions.generate_image import build_image, build_image_function
 from ascii_colors import trace_exception
 import subprocess
 from typing import Callable
@@ -501,21 +502,13 @@ class Processor(APScript):
             self.goto_state("idle")
             self.full("Please create a profile by providing your name and happiness level in my configuration page. Just press my icon in the chatbar and give fill the form. When this is done, come back to me and we can start.")
             return
-        prompt = self.build_prompt([
-            context_details["conditionning"] if context_details["conditionning"] else "",
-            "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-            "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
-            context_details["user_description"] if context_details["user_description"] else "",
-            "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-            "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-            "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-            "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-            "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+        
+
+        prompt = self.build_prompt_from_context_details(context_details,"\n".join([
             "!@>memory_data:\n"+memory_data if memory_data is not None else "",
             "!@>happiness_index:\n"+str(happiness_index) if happiness_index is not None else "",
-            "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-        ], 
-        8)
+        ]))
+
         function_definitions = [
             {
                 "function_name": "add_note",
@@ -547,12 +540,7 @@ class Processor(APScript):
                 "function_description": "Plots the happiness value over time.",
                 "function_parameters": []                
             },
-            {
-                "function_name": "build_image",
-                "function": partial(self.build_image, client=client),
-                "function_description": "Builds and shows an image from a detailed description prompt and width and height parameters. A typical square resolution is 1024x1024, a portrait resolution is 1024x1820 and landscape resolution is 1820x1024.",
-                "function_parameters": [{"name": "prompt", "type": "str"}, {"name": "width", "type": "int"}, {"name": "height", "type": "int"}]                
-            },            
+            build_image_function(self, client),            
         ]
         if len(self.personality.image_files)>0:
             out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
