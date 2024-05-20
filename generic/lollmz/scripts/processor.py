@@ -63,6 +63,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
+                {"name":"clean_images_between_sessions", "type":"bool", "value":False, "help":"This will remove images between two prompts"},
+
                 {"name":"show_screenshot_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
                 {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
                 {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
@@ -213,6 +215,8 @@ class Processor(APScript):
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
         prompt = self.build_prompt_from_context_details(context_details)
+        if self.personality_config.clean_images_between_sessions:
+            self.personality.image_files.clear()
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
