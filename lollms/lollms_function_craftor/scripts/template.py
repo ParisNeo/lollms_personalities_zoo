@@ -8,6 +8,19 @@ from functools import partial
 # It is advised to import typing elements
 # from typing import List
 
+# Import PackageManager if there are potential libraries that need to be installed 
+from lollms.utilities import PackageManager
+
+# ascii_colors offers advanced console coloring and bug tracing
+from ascii_colors import trace_exception
+
+# Here is an example of how we install a non installed library using PackageManager
+if not PackageManager.check_package_installed("pyautogui"):
+    PackageManager.install_package("pyautogui")
+
+# now we can import the library
+import pyautogui
+
 # here is the core of the function to be built
 # Change the name of this function depending on the user requets, 
 def add_constant(parameter1:str, parameter2:int) -> float: # use typed parameters depending on the requested function, only int, float or text outputs are allowed
@@ -20,7 +33,7 @@ def add_constant(parameter1:str, parameter2:int) -> float: # use typed parameter
         # Finally we return the output
         return result
     except Exception as e:
-        return str(e)
+        return trace_exception(e)
     
 
 #Here is the metadata function that shoule has the name in format function_name_function
