@@ -454,51 +454,12 @@ class Processor(APScript):
             print(f"Generated file in here : {str(files[i])}")
 
         if self.personality_config.make_scripted:
-            ui += f"""
-            <a href="#" onclick="openCodeFolder()"> Click here to open the script folder of the persona</a>
-            <a href="#" onclick="openCodeFolderInVsCode()"> Click here to open the script folder of the persona in vscode</a>
+            ui += """
+            <a href="#" onclick="const secretMessage1 = {'folder_path': {self.scripts_path}}; fetch('/open_folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage1)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona</a>
 
-            <script>
-            function openCodeFolder() {{
-                const secretMessage = {{
-                '"folder_path": {self.scripts_path}'
-                }};
-
-                fetch('/open_folder', {{
-                method: 'POST',
-                headers: {{
-                    'Content-Type': 'application/json'
-                }},
-                body: JSON.stringify(secretMessage)
-                }})
-                .then(() => {{
-                console.log("🎉 The secret message has been sent and the magic code folder has been opened! 🎉");
-                }})
-                .catch((error) => {{
-                console.error("😱 Oh no! Something went wrong:", error);
-                }});
-            }}
-            function openCodeFolderInVsCode() {{
-                const secretMessage = {{
-                '"folder_path": {self.scripts_path}'
-                }};
-
-                fetch('/open_discussion_folder_in_vs_code', {{
-                method: 'POST',
-                headers: {{
-                    'Content-Type': 'application/json'
-                }},
-                body: JSON.stringify(secretMessage)
-                }})
-                .then(() => {{
-                console.log("🎉 The secret message has been sent and the magic code folder has been opened! 🎉");
-                }})
-                .catch((error) => {{
-                console.error("😱 Oh no! Something went wrong:", error);
-                }});
-            }}
-            </script>
+            <a href="#" onclick="const secretMessage2 = {'folder_path': {self.scripts_path}}; fetch('/open_discussion_folder_in_vs_code', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage2)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona in vscode</a>
             """
+
 
         server_path = "/outputs/"+str(self.personality_path)
         # ----------------------------------------------------------------
