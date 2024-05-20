@@ -65,6 +65,7 @@ class Processor(APScript):
                 {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
                 {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
                 
+                {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
@@ -216,7 +217,7 @@ class Processor(APScript):
             take_screenshot_function(client, self.personality_config.show_screenshot_ui,  self.personality_config.use_single_photo_at_a_time),
             take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time)
         ]
-        out = self.interact_with_function_call(prompt, function_definitions,)
+        out = self.interact_with_function_call(prompt, function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
         self.full(out)
 
