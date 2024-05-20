@@ -10,6 +10,10 @@ from pathlib import Path
 import subprocess
 import re
 
+from lollms.client_session import Client
+from typing import Callable
+
+
 def format_url_parameter(value:str):
     encoded_value = value.strip().replace("\"","")
     return encoded_value
@@ -120,7 +124,7 @@ class Processor(APScript):
 
         return summary, is_ambiguous
 
-    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable[[str, MSG_TYPE, dict, list], bool] = None, context_details: dict = None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 

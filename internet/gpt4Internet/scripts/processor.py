@@ -7,6 +7,8 @@ from lollms.personality import APScript, AIPersonality
 from typing import Any, List, Optional, Type, Callable, Dict, Any, Union
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
+from lollms.client_session import Client
+from typing import Callable
 
 import subprocess
 
@@ -205,7 +207,7 @@ class Processor(APScript):
         # Close the browser
         driver.quit()
 
-    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable[[str, MSG_TYPE, dict, list], bool] = None, context_details: dict = None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 

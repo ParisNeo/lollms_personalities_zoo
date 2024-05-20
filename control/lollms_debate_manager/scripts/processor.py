@@ -12,6 +12,9 @@ from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
+from lollms.functions.list_personalities import list_personalities_function
+from lollms.functions.summon_personality import summon_personality_function
+
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -181,18 +184,33 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.callback = callback
-        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        prompt = self.build_prompt_from_context_details(context_details)
-
-        # TODO: add more functions to call
         function_definitions = [
+            list_personalities_function(self, client),
+            summon_personality_function(self, callback, previous_discussion_text, context_details, client),
+            build_image_function(self, client),
+            take_a_photo_function(self, client),
+            select_image_file_function(self, client)
+        ]
+        minimal_function_definitions = [
             build_image_function(self, client),
             take_a_photo_function(self, client),
             select_image_file_function(self, client)
         ]
 
-        out = self.interact_with_function_call(prompt, function_definitions)
+        self.callback = callback
+        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
+        prompt = self.build_prompt_from_context_details(context_details)
+
+        if self.yes_no("is the user asking to start the debate?", prompt):
+            self.full("Starting debate. Welcome everybody.")
+            while not self.yes_no("should we stop the debate?", prompt):
+                # TODO: add more functions to call
+                out = self.interact_with_function_call(prompt, function_definitions, callback = self.sink)
+                prompt_data, content, tokens, context_details, internet_search_infos = self.personality.app.prepare_query(client.client_id)
+                prompt = self.build_prompt_from_context_details(context_details)
+        else:
+            prompt +="interruption\n!@>Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
+            out = self.interact_with_function_call(prompt, minimal_function_definitions, callback = self.sink)
 
         self.full(out)
 
