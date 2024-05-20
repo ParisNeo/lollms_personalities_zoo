@@ -68,6 +68,7 @@ class Processor(APScript):
                 {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
                 
                 {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
+                {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
