@@ -1,3 +1,5 @@
+from fastapi import APIRouter, Request
+from typing import Dict, Any
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -5,12 +7,11 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 import json
-
+from typing import Callable
 import shutil
 import yaml
 
-# Flask is needed for ui functionalities
-from flask import request, jsonify
+
 
 class Processor(APScript):
     """
@@ -90,21 +91,41 @@ class Processor(APScript):
         
         
         
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
         ASCIIColors.yellow("Testing add file")
-        super().add_file(path)
+        super().add_file(path, client, callback)
 
 
 
-    def handle_request(self, data): # selects the image for the personality
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        data = (await request.json())
         personality_subpath = data['personality_subpath']
         logo_path = data['logo_path']
         assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"
 
         shutil.copy(logo_path, assets_path/"logo.png")
-        return jsonify({"status":True})
+        return {"status":True}
 
 
     def make_selectable_photo(self, image_id, image_source, params=""):
@@ -139,19 +160,33 @@ class Processor(APScript):
          self.full("testing responses from state 1", callback=self.callback)
     
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
+
         self.callback = callback
         self.process_state(prompt, previous_discussion_text, callback)
 

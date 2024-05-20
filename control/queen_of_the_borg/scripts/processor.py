@@ -2,6 +2,9 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
+from lollms.types import MSG_TYPE
+from typing import Callable
+
 from pathlib import Path
 from typing import List
 if PackageManager.check_package_installed("pygame"):
@@ -86,25 +89,39 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        super().add_file(path, callback)
+        super().add_file(path, client, callback)
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
+
         self.callback = callback
         ASCIIColors.info("Generating")
         collective:List[AIPersonality] = self.personality.app.mounted_personalities
@@ -128,7 +145,7 @@ class Processor(APScript):
         self.step_start("Summoning collective")
         while attempts<self.personality_config.nb_attempts:
             try:
-                selection = int(self.fast_gen(q_prompt, 3, show_progress=True).split()[0].split(",")[0])
+                selection = int(self.fast_gen(q_prompt, 3, show_progress=True, callback=self.sink).split()[0].split(",")[0])
                 q_prompt += f"{selection}\n"
                 self.step_end("Summoning collective")
                 self.step(f"Selected drone {collective[selection]}")
@@ -141,9 +158,9 @@ class Processor(APScript):
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     collective[selection].new_message("")
                     collective[selection].full(f"At your service my queen.\n")
-                    collective[selection].processor.text_files = self.text_files
-                    collective[selection].processor.image_files = self.image_files
-                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback)
+                    collective[selection].processor.text_files = self.personality.text_files
+                    collective[selection].processor.image_files = self.personality.image_files
+                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
                 else:
                     if collective[selection].name!="Queen of the Borg":
                         q_prompt += f"!@>system: Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"

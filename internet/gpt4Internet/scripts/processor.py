@@ -1,7 +1,10 @@
+import logging
+
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
+from typing import Any, List, Optional, Type, Callable, Dict, Any, Union
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 
@@ -202,20 +205,32 @@ class Processor(APScript):
         # Close the browser
         driver.quit()
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable[[str, MSG_TYPE, dict, list], bool] = None, context_details: dict = None):
         """
         Runs the workflow for processing the model input and output.
 
-        This method should be called to execute the processing workflow.
+         This function generates code based on the given parameters.
 
         Args:
-            generate_fn (function): A function that generates model output based on the input prompt.
-                The function should take a single argument (prompt) and return the generated text.
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
 
         Returns:
             None
+            :param callback:
         """
         self.callback = callback
         self.vectorizer = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
@@ -223,11 +238,11 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = f"""!@>instructions:
-Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
-!@> question:
-{prompt}
-!@> search query:
-    """
+                                        Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
+                                        !@> question:
+                                        {prompt}
+                                        !@> search query:
+                                            """
             self.step_start("Crafting search query")
             search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
             if search_query=="":
@@ -237,16 +252,16 @@ Formulate a search query text based on the user prompt. Include all relevant inf
             search_query = prompt
             
         self.internet_search(search_query, self.personality_config.chromedriver_path)
-        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        docs, sorted_similarities, document_ids = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
         search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
         prompt = f"""!@>instructions:
-Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
-!@> search results:
-{search_result}
-!@> user:
-{prompt}
-!@> answer:
-"""
+                Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
+                !@> search results:
+                {search_result}
+                !@> user:
+                {prompt}
+                !@> answer:
+                """
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)
         sources_text = "\n# Sources :\n"

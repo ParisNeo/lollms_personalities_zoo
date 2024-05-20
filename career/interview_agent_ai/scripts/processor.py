@@ -1,10 +1,12 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.types import MSG_TYPE
 from safe_store.generic_data_loader import GenericDataLoader
 from safe_store.document_decomposer import DocumentDecomposer
 import subprocess
 from pathlib import Path
+from typing import Callable
 
 # Helper functions
 class Processor(APScript):
@@ -68,11 +70,11 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        super().add_file(path, callback)
+        super().add_file(path, client, callback)
 
     def save_text(self, text, path:Path):
         with open(path,"w", encoding="utf8") as f:
@@ -103,7 +105,7 @@ class Processor(APScript):
         subject_chunks = DocumentDecomposer.decompose_document(subject_text,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize, True)
         output += f"- Found `{len(subject_chunks)}` chunks in position description\n"
         
-        subject_summary = self.summerize(subject_chunks,"Summerize this position description and do not add any comments after the summary.\nThe objective is to identify the skills required for this position. Only extract the information from the provided chunk.\nDo not invent anything outside the provided text.","position description chunk")
+        subject_summary = self.summerize_chunks(subject_chunks,"Summerize this position description and do not add any comments after the summary.\nThe objective is to identify the skills required for this position. Only extract the information from the provided chunk.\nDo not invent anything outside the provided text.","position description chunk")
         subject_summary = subject_summary.replace("```","")
         output += f"**Position description summary**\n{subject_summary}\n"
         self.full(output)
@@ -138,7 +140,7 @@ class Processor(APScript):
         self.step_end(f"chunking documents {cv_path.stem}")
         
         self.step_start(f"summerizing cv {cv_path.stem}")
-        cv_summary = self.summerize(cv_chunks,"Summerize this CV chunk in form of bullet points separated by new line and do not add anny comments after the summary.\nUse a new line for each summary entry.\nStart by giving information about the candidate like his name and address and any other available information in the cv, then his academic record if applicable, followed by his professional record if applicable.\nKeep only relevant information about the candidate.\nDo not add information that is not in the cv.", "CV chunk", answer_start="- Name:")
+        cv_summary = self.summerize_chunks(cv_chunks,"Summerize this CV chunk in form of bullet points separated by new line and do not add anny comments after the summary.\nUse a new line for each summary entry.\nStart by giving information about the candidate like his name and address and any other available information in the cv, then his academic record if applicable, followed by his professional record if applicable.\nKeep only relevant information about the candidate.\nDo not add information that is not in the cv.", "CV chunk", answer_start="- Name:")
         cv_summary = cv_summary.replace("```","")
         output += f"**CV summary**\n{cv_summary}\n\n"
         self.full(output)
@@ -214,16 +216,29 @@ class Processor(APScript):
         self.process_cvs()
 
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """

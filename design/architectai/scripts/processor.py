@@ -1,3 +1,4 @@
+from fastapi import APIRouter, Request
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -12,6 +13,7 @@ from tqdm import tqdm
 import webbrowser
 from typing import Dict, Any
 from pathlib import Path
+from typing import Callable
 
 
 import requests
@@ -261,13 +263,13 @@ class Processor(APScript):
         else:
             self.full("Showing Stable diffusion settings UI")        
         
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         self.new_message("")
         if callback is None and self.callback is not None:
             callback = self.callback
 
         self.prepare()
-        super().add_file(path)
+        super().add_file(path, client, callback)
         if self.personality_config.caption_received_files:
             self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
@@ -571,7 +573,8 @@ Given this image description prompt and negative prompt, make a consize title
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 
-    def handle_request(self, data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
         """
         Handle client requests.
 
@@ -587,9 +590,10 @@ Given this image description prompt and negative prompt, make a consize title
         ```
         handler = YourHandlerClass()
         request_data = {"command": "some_command", "parameters": {...}}
-        response = handler.handle_request(request_data)
+        response = await handler.handle_request(request_data)
         ```
         """
+        data = (await request.json())
         operation = data.get("name","variate")
         prompt = data.get("prompt","")
         negative_prompt =  data.get("negative_prompt","")
@@ -618,19 +622,33 @@ Given this image description prompt and negative prompt, make a consize title
 
         return {"status":False, "message":"Unknown operation"}
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
+
         self.callback = callback
         self.main_process(prompt, previous_discussion_text)
 

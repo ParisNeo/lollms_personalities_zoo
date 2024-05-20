@@ -1,13 +1,33 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, craft_a_tag_to_specific_text
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
-
+from typing import Callable
 import subprocess
 
-   
+def get_favicon_url(url):
+    import requests
+    from bs4 import BeautifulSoup
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    favicon_link = soup.find('link', rel='icon') or soup.find('link', rel='shortcut icon')
+    
+    if favicon_link:
+        favicon_url = favicon_link['href']
+        if not favicon_url.startswith('http'):
+            favicon_url = url + favicon_url
+        return favicon_url
+    
+    return None
+
+
+def get_root_url(url):
+    from urllib.parse import urlparse
+    parsed_url = urlparse(url)
+    root_url = parsed_url.scheme + "://" + parsed_url.netloc
+    return root_url
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -87,7 +107,6 @@ class Processor(APScript):
         # Example: Remove leading/trailing whitespace and multiple consecutive line breaks
         self.step_end("Recovering data")
         self.vectorizer.add_document(url,all_text, self.personality_config.chunk_size, self.personality_config.chunk_overlap)
-        self.vectorizer.index()
         self.step_end("Vectorizing data")
 
 
@@ -195,20 +214,33 @@ class Processor(APScript):
             nb_non_empty += 1
             if nb_non_empty>=self.personality_config.num_results:
                 break
+        self.vectorizer.index()
+
         # Close the browser
         driver.quit()
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            generate_fn (function): A function that generates model output based on the input prompt.
-                The function should take a single argument (prompt) and return the generated text.
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
 
         Returns:
             None
@@ -218,12 +250,19 @@ class Processor(APScript):
 
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
-            search_formulation_prompt = f"""!@>instructions:
-Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
-!@> question:
-{prompt}
-!@> search query:
-    """
+            search_formulation_prompt = self.build_prompt([
+                "!@>system:",
+                "Formulate a web search query text based on the user prompt.",
+                "Use the same language as the prompt",
+                "!@> previous discussion:",
+                context_details["discussion_messages"],
+                "!@>prompt:",
+                f"{prompt}",
+                "!@>formulated web search query in the same language as the prompt: "
+                ],
+                4
+            )
+
             self.step_start("Crafting search query")
             search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
             if search_query=="":
@@ -232,27 +271,60 @@ Formulate a search query text based on the user prompt. Include all relevant inf
         else:
             search_query = prompt
             
+        self.step_start("Performing internet search")
         self.internet_search(search_query, self.personality_config.chromedriver_path)
-        docs, sorted_similarities = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
-        search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
-        prompt = f"""!@>instructions:
-Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
-!@> search results:
-{search_result}
-!@> user:
-{prompt}
-!@> answer:
-"""
-        print(prompt)
-        output = self.generate(prompt, self.personality_config.max_summery_size)
-        sources_text = "\n# Sources :\n"
-        for i,s in enumerate(sorted_similarities):
-            link = "_".join(s[0].split('_')[:-2]) + f"  chunk number {s[0].split('_')[-1]}"
-            href = "_".join(s[0].split('_')[:-2])
-            sources_text += f"[ [{i+1}] : {link}]({href})\n\n"
+        self.step_end("Performing internet search")
 
+        self.step_start("Organizing data")
+        docs, sorted_similarities, document_ids = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
+        self.step_end("Organizing data")
+
+        search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
+        self.step_start("Building summary")
+        
+        prompt =  self.build_prompt([
+                "!@>instructions:",
+                "Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text",
+                "Sources must be  cited after each fact in the format [index].",
+                "Place the citation links in front of each relevant information. Only use citation to the provided sources.",
+                "If the information required by the user does not exist in the data recovered from the search engine, please notify the user.",
+                "Citation is mandatory.",
+                "Do not write the sources, just use their index. The sources will be added in a future query."
+                "!@> previous discussion:",
+                context_details["discussion_messages"],
+                "!@> search results:",
+                f"{search_result}",              
+                "!@> question:",
+                f"{prompt}",
+                "!@> answer:"
+                ],
+                7
+            )
+        print(prompt)
+        output = self.fast_gen(prompt, self.personality_config.max_summery_size, callback=self.sink)
+        self.full(output)
+        sources_text = '<div class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm ">'
+        sources_text += '<div class="text-gray-400 mr-10px">Sources:</div>'
+        for i,s in enumerate(sorted_similarities):
+            url = "/".join(s[0].split("/")[:-1])
+            anchor_url = craft_a_tag_to_specific_text("_".join(s[0].split('_')[:-2]),docs[i][0:2],"_".join(s[0].split('_')[:-2]))
+            # link = "_".join(s[0].split('_')[:-2])
+            # href = "_".join(s[0].split('_')[:-2])
+            favicon_url = get_favicon_url(url)
+            if favicon_url is None:
+                favicon_url ="/personalities/internet/loi/assets/logo.png"
+            root_url = get_root_url(url)
+            sources_text += "\n".join([
+                f'<a class="flex items-center gap-2 whitespace-nowrap rounded-lg border bg-white px-2 py-1.5 leading-none hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700" target="_blank" href="{anchor_url}">',
+                f'<img class="h-3.5 w-3.5 rounded" src="{favicon_url}">'
+                f'<div>{root_url}</div>'
+                f'</a>',
+                ])
+            #sources_text += f"- [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
+        sources_text += '</div>'
         output = output+sources_text
         self.full(output)
+        self.step_end("Building summary")
 
         return output
 

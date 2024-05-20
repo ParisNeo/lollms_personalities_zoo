@@ -5,7 +5,7 @@ from lollms.helpers import ASCIIColors
 
 import json
 from pathlib import Path
-
+from typing import Callable
 
 class Text2Paragraphs:
     def __init__(self, database_path=None, max_chunk_size=2000):
@@ -153,7 +153,7 @@ class Processor(APScript):
     
     def build_db(self):
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
-        for file in self.text_files:
+        for file in self.personality.text_files:
             try:
                 if Path(file).suffix==".pdf":
                     text =  Processor.read_pdf_file(file)
@@ -177,10 +177,10 @@ class Processor(APScript):
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
 
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
+        super().add_file(path, client, callback)
         try:
             self.build_db()
             self.info("File added successfully", callback=callback)
@@ -189,17 +189,28 @@ class Processor(APScript):
             ASCIIColors.error(f"Couldn't vectorize the database: The vectgorizer threw this exception: {ex}")
             return False        
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            generate_fn (function): A function that generates model output based on the input prompt.
-                The function should take a single argument (prompt) and return the generated text.
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
 
         Returns:
             None
@@ -258,8 +269,14 @@ class Processor(APScript):
                 if len(chunk.split())<50:
                     print(chunk)
                     continue
-                docs = |
-  !@>Instructions:\nSummarize the following paragraph in the form of bullet points.\nBe concise and only keep most important ideas.\nUse short sentences\nParagraph:'+chunk+"\nBullet points:\n-"
+                docs = "\n".join([
+                  "!@>system:",
+                  "Summarize the following paragraph in the form of bullet points.",
+                  "Be concise and only keep most important ideas.",
+                  "Use short sentences",
+                  f"Paragraph:{chunk}",
+                  "Bullet points:\n-"
+                ])
                 ASCIIColors.error("\n-------------- Documentation -----------------------")
                 ASCIIColors.error(docs)
                 ASCIIColors.error("----------------------------------------------------")
@@ -279,15 +296,15 @@ class Processor(APScript):
         else:
             if self.state ==1:
                 try:
-                    self.add_file(prompt)
+                    pass#self.add_file(prompt, client) # TODO: FIX
                 except Exception as ex:
                     ASCIIColors.error(f"Exception: {ex}")
                     output = str(ex)
                 self.state=0
             elif self.state ==2:
                 try:
-                    new_db_path = Path(prompt)
-                    if new_db_path.exists():
+                    new_discussion_db_name = Path(prompt)
+                    if new_discussion_db_name.exists():
                         self.personality_config.database_path = prompt
                         self.text_store = Text2Paragraphs(
                                         self.personality.lollms_paths.personal_data_path/self.personality_config.database_path,

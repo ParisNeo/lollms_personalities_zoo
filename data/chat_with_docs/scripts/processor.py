@@ -2,6 +2,9 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
+from lollms.types import MSG_TYPE
+from typing import Callable
+
 from ascii_colors import ASCIIColors, trace_exception
 from safe_store import TextVectorizer, VectorizationMethod, GenericDataLoader
 
@@ -33,7 +36,7 @@ class Processor(APScript):
                 {"name":"use_batch_mode","type":"bool","value":False, "help":"if selected, the chatwith docs will takes a list of questions out of a text file and answers them all then writes a final report about the questions"},
                 {"name":"batch_mode_questions_file","type":"str","value":"", "help":"A path to a text file containing the list of questions"},
                 {"name":"batch_mode_report_file","type":"str","value":"", "help":"A path to a markdown file to be created."},
-                {"name":"custom_db_path","type":"str","value":"", "help":"if not empty, you can change this to the path of the database you want to create or use"},
+                {"name":"custom_discussion_db_name","type":"str","value":"", "help":"if not empty, you can change this to the path of the database you want to create or use"},
                 {"name":"build_keywords","type":"bool","value":True, "help":"If true, the model will first generate keywords before searching"},
                 {"name":"load_db","type":"bool","value":False, "help":"If true, the vectorized database will be loaded at startup"},
                 {"name":"save_db","type":"bool","value":False, "help":"If true, the vectorized database will be saved for future use"},
@@ -122,7 +125,7 @@ class Processor(APScript):
                     preprocessed_prompt = question
                 if preprocessed_prompt=="":
                     preprocessed_prompt = prompt
-                docs, sorted_similarities = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
+                docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
                 docs = '\n'.join([f"!@>document {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
                 full_text =f"""{docs}
 {full_context}"""
@@ -181,7 +184,7 @@ class Processor(APScript):
         self.full("Starting fresh")
         
     def show_files(self,prompt, full_context):
-        files = "\n".join([f.name for f in self.text_files])
+        files = "\n".join([f.name for f in self.personality.text_files])
         self.full(files)
         
 
@@ -202,7 +205,7 @@ class Processor(APScript):
                 preprocessed_prompt = prompt
             self.full(f"Query : {preprocessed_prompt}")
 
-            docs, sorted_similarities = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
+            docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
@@ -242,12 +245,12 @@ class Processor(APScript):
 
     def build_db(self):
         if self.vector_store is None:
-            root_db_folder = self.personality.lollms_paths.self.personal_databases_path/self.personality.personality_folder_name
+            root_db_folder = self.personality.lollms_paths.self.personal_discussions_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
                     self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
-                    database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
+                    database_path=root_db_folder/"db.json" if self.personality_config.custom_discussion_db_name=="" else self.personality_config.custom_discussion_db_name,
                     save_db=self.personality_config.save_db,
                     visualize_data_at_startup=self.personality_config.visualize_data_at_startup,
                     visualize_data_at_add_file=self.personality_config.visualize_data_at_add_file,
@@ -257,7 +260,7 @@ class Processor(APScript):
             self.ready = True
 
         ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
-        for file in self.text_files:
+        for file in self.personality.text_files:
             try:
                 text =  GenericDataLoader.read_file(file)
                 try:
@@ -288,10 +291,10 @@ class Processor(APScript):
             trace_exception(ex)
             return False
             
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
+        super().add_file(path, client)
         self.prepare()
         try:
             self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
@@ -311,18 +314,18 @@ class Processor(APScript):
 
     def prepare(self):
         if self.vector_store is None:
-            root_db_folder = self.personality.lollms_paths.personal_databases_path/self.personality.personality_folder_name
+            root_db_folder = self.personality.lollms_paths.personal_discussions_path/self.personality.personality_folder_name
             root_db_folder.mkdir(exist_ok=True, parents=True)
             self.vector_store = TextVectorizer(                     
                     self.personality_config.vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
                     model=self.personality.model, #needed in case of using model_embedding
-                    database_path=root_db_folder/"db.json" if self.personality_config.custom_db_path=="" else self.personality_config.custom_db_path,
+                    database_path=root_db_folder/"db.json" if self.personality_config.custom_discussion_db_name=="" else self.personality_config.custom_discussion_db_name,
                     save_db=self.personality_config.save_db
             )        
 
 
         if self.vector_store and self.personality_config.vectorization_method==VectorizationMethod.TFIDF_VECTORIZER:
-            from sklearn.feature_extraction.text import TfidfVectorizer
+            from safe_store.tf_idf_vectorizer import TfidfVectorizer
             data = list(self.vector_store.texts.values())
             if len(data)>0:
                 self.vectorizer = TfidfVectorizer()
@@ -331,17 +334,28 @@ class Processor(APScript):
         if len(self.vector_store.chunks)>0:
             self.ready = True
 
-    def run_workflow(self, prompt, full_context="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            generate_fn (function): A function that generates model output based on the input prompt.
-                The function should take a single argument (prompt) and return the generated text.
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
 
         Returns:
             None

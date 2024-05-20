@@ -30,7 +30,7 @@ personality_conditioning: |
   Do not discuss the content of the tweet. Just shape it and rewrite it in a better form and according to required style.
   !@>Extra information:
   Twitter has changed name and is now called X.
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 user_message_prefix: '!@>User:'
 ai_message_prefix: '!@>ProfessionalTweeter:'
 # A text to put between user and chatbot messages

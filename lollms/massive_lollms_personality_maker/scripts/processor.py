@@ -1,3 +1,4 @@
+from fastapi import APIRouter, Request
 import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
@@ -13,9 +14,8 @@ from tqdm import tqdm
 import shutil
 import yaml
 import urllib.parse
-# Flask is needed for ui functionalities
-from flask import request, jsonify
 
+from typing import Callable, Dict, Any
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -75,40 +75,47 @@ class Processor(APScript):
         requirements_file = self.personality.personality_package_path / "requirements.txt"
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
-
-        # Clone repository
-        if not self.sd_folder.exists():
-            subprocess.run(["git", "clone", "https://github.com/ParisNeo/stable-diffusion-webui.git", str(self.sd_folder)])
-
-        self.prepare()
         ASCIIColors.success("Installed successfully")
 
-    def handle_request(self, data): # selects the image for the personality
+
+    async def handle_request(self, request: Request) -> Dict[str, Any]:
+        """
+        Handle client requests.
+
+        Args:
+            data (dict): A dictionary containing the request data.
+
+        Returns:
+            dict: A dictionary containing the response, including at least a "status" key.
+
+        This method should be implemented by a class that inherits from this one.
+
+        Example usage:
+        ```
+        handler = YourHandlerClass()
+        request_data = {"command": "some_command", "parameters": {...}}
+        response = await handler.handle_request(request_data)
+        ```
+        """
+        data = (await request.json())
         imageSource = data['imageSource']
         assets_path= data['assets_path']
 
         shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
         ASCIIColors.success("image Selected successfully")
-        return jsonify({"status":True})
+        return {"status":True}
 
 
     def prepare(self):
         if self.sd is None:
+            from lollms.services.sd.lollms_sd import LollmsSD
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Personality maker", max_retries=-1)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-
-    def get_sd(self):
-        
-        sd_script_path = self.sd_folder / "lollms_sd.py"
-        git_pull(self.sd_folder)
-        
-        if sd_script_path.exists():
-            module_name = sd_script_path.stem  # Remove the ".py" extension
-            # use importlib to load the module from the file path
-            loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
-            sd_module = loader.load_module()
-            return sd_module
+            sd = LollmsSD.get(self.personality.app)
+            if sd is not None:
+                self.sd = sd(self.personality.lollms_paths, "Personality maker", max_retries=-1)
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            else:
+                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service", False)
 
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
@@ -150,19 +157,33 @@ class Processor(APScript):
         return str_data
 
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
+
         self.callback = callback
         self.prepare()
         output_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name

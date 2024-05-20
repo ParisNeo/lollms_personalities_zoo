@@ -4,13 +4,20 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull
+from lollms.utilities import PromptReshaper, git_pull, PackageManager
 import re
 import importlib
 import requests
+from typing import Callable
 from tqdm import tqdm
 import webbrowser
+from functools import partial
 try:
+    if not PackageManager.check_package_installed("pytesseract"):
+        PackageManager.install_package("pytesseract")
+    if not PackageManager.check_package_installed("PIL"):
+        PackageManager.install_package("Pillow")
+
     import pytesseract
     from PIL import Image
 except:
@@ -71,46 +78,67 @@ class Processor(APScript):
         except:
             pass
 
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
+        if self.callback is None and callback==None:
+            self.callback = partial(self.personality.app.process_chunk, client_id = client.client_id)
+        elif self.callback is None:
+            self.callback = callback
         # Load an image using PIL (Python Imaging Library)
         if callback is None and self.callback is not None:
             callback = self.callback
-        super().add_file(path)
-        image = Image.open(self.image_files[-1])
-        url = str(self.image_files[-1]).replace("\\","/").split("uploads")[-1]
-        self.new_message(f'<img src="/uploads{url}">', MSG_TYPE.MSG_TYPE_UI)
+        super().add_file(path, client, callback, process=False)
+        image = Image.open(self.personality.image_files[-1])
+        url = str(self.personality.image_files[-1]).replace("\\","/").split("discussion_databases")[-1]
+        self.new_message("",MSG_TYPE.MSG_TYPE_FULL)
+        output = f'<img src="/discussions{url}">'
+        self.full(output)
         try:
             # Load an image using PIL (Python Imaging Library)
-            image = Image.open(self.image_files[-1])
+            image = Image.open(self.personality.image_files[-1])
 
             # Use pytesseract to extract text from the image
             text = pytesseract.image_to_string(image)
-            self.full("<h3>Extracted text:</h3>\n\n"+text)
+            output += "\n<h3>Extracted text:</h3>\n\n"+text
+            self.full(output)
         except Exception as ex:
             self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
         return True
     
     
     def main_process(self, initial_prompt, full_context):
-        if len(self.image_files)==0:
+        if len(self.personality.image_files)==0:
             self.full("<h3>Please send an image file first</h3>")
         else:
             text = self.generate(full_context+initial_prompt,1024, callback=self.callback)
             self.full(text)
             
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
+
         self.callback = callback
         self.process_state(prompt, previous_discussion_text, callback)
 

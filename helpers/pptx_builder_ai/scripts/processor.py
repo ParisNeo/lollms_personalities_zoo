@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality
+from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
 if not PackageManager.check_package_installed("pptx"):
     PackageManager.install_package("pptx")
@@ -9,6 +9,7 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
+from typing import Callable
 # Helper functions
 class PowerPointBuilder:
     """
@@ -162,7 +163,7 @@ class Processor(APScript):
                  personality: AIPersonality,
                  callback = None,
                 ) -> None:
-        
+        self.memory = []
         self.callback = None
         # Example entries
         #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
@@ -206,11 +207,11 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.full(self.personality.help)
     
-    def add_file(self, path, callback=None):
+    def add_file(self, path, client, callback=None):
         """
         Here we implement the file reception handling
         """
-        super().add_file(path, callback)
+        super().add_file(path, client, callback)
 
     def get_description(self):
         return """
@@ -233,24 +234,56 @@ A class for building PowerPoint slides programmatically using the python-pptx li
 - `save(file_name)`: Saves the presentation to a file.
 """
 
-    def run_workflow(self, prompt, previous_discussion_text="", callback=None):
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
-        Runs the workflow for processing the model input and output.
-
-        This method should be called to execute the processing workflow.
+        This function generates code based on the given parameters.
 
         Args:
-            prompt (str): The input prompt for the model.
-            previous_discussion_text (str, optional): The text of the previous discussion. Default is an empty string.
-            callback a callback function that gets called each time a new token is received
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
         Returns:
             None
         """
-        self.personality.info("Generating")
-        answer = self.multichoice_question("classify the user message",["The user is providing information about the document to build","The user is asking to start building the document","The user is updating information about the document","The user is asking for clarification","The user is asking a question not related to the document"],prompt)
-        print(answer)
+
         self.callback = callback
-        out = self.fast_gen(previous_discussion_text)
-        self.full(out)
+        self.personality.info("Generating")
+        answer = self.multichoice_question("classify the user message",[
+                                                "The user is providing information about the document to build",
+                                                "The user is asking to start building the document",
+                                                "The user is updating information about the document",
+                                                "The user is asking for clarification",
+                                                "The user is asking a question not related to the document"
+                                            ],prompt)
+        if answer==0:# providing information about the document to build
+            # ask the ai to reformulate the promptelif answer==1: # ask the ai to start building the document
+            self.memory.append(self.fastgen(f"Reformulate the user prompt in form of a list of entries that describe the request.\nprompt:{prompt}"))
+            self.full("Information assimilated and stored to the memory. Do you want to add more information or do you want me to start generating the document?")            
+        elif answer==1:
+            if self.multichoice_question("classify the prompt",[
+                                                "The prompt is do not contain useful information for the generation",
+                                                "The prompt contains useful information for the generation",
+                                            ],prompt):
+                self.memory.append(self.fastgen(f"Reformulate the user prompt in form of a list of entries that describe the request.\nprompt:{prompt}"))
+
+            
+        else:
+            out = self.fast_gen(previous_discussion_text)
+            self.full(out)
         return out
 

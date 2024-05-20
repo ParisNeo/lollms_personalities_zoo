@@ -26,7 +26,7 @@ user_name: user
 version: 1.0.0
 welcome_message: |
   Welcome to Personalities tester V 1.0! This is a show case to test all personalities functionalities
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 
 help: |
   This is a test personality

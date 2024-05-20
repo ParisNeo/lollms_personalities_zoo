@@ -25,7 +25,7 @@ welcome_message: |
   Welcome to Tree of thought AI. I use a tree of thoughts sequence to help solve your problems!
   This technique makes my answers way more relevant and allows me to help you in a more efficient manner.
 
-include_welcome_message_in_disucssion: False
+include_welcome_message_in_discussion: False
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: []
