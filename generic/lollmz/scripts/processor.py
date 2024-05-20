@@ -221,9 +221,9 @@ class Processor(APScript):
             take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time),
 
             set_timer_with_alert_function(self, client), 
-            move_mouse_to_position_function(self, client), 
-            press_mouse_button_function(self, client), 
-            type_text_function(self, client)
+            move_mouse_to_position_function(), 
+            press_mouse_button_function(), 
+            type_text_function()
         ]
         out = self.interact_with_function_call(prompt, function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
