@@ -36,8 +36,9 @@ def add_constant(parameter1:str, parameter2:int) -> float: # use typed parameter
         return trace_exception(e)
     
 
-#Here is the metadata function that shoule has the name in format function_name_function
-def return_constantadd_constant_function(processor, client):
+#Here is the metadata function that shoule has the name in format function_name_function for example if the function is add_numbers, this one should be add_numbers_function
+#Use only parameters that are needed. You may use fixed parameters if necessary usnig partial
+def add_constant_function():
     return {
         "function_name": "add_constant", # The function name in string
         "function": add_constant, # The function to be called
