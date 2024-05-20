@@ -10,8 +10,9 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.utilities import discussion_path_to_url, PackageManager, find_first_available_file_index
 from lollms.client_session import Client
-from lollms.functions.take_screen_shot import take_screenshot
-from lollms.functions.take_a_photo import take_photo
+from lollms.functions.take_screen_shot import take_screenshot_function
+from lollms.functions.calculator import calculate_function
+from lollms.functions.take_a_photo import take_a_photo_function
 from lollms.functions.generate_image import build_image_function
 import subprocess
 import math
@@ -60,9 +61,9 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
-                {"name":"image_generation_engine", "type":"string", "value":"autosd", "options":["autosd","dall-e-2","dall-e-3"], "help":"The profile name of the user. Used to store progress data."},
-                {"name":"show_screenshot_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
-                {"name":"take_photo_ui", "type":"bool", "value":True, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
+                {"name":"show_screenshot_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
+                {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
+                {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
                 
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
@@ -176,16 +177,7 @@ class Processor(APScript):
     def click_mouse(self, x, y):
         pyautogui.click(x, y)
 
-    def calculator_function(self, expression: str) -> float:
-        try:
-            # Add the math module functions to the local namespace
-            allowed_names = {k: v for k, v in math.__dict__.items() if not k.startswith("__")}
-            
-            # Evaluate the expression safely using the allowed names
-            result = eval(expression, {"__builtins__": None}, allowed_names)
-            return result
-        except Exception as e:
-            return str(e)
+
 
 
         
@@ -220,43 +212,12 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
-            {
-                "function_name": "calculator_function",
-                "function": self.calculator_function,
-                "function_description": "Whenever you need to perform mathematic computations, you can call this function with the math expression and you will get the answer.",
-                "function_parameters": [{"name": "expression", "type": "str"}]                
-            },
-            {
-                "function_name": "take_screenshot",
-                "function": partial(take_screenshot, use_ui=self.personality_config.show_screenshot_ui, client=client),
-                "function_description": "Takes a screenshot and adds it to the discussion.",
-                "function_parameters": []                
-            },
-            {
-                "function_name": "take_photo",
-                "function": partial(take_photo, use_ui=self.personality_config.take_photo_ui, client=client),
-                "function_description": "Takes a photo using the webcam.",
-                "function_parameters": []                
-            },
-            
+            calculate_function(self, client),
+            take_screenshot_function(client, self.personality_config.show_screenshot_ui,  self.personality_config.use_single_photo_at_a_time),
+            take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time)
         ]
-        continue_generation = True
-        while continue_generation:
-            if len(self.personality.image_files)>0:
-                ai_response, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
-            else:
-                ai_response, function_calls = self.generate_with_function_calls(prompt, function_definitions)
-            if len(function_calls)>0:
-                outputs = self.execute_function_calls(function_calls,function_definitions)
-                out = ai_response + "\n" + "\n".join([str(o) for o in outputs]) +"\n"
-                self.full(out)
-                if "@<NEXT>@" in ai_response: # The AI needs to get the output and regenerate
-                    continue_generation = True
-                    prompt += ai_response + "!@>function outputs:\n" +"\n".join([str(o) for o in outputs]) + "\n!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
-                else:
-                    continue_generation=False
-            else:
-                out = ai_response
-                continue_generation=False
-            self.full(out)
+        out = self.interact_with_function_call(prompt, function_definitions,)
+
+        self.full(out)
+
 
