@@ -18,9 +18,10 @@ from lollms.functions.summon_personality import summon_personality_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
-from typing import Callable
+from typing import Callable, List
 from functools import partial
 from ascii_colors import trace_exception
+
 
 class Processor(APScript):
     """
@@ -196,13 +197,15 @@ class Processor(APScript):
             take_a_photo_function(self, client),
             select_image_file_function(self, client)
         ]
-
+        members:List[AIPersonality] = [p.name for p in self.personality.app.mounted_personalities]
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
         prompt = self.build_prompt_from_context_details(context_details)
 
         if self.yes_no("is the user asking to start the debate?", prompt):
-            self.full("Starting debate. Welcome everybody.")
+            p= self.build_prompt_from_context_details(context_details,f"!@>debaters list:\n{members}\n!@>Instruction: Debate manager, please introduce our guests and the subject.")
+            out = self.fast_gen(p)
+            self.full(out)
             while not self.yes_no("should we stop the debate?", prompt):
                 # TODO: add more functions to call
                 out = self.interact_with_function_call(prompt, function_definitions, callback = self.sink)
