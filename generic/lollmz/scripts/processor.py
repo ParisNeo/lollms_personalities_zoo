@@ -16,6 +16,8 @@ from lollms.functions.take_a_photo import take_a_photo_function
 from lollms.functions.generate_image import build_image_function
 from lollms.functions.peripherals import move_mouse_to_position_function, press_mouse_button_function, type_text_function
 from lollms.functions.timers import set_timer_with_alert_function
+from lollms.functions.search import search_and_clean_content_function
+
 import subprocess
 import math
 import time
@@ -223,8 +225,8 @@ class Processor(APScript):
             calculate_function(self, client),
             take_screenshot_function(client, self.personality_config.show_screenshot_ui,  self.personality_config.use_single_photo_at_a_time),
             take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time),
-
             set_timer_with_alert_function(self, client), 
+            search_and_clean_content_function(),
             move_mouse_to_position_function(), 
             press_mouse_button_function(), 
             type_text_function()
