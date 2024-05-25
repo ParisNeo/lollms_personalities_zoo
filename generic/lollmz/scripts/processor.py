@@ -18,10 +18,6 @@ from lollms.functions.peripherals import move_mouse_to_position_function, press_
 from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.search import search_and_clean_content_function
 
-import subprocess
-import math
-import time
-
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
@@ -31,7 +27,6 @@ if not PackageManager.check_package_installed("pyautogui"):
 if not PackageManager.check_package_installed("cv2"):
     PackageManager.install_package("opencv-python")
 
-import cv2
 import pyautogui
 
 
