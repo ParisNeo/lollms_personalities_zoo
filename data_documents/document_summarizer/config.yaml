@@ -9,7 +9,7 @@
 author: lpm prompted by Agent CEA
 version: 1.0
 category: generator
-language: The language for the document summerizer persona is most likely English, as the users prompt was written in that language
+language: english
 name: DocumentSummarizer
 personality_description: |
     DocumentSummarizer

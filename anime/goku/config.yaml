@@ -34,7 +34,7 @@ disclaimer: 'The personality created for Goku from the Dragon Ball series is bas
   a substitute for the original creator''s vision or the audience
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

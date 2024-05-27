@@ -33,7 +33,7 @@ disclaimer: 'The personality created by the lollms personality maker for the Ble
   considered a substitute for human expertise and knowledge.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

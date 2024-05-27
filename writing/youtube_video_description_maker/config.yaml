@@ -32,7 +32,7 @@ disclaimer: 'The lollms personality maker is an AI designed to create and craft 
   sources for personalized guidance and support.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

@@ -17,7 +17,7 @@ disclaimer: 'The personality of the manga character Ichigo created by the lollms
   source material for a comprehensive understanding of the character.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

@@ -18,7 +18,7 @@ name: lollms
 user_name: user
 
 # Langue (voir la liste des langues supportées ici : https://github.com/ParisNeo/lollms)
-language: "français"
+language: french
 
 # Catégorie
 category: "generic"

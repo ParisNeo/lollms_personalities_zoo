@@ -36,7 +36,7 @@ disclaimer: 'The lollms personality maker would like to provide a disclaimer reg
   scripts.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

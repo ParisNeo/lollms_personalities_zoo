@@ -19,7 +19,7 @@ name: IRobot
 user_name: Human
 
 # Language (see the list of supported languages here : https://github.com/ParisNeo/GPT4All_Personalities/blob/main/README.md)
-language: "english"
+language: english
 
 # Category
 category: "Science Fiction"

@@ -28,10 +28,7 @@ disclaimer: 'I am an AI language model and I can assist you in generating a code
   please let me know and I will do my best to accommodate them.
 
   '
-language: The lollms personality maker for the code template populator is highly skilled
-  in understanding programming languages and can infer the language of the request.
-  It has a deep understanding of various programming languages and can analyze the
-  syntax and structure to determine the language being used.
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

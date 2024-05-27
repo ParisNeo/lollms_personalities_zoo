@@ -19,7 +19,7 @@ name: lollms
 user_name: user
 
 # Language (see the list of supported languages here : https://github.com/ParisNeo/lollms)
-language: "english"
+language: english
 
 # Category
 category: "generic"

@@ -31,7 +31,7 @@ disclaimer: 'The RoastMaster5000 personality created by the lollms personality m
   of the roasts generated.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40
