@@ -32,7 +32,7 @@ disclaimer: 'The personality of the Mermaid Agent created by the lollms personal
   as it assists you in converting text into mermaid diagrams.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

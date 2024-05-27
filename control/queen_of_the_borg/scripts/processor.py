@@ -111,7 +111,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
@@ -145,7 +145,7 @@ class Processor(APScript):
         self.step_start("Summoning collective")
         while attempts<self.personality_config.nb_attempts:
             try:
-                selection = int(self.fast_gen(q_prompt, 3, show_progress=True).split()[0].split(",")[0])
+                selection = int(self.fast_gen(q_prompt, 3, show_progress=True, callback=self.sink).split()[0].split(",")[0])
                 q_prompt += f"{selection}\n"
                 self.step_end("Summoning collective")
                 self.step(f"Selected drone {collective[selection]}")
@@ -159,7 +159,7 @@ class Processor(APScript):
                     collective[selection].new_message("")
                     collective[selection].full(f"At your service my queen.\n")
                     collective[selection].processor.text_files = self.personality.text_files
-                    collective[selection].processor.image_files = self.image_files
+                    collective[selection].processor.image_files = self.personality.image_files
                     collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
                 else:
                     if collective[selection].name!="Queen of the Borg":

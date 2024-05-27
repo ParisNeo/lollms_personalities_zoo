@@ -181,7 +181,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
@@ -211,7 +211,7 @@ class Processor(APScript):
         full_prompt += context_details["discussion_messages"]
         full_prompt += context_details["positive_boost"]
         full_prompt += context_details["negative_boost"]
-        full_prompt += context_details["force_language"]
+        full_prompt += context_details["current_language"]
         full_prompt += context_details["fun_mode"]
         full_prompt += "extra_info:\n"
         full_prompt += "If you need to issue a code to es, please do not respond with any extra text or explanations except the command itself.\n"

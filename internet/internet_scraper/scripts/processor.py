@@ -257,7 +257,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
@@ -274,7 +274,8 @@ class Processor(APScript):
             self.step_end("Understanding request")
             self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
-            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
+            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}\n!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
+            self.personality.step("Query: "+query)
             self.personality.step_end("Crafting internet search query")
 
             self.personality.step_start("Scraping (this may take time, so be patient) ....")

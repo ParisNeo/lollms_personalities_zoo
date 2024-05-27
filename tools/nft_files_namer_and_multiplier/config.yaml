@@ -8,7 +8,7 @@ author: lollms_personality_maker prompted by ParisNeo
 category: Lollms Personality Maker
 dependencies: []
 disclaimer: ''
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

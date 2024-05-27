@@ -32,7 +32,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"zip_mode","type":"str","value":"sequencial","options":["sequencial", "hierarchical"], "help":"algorithm"},
-                {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
+                {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
@@ -91,17 +91,19 @@ class Processor(APScript):
     def zip_document(self, document_path:Path,  output =""):
         document_text = GenericDataLoader.read_file(document_path)
         tk = self.personality.model.tokenize(document_text)
+        self.step_start(f"summary mode : {self.personality_config.zip_mode}")
         self.step_start(f"summerizing {document_path.stem}")
         if len(tk)<int(self.personality_config.zip_size):
                 document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
-                self.step_start(f"Comprerssing.. [depth {depth}]")
+                if self.personality_config.zip_mode!="sequencial":
+                    self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
                 document_text = self.summerize_chunks(document_chunks,"\n".join([
-                        f"Summerize the document chunk and do not add any comments after the summary.",
+                        f"Summerize the document chunk in a detailed comprehensive manner.",
                         "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
                         f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
@@ -117,9 +119,12 @@ class Processor(APScript):
                     callback=self.sink
                     )
                 tk = self.personality.model.tokenize(document_text)
-                self.step_end(f"Comprerssing.. [depth {depth}]")
                 self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
+                if self.personality_config.zip_mode!="sequencial":
+                    self.step_end(f"Comprerssing.. [depth {depth}]")
+                else:
+                    break
         self.step_start(f"Last composition")
         document_text = self.summerize_chunks([document_text],"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
@@ -177,7 +182,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.

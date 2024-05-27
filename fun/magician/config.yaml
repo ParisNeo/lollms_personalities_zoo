@@ -16,7 +16,7 @@ disclaimer: 'The personality created by the lollms personality maker based on th
   not be used to make assumptions or judgments about real people or professions.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

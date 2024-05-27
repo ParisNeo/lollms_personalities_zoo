@@ -254,17 +254,6 @@ class Processor(APScript):
                 self.sd.util_set_model(self.personality_config.sd_model_name,True)
                 self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
 
-    def get_sd(self):
-        
-        sd_script_path = self.sd_folder / "lollms_sd.py"
-        git_pull(self.sd_folder)
-        
-        if sd_script_path.exists():
-            module_name = sd_script_path.stem  # Remove the ".py" extension
-            # use importlib to load the module from the file path
-            loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
-            sd_module = loader.load_module()
-            return sd_module
 
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
@@ -549,7 +538,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditioning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.

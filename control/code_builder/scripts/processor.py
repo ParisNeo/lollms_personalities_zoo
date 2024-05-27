@@ -89,7 +89,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - user_prefix (str): The AI prefix information.
                 - ai_prefix (str): The AI prefix information.
@@ -160,7 +160,7 @@ class Processor(APScript):
                 "It is important that the structure gets put inside a  structure markdown block.",
                 context_details["positive_boost"],
                 context_details["negative_boost"],
-                context_details["force_language"],
+                context_details["current_language"],
                 context_details["discussion_messages"],
                 context_details["ai_prefix"],
             ])).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
@@ -183,7 +183,7 @@ class Processor(APScript):
                             #     f"!@>system: What other files should you know about in order to be able to build the file {file}",
                             #     context_details["positive_boost"],
                             #     context_details["negative_boost"],
-                            #     context_details["force_language"],
+                            #     context_details["current_language"],
                             #     context_details["discussion_messages"],
                             #     f"!@>file:{file}",
                             #     context_details["ai_prefix"],
@@ -196,7 +196,7 @@ class Processor(APScript):
                                 "Don't provide explanations, just build the file and write it",
                                 context_details["positive_boost"],
                                 context_details["negative_boost"],
-                                context_details["force_language"],
+                                context_details["current_language"],
                                 context_details["discussion_messages"],
                                 f"!@>file:{file}",
                                 context_details["ai_prefix"],

@@ -32,7 +32,7 @@ disclaimer: 'The lollms personality maker, specifically the CSS Color Codes Buil
   lollms personality maker.
 
   '
-language: English
+language: english
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

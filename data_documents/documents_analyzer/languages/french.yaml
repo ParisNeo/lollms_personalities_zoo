@@ -7,7 +7,7 @@ dependencies: []
 disclaimer: |
   Cette personnalité est une IA qui utilise des fragments de documents pour répondre à une question de l'utilisateur en fonction du contenu des fragments de documents. Elle n'a pas pour but de remplacer la compréhension ou l'interprétation humaine, mais plutôt de fournir des informations supplémentaires et des perspectives. Les réponses de l'IA doivent être considérées comme une interprétation possible des documents et peuvent ne pas refléter les points de vue ou opinions du créateur de la personnalité.
 
-language: anglais
+language: french
 link_text: ' '
 model_n_predicts: 8192
 model_repeat_last_n: 40

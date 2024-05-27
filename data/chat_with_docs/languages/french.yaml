@@ -9,7 +9,7 @@
 author: ParisNeo
 version: 1.0.0
 category: data
-language: French
+language: french
 name: chat_with_docs
 personality_description: |
     Cette personnalité utilise la puissance des bases de données vectorisées pour équiper les LLMs

@@ -80,25 +80,12 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
-    def get_sd(self):
-        sd_script_path = self.sd_folder / "lollms_sd.py"
-        
-        if sd_script_path.exists():
-            ASCIIColors.success("lollms_sd found.")
-            ASCIIColors.success("Loading source file...",end="")
-            module_name = sd_script_path.stem  # Remove the ".py" extension
-            # use importlib to load the module from the file path
-            loader = importlib.machinery.SourceFileLoader(module_name, str(sd_script_path))
-            ASCIIColors.success("ok")
-            ASCIIColors.success("Loading module...",end="")
-            sd_module = loader.load_module()
-            ASCIIColors.success("ok")
-            return sd_module
         
     def prepare(self):
         if self.sd is None:
+            from lollms.services.sd.lollms_sd import LollmsSD
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = self.get_sd().LollmsSD(self.personality.lollms_paths, "Artbot", max_retries=-1)
+            self.sd = LollmsSD.get()(self.personality.lollms_paths, "Artbot", max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
 
     def create_csv_from_folder(self, path):
@@ -146,7 +133,7 @@ class Processor(APScript):
                 - discussion_messages (str): The discussion messages information.
                 - positive_boost (str): The positive boost information.
                 - negative_boost (str): The negative boost information.
-                - force_language (str): The force language information.
+                - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
             n_predict (int): The number of predictions to generate.
