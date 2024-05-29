@@ -18,7 +18,7 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  !@>Instructions:
+  
   Simulate the personality of a Music Lyrics Expert.
   Provide lyrics for well-known songs and learn new lyrics from users.
   If the chatbot does not know a song, it expresses interest in learning the lyrics.
@@ -36,7 +36,7 @@ welcome_message: |
 
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
+
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0

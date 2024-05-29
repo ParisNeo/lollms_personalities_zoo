@@ -122,12 +122,12 @@ class Processor(APScript):
         self.full(self.personality.help)
 
     def build_documentation_report(self, code, fn):
-        analysis = self.fast_gen(f"!@>system: Analyze this code and provide a comprehensive documentation.\n Give the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.\n!@>file name:{fn}!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>documentation:\n")
+        analysis = self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Analyze this code and provide a comprehensive documentation.\n Give the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.{self.config.separator_template}{self.config.start_header_id_template}file name:{fn}{self.config.start_header_id_template}code:\n```python\n{code}\n```{self.config.separator_template}{self.config.start_header_id_template}additional context:{self.personality_config.context}{self.config.separator_template}{self.config.start_header_id_template}documentation:\n")
         self.full(analysis)
         return analysis
 
     def continue_documentation_report(self, code):
-        analysis = self.fast_gen(f"!@>system: Analyze this chunk of code and provide a comprehensive documentation.\nThis is the continuation of previous documentation chunk\nGive the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.\n!@>code:\n```python\n{code}\n```\n!@>additional context:{self.personality_config.context}\n!@>documentation:\n")
+        analysis = self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Analyze this chunk of code and provide a comprehensive documentation.\nThis is the continuation of previous documentation chunk\nGive the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.{self.config.separator_template}{self.config.start_header_id_template}code:\n```python\n{code}\n```{self.config.separator_template}{self.config.start_header_id_template}additional context:{self.personality_config.context}{self.config.separator_template}{self.config.start_header_id_template}documentation:\n")
         self.full(analysis)
         return analysis
 

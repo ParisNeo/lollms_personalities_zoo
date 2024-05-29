@@ -239,11 +239,11 @@ class Processor(APScript):
 
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
-            search_formulation_prompt = f"""!@>instructions:
+            search_formulation_prompt = f"""{self.config.start_header_id_template}instructions:
                                         Formulate a search query text based on the user prompt. Include all relevant information and keep the query concise. Avoid unnecessary text and explanations.
-                                        !@> question:
+                                        {self.config.start_header_id_template} question:
                                         {prompt}
-                                        !@> search query:
+                                        {self.config.start_header_id_template} search query:
                                             """
             self.step_start("Crafting search query")
             search_query = self.format_url_parameter(self.generate(search_formulation_prompt, self.personality_config.max_query_size)).strip()
@@ -256,13 +256,13 @@ class Processor(APScript):
         self.internet_search(search_query, self.personality_config.chromedriver_path)
         docs, sorted_similarities, document_ids = self.vectorizer.recover_text(search_query, self.personality_config.num_relevant_chunks)
         search_result = [f"[{i+1}] source: {s[0]}\n{d}" for i,(d,s) in enumerate(zip(docs, sorted_similarities))]
-        prompt = f"""!@>instructions:
+        prompt = f"""{self.config.start_header_id_template}instructions:
                 Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text with sources citation links in the format [index](source). Place the citation links in front of each relevant information. Only use citation to the provided sources. Citation is mandatory.null
-                !@> search results:
+                {self.config.start_header_id_template} search results:
                 {search_result}
-                !@> user:
+                {self.config.start_header_id_template} user:
                 {prompt}
-                !@> answer:
+                {self.config.start_header_id_template} answer:
                 """
         print(prompt)
         output = self.generate(prompt, self.personality_config.max_summery_size)

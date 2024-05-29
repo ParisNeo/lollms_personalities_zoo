@@ -292,7 +292,7 @@ class Processor(APScript):
 
         ]
         stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this {self.personality_config.production_type.split()[-1]}: {stl}\n!@>assistant:I select"
+        prompt=f"{full_context}{self.config.separator_template}{self.config.start_header_id_template}user{self.config.end_header_id_template}{prompt}\nSelect what style(s) among those is more suitable for this {self.personality_config.production_type.split()[-1]}: {stl}\n{self.config.start_header_id_template}assistant{self.config.end_header_id_template}I select"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
 
@@ -316,7 +316,7 @@ class Processor(APScript):
                 return default_resolution
                     
         self.step_start("Choosing resolution")
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect a suitable image size (width, height).\nThe default resolution uis ({default_resolution[0]},{default_resolution[1]})\n!@>selected_image_size:"
+        prompt=f"{full_context}{self.config.separator_template}{self.config.start_header_id_template}user{self.config.end_header_id_template}{prompt}\nSelect a suitable image size (width, height).\nThe default resolution uis ({default_resolution[0]},{default_resolution[1]}){self.config.separator_template}{self.config.start_header_id_template}selected_image_size:"
         sz = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","").split("\n")[0]
 
         self.step_end("Choosing resolution")
@@ -468,12 +468,12 @@ class Processor(APScript):
                                                                "The user is asking a question",
                                                                "The user is requesting to generate, build or make",
                                                                "The user is requesting to modify"
-                                                            ], "!@>user: "+initial_prompt)
+                                                            ], f"{self.config.start_header_id_template}user: "+initial_prompt)
 
                 if classification<=1:
                     prompt = self.build_prompt([
-                                    "!@>instructions>Artbot is an art generation AI that discusses with humains about art.", #conditionning
-                                    "!@>discussion:",
+                                    f"{self.config.start_header_id_template}instructions>Artbot is an art generation AI that discusses with humains about art.", #conditionning
+                                    f"{self.config.start_header_id_template}discussion:",
                                     full_context,
                                     initial_prompt,
                                     context_details["ai_prefix"],
@@ -501,16 +501,16 @@ class Processor(APScript):
                 self.full(f"{metadata_infos}")     
             else:
                 styles = None
-            stl = f"!@>style_choice: {styles}\n" if styles is not None else ""
+            stl = f"{self.config.start_header_id_template}style_choice: {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = self.remove_image_links(full_context)
             prompt = self.build_prompt([
                             f"@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
-                            "!@>discussion:",
+                            f"{self.config.start_header_id_template}discussion:",
                             past if self.personality_config.continuous_discussion else '',
                             stl,
-                            f"!@>art_generation_prompt: Create {self.personality_config.production_type} ",
+                            f"{self.config.start_header_id_template}art_generation_prompt: Create {self.personality_config.production_type} ",
             ],2)
             
 
@@ -532,11 +532,11 @@ class Processor(APScript):
                                 "Try to force the generator not to generate text or extra fingers or deformed faces.",
                                 "Use as many words as you need depending on the context.",
                                 "To give more importance to a term put it ibti multiple brackets ().",
-                                "!@>discussion:",
+                                f"{self.config.start_header_id_template}discussion:",
                                 past if self.personality_config.continuous_discussion else '',
                                 stl,
-                                f"!@>positive prompt: {sd_positive_prompt}",
-                                f"!@>negative prompt: ((morbid)),",
+                                f"{self.config.start_header_id_template}positive prompt: {sd_positive_prompt}",
+                                f"{self.config.start_header_id_template}negative prompt: ((morbid)),",
                 ],6)
 
                 self.print_prompt("Generate negative prompt", prompt)
@@ -550,13 +550,13 @@ class Processor(APScript):
             if self.personality_config.build_title:
                 self.step_start("Making up a title")
                 # 1 first ask the model to formulate a query
-                pr  = PromptReshaper("""!@>instructions:
+                pr  = PromptReshaper("""{self.config.start_header_id_template}instructions:
 Given this image description prompt and negative prompt, make a consize title
-!@>positive_prompt:
+{self.config.start_header_id_template}positive_prompt:
 {{positive_prompt}}
-!@>negative_prompt:
+{self.config.start_header_id_template}negative_prompt:
 {{negative_prompt}}
-!@>title:
+{self.config.start_header_id_template}title:
 """)
                 prompt = pr.build({
                         "positive_prompt":sd_positive_prompt,

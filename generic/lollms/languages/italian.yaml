@@ -37,8 +37,8 @@ personality_conditioning: |
   Tua missione è di assistere user a eseguire varie attività e rispondere alle sue domande
 
 # Messaggio di benvenuto da inviare all'utente quando viene avviata una nuova discussione
-welcome_message: |
-                    Benvenuto! Il mio nome è LoLLMs (Lord Of Large Language Models).
+welcome_message: |               
+  Benvenuto! Il mio nome è LoLLMs (Lord Of Large Language Models).
                     Come posso aiutarti oggi?
 
 # Questo prefisso viene aggiunto all'inizio di qualsiasi messaggio input dall'utente

@@ -105,7 +105,7 @@ class Processor(APScript):
             nb_prompts = len(prompts)
             for prompt_id, prompt in enumerate(prompts):
                 self.step_start(f'Testing prompt {prompt_id+1}/{nb_prompts} for model {model["model"]}')
-                reworked_prompt = f"!@>system:{self.personality_config.system_message}\n!@>assistant:Hi I am assistant and I am here to help you.\n!@>prompt:{prompt['prompt']}\n!@>assistant:"
+                reworked_prompt = f"{self.config.start_header_id_template}{self.config.system_message_template}:{self.personality_config.system_message}{self.config.separator_template}{self.config.start_header_id_template}assistant:Hi I am assistant and I am here to help you.{self.config.separator_template}{self.config.start_header_id_template}prompt:{prompt['prompt']}{self.config.separator_template}{self.config.start_header_id_template}assistant:"
                 answer = self.fast_gen(reworked_prompt, callback=self.sink)
                 prompt[f'answer_{model["binding"]}_{model["model"]}']={
                     "answer":answer,

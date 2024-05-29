@@ -180,7 +180,7 @@ class Processor(APScript):
             except:
                 self.error(f"Couldn't load file {file}")
 
-        data_information_hints = self.smart_data_extraction("!@>Database structure:\n"+db2txt.convert_to_text()+"\n!@>Document data chunk:"+full_text,
+        data_information_hints = self.smart_data_extraction("{self.config.start_header_id_template}Database structure:\n"+db2txt.convert_to_text()+"{self.config.separator_template}{self.config.start_header_id_template}Document data chunk:"+full_text,
                                                             "read the chunk text and depending on the database described earlier, extract data that can be put inside the database. If no data needs to be put in the database, just respond with empty output. If some data needs to be added to the database, then return a description to which table should an entry be added and with which parameters. ",
                                                             "\n".join([
                                                             "Use the data from the chunk to populate the database. The output should be python code",

@@ -19,7 +19,6 @@ user_name: user
 
 # Actual useful stuff
 personality_conditioning: |
-  !@>Instructions: 
   Act like a Stack Overflow post.
   Provide programming solutions and explanations to user queries.
   Be helpful and provide code examples when necessary.
@@ -40,7 +39,7 @@ welcome_message: |
 
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
+
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
@@ -48,4 +47,4 @@ model_repeat_last_n: 40
 
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["**User:**","**Stack Overflow Post:**","!@>Instructions:","!@>"]
+anti_prompts: ["**User:**","**Stack Overflow Post:**","","!@>"]

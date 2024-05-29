@@ -191,7 +191,7 @@ class Processor(APScript):
                 processed_chunks += 1
                 self.step_start(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 # Build the prompt text with placeholders
-                prompt_text = "!@>instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mention the text itself in your questions. Make sure you format the output using Markdown with each question or task placed in a separate paragraph starting with __P__.\n\n!@>chunk {{chunk_name}}: {{chunk}}\n!@>Here are some questions and tasks to further explore the contents of the given text chunks:\n__P__"
+                prompt_text = f"{self.config.start_header_id_template}instruction: Generate questions or tasks that delve into the specific details and information presented in the text chunks. Please do not ask questions about the form of the text, and do not mention the text itself in your questions. Make sure you format the output using Markdown with each question or task placed in a separate paragraph starting with __P__.\n{self.config.separator_template}{self.config.start_header_id_template}chunk {{chunk_name}}: {{chunk}}{self.config.separator_template}{self.config.start_header_id_template}Here are some questions and tasks to further explore the contents of the given text chunks:\n__P__"
                 # Ask AI to generate questions
                 generated_text = "__P__"+self.fast_gen(prompt_text, max_generation_size=self.personality_config.questions_gen_size, placeholders={"chunk": chunk_text, "chunk_name":chunk_name}, debug=True)
                 # Split the generated text into lines and accumulate into questions_vector
@@ -216,30 +216,30 @@ class Processor(APScript):
             docs, sorted_similarities, document_ids = self.data_store.recover_text(question, top_k=self.personality_config.data_vectorization_nb_chunks) 
             if self.personality_config.use_enhanced_mode:
                 self.step_start(f"Verifying RAG data_{index}")
-                prompt_text = """!@>chunk: {{chunk}}
-!@>instruction: Is the information provided in the above chunk sufficient to answer the following question?
+                prompt_text = """{self.config.start_header_id_template}chunk: {{chunk}}
+{self.config.start_header_id_template}instruction: Is the information provided in the above chunk sufficient to answer the following question?
 Valid answers:
 - Yes
 - No
-!@>question: {{question}}
-!@>answer: """
+{self.config.start_header_id_template}question: {{question}}
+{self.config.start_header_id_template}answer: """
                 if "yes" not in prompt_text.lower():
                     self.step_end(f"Verifying RAG data_{index}", False)
                     continue
                 self.step_end(f"Verifying RAG data_{index}")
 
             self.step_start(f"Asking question {index}/{len(questions_vector)}")
-            prompt_text = """!@>chunk: {{chunk}}
-!@>instructions:
+            prompt_text = """{self.config.start_header_id_template}chunk: {{chunk}}
+{self.config.start_header_id_template}instructions:
 Interpret the textual data contained within the chunk thoroughly to answer the corresponding instruction/task presented alongside it.
 If the information stored in this chunk does not suffice to provide categorically accurate answers, please answer exactly __UNSUFFICIENT_INFORMATION__.
 All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated.
 Do not mention the chunks, assume you are generating training data for an AI to learn from without data.
 It is crucial to maintain strict adherence to the content delineated in each instance of interaction.
 Be precise and helpful.
-!@>question: {{question}}
-!@>answer: """
-            # !@>chunk: {{chunk}}\n!@>instruction: Please use the text chunks to answer the following question:\n\n!@>question: {{question}}\n\n!@>answer: "
+{self.config.start_header_id_template}question: {{question}}
+{self.config.start_header_id_template}answer: """
+            # {self.config.start_header_id_template}chunk: {{chunk}}{self.config.separator_template}{self.config.start_header_id_template}instruction: Please use the text chunks to answer the following question:\n{self.config.separator_template}{self.config.start_header_id_template}question: {{question}}\n{self.config.separator_template}{self.config.start_header_id_template}answer: "
             # Ask AI to generate an answer
             answer = self.fast_gen(prompt_text, max_generation_size=self.personality_config.answer_gen_size, placeholders={"chunk": "\nchunk: ".join(docs), "question": question})
             if "UNSUFFICIENT_INFORMATION" in answer:

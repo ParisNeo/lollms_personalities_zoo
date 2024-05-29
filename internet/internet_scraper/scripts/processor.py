@@ -131,7 +131,7 @@ class Processor(APScript):
                                 f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                                 f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                                f"!@>query: {query}"
+                                f"{self.config.start_header_id_template}query: {query}"
                             ]),
                             "Document chunk"
                             )
@@ -151,7 +151,7 @@ class Processor(APScript):
                         f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                         f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                         f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                        f"!@>query: {query}"
+                        f"{self.config.start_header_id_template}query: {query}"
                     ]),
                     "Document chunk"
                     )
@@ -173,7 +173,7 @@ class Processor(APScript):
                 f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                f"!@>query: {query}"
+                f"{self.config.start_header_id_template}query: {query}"
             ]),
             "Document chunk",
             callback=self.sink
@@ -274,7 +274,7 @@ class Processor(APScript):
             self.step_end("Understanding request")
             self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
-            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}\n!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
+            query = self.personality.fast_gen(f"{self.config.start_header_id_template}discussion:\n{previous_discussion_text}{self.config.separator_template}{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.{self.config.separator_template}{self.config.start_header_id_template}current date: {datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
             self.personality.step("Query: "+query)
             self.personality.step_end("Crafting internet search query")
 

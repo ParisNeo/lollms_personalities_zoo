@@ -251,14 +251,14 @@ class Processor(APScript):
         if self.personality_config.craft_search_query:
             # 1 first ask the model to formulate a query
             search_formulation_prompt = self.build_prompt([
-                "!@>system:",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
                 "Formulate a web search query text based on the user prompt.",
                 "Use the same language as the prompt",
-                "!@> previous discussion:",
+                f"{self.config.start_header_id_template} previous discussion:",
                 context_details["discussion_messages"],
-                "!@>prompt:",
+                f"{self.config.start_header_id_template}prompt:",
                 f"{prompt}",
-                "!@>formulated web search query in the same language as the prompt: "
+                f"{self.config.start_header_id_template}formulated web search query in the same language as the prompt: "
                 ],
                 4
             )
@@ -283,20 +283,20 @@ class Processor(APScript):
         self.step_start("Building summary")
         
         prompt =  self.build_prompt([
-                "!@>instructions:",
+                f"{self.config.start_header_id_template}instructions:",
                 "Use Search engine results to answer user question by summarizing the results in a single coherent paragraph in the form of a markdown text",
                 "Sources must be  cited after each fact in the format [index].",
                 "Place the citation links in front of each relevant information. Only use citation to the provided sources.",
                 "If the information required by the user does not exist in the data recovered from the search engine, please notify the user.",
                 "Citation is mandatory.",
                 "Do not write the sources, just use their index. The sources will be added in a future query."
-                "!@> previous discussion:",
+                f"{self.config.start_header_id_template} previous discussion:",
                 context_details["discussion_messages"],
-                "!@> search results:",
+                f"{self.config.start_header_id_template} search results:",
                 f"{search_result}",              
-                "!@> question:",
+                f"{self.config.start_header_id_template} question:",
                 f"{prompt}",
-                "!@> answer:"
+                f"{self.config.start_header_id_template} answer:"
                 ],
                 7
             )

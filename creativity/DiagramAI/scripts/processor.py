@@ -147,11 +147,11 @@ class Processor(APScript):
         graph = graphviz.Digraph(format='svg',engine="dot")
         title = self.fast_gen(self.build_prompt(
             [
-                "!@>task:Make a very short title to this graph."
-                "!@>warning: Don't respond with extra information."
-                "!@>graph:",
+                f"{self.config.start_header_id_template}task:Make a very short title to this graph."
+                f"{self.config.start_header_id_template}warning: Don't respond with extra information."
+                f"{self.config.start_header_id_template}graph:",
                 call_graph_str,
-                "!@>short title:"
+                f"{self.config.start_header_id_template}short title:"
             ]
         ))
 
@@ -245,14 +245,14 @@ class Processor(APScript):
         # 1 first ask the model to formulate a query
         
         prompt = self.build_prompt([
-            "!@>system:",
+            f"{self.config.start_header_id_template}{self.config.system_message_template}:",
             "text2graph() is a function that converts text to graph in the following format.",
             'Create a diagram representing a series of sequential steps or relationships in the following format: "a -> b -> c".',
             'Each node (a, b, c, etc.) represents a distinct step or entity. The arrows "->" indicate the flow or relationship between them.',
             'The diagram should illustrate a clear sequence or connection between the elements.',
-            '!@>text2graph(simple workdlow)=Start -> Process Data -> Analyze Results -> End!@>',
+            '{self.config.start_header_id_template}text2graph(simple workdlow)=Start -> Process Data -> Analyze Results -> End{self.config.start_header_id_template}',
             'To get this task done No extra text must be generated , no explanation , no comment , no question , no echo , only the notation representig the scenario.',
-            'The graph description should end with !@>',
+            'The graph description should end with {self.config.start_header_id_template}',
             context_details["documentation"],
             context_details["knowledge"],
             context_details["user_description"],
@@ -261,7 +261,7 @@ class Processor(APScript):
             context_details["negative_boost"],
             context_details["current_language"],
             context_details["fun_mode"],
-            f"!@>text2graph({prompt})=",
+            f"{self.config.start_header_id_template}text2graph({prompt})=",
         ],11)
 
         #ASCIIColors.yellow(prompt)

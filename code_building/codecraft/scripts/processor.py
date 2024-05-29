@@ -118,7 +118,7 @@ class Processor(APScript):
             crafted_prompt=self.build_prompt([
                                     context_details["conditionning"],
                                     context_details["user_description"],
-                                    "!@>template: \n"+self.template,
+                                    f"{self.config.start_header_id_template}template: \n"+self.template,
                                     context_details["documentation"],
                                     context_details["knowledge"],
                                     context_details["discussion_messages"],

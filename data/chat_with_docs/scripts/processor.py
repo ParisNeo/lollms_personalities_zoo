@@ -117,7 +117,7 @@ class Processor(APScript):
                 self.full(output)
                 self.step_start(f"Analyzing request {i+1}/{len(questions)}")
                 if self.personality_config.build_keywords:
-                    query = self.personality.fast_gen("!@>prompt:"+question+"\n!@>instruction: Convert the prompt to a web search query."+"\nDo not answer the prompt. Do not add explanations. Use comma separated syntax to make a list of keywords in the same line.\nThe keywords should reflect the ideas written in the prompt so that a seach engine can process them efficiently.\n!@>query: ", max_generation_size=256, show_progress=True)
+                    query = self.personality.fast_gen("{self.config.start_header_id_template}prompt:"+question+"{self.config.separator_template}{self.config.start_header_id_template}instruction: Convert the prompt to a web search query."+"\nDo not answer the prompt. Do not add explanations. Use comma separated syntax to make a list of keywords in the same line.\nThe keywords should reflect the ideas written in the prompt so that a seach engine can process them efficiently.{self.config.separator_template}{self.config.start_header_id_template}query: ", max_generation_size=256, show_progress=True)
                     preprocessed_prompt = self.fast_gen(query, int(self.personality_config["max_answer_size"]),show_progress=True).strip()
                     output += "### Query:\n"+preprocessed_prompt+"\n"
                     self.full(output)
@@ -126,7 +126,7 @@ class Processor(APScript):
                 if preprocessed_prompt=="":
                     preprocessed_prompt = prompt
                 docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
-                docs = '\n'.join([f"!@>document {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
+                docs = '\n'.join([f"{self.config.start_header_id_template}document {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
                 full_text =f"""{docs}
 {full_context}"""
 
@@ -194,9 +194,9 @@ class Processor(APScript):
                 self.exception("Please send a prompt to process")
             self.step_start("Analyzing request", callback=self.callback)
             if self.personality_config.build_keywords:
-                full_text =f"""!@>instructor:Extract keywords from this prompt. The keywords output format is comma separated values.
-!@>prompt: {prompt}
-!@>assistant: The keywords are """
+                full_text =f"""{self.config.start_header_id_template}instructor:Extract keywords from this prompt. The keywords output format is comma separated values.
+{self.config.start_header_id_template}prompt: {prompt}
+{self.config.start_header_id_template}assistant: The keywords are """
                 preprocessed_prompt = self.generate(full_text, int(self.personality_config["max_answer_size"])).strip()
             else:
                 preprocessed_prompt = prompt
@@ -209,10 +209,10 @@ class Processor(APScript):
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
-            docs = '\n'.join([f"!@>document chunk {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
+            docs = '\n'.join([f"{self.config.start_header_id_template}document chunk {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
             full_text =f"""{docs}
 {full_context}
-!@>chat_with_docs:"""
+{self.config.start_header_id_template}chat_with_docs:"""
 
             tk = self.personality.model.tokenize(full_text)
             # print(f"total: {len(tk)}")           

@@ -119,27 +119,27 @@ class Processor(APScript):
             self.full(output)
             self.step_start(f"Processing Level {j+1} of the tree")
             local_ideas=[]
-            judgement_prompt = f"!@>prompt: {prompt}\n"
+            judgement_prompt = f"{self.config.start_header_id_template}prompt: {prompt}\n"
             for i in range(self.personality_config.nb_samples_per_idea):
                 self.step_start(f"Generating idea number {j+1}:{i+1}/{self.personality_config.nb_samples_per_idea}")
                 print(f"\nIdea {i+1}")
                 if len(final_ideas)>0:
                     final_ideas_text = "\n".join([f'Idea {n}:{i}' for n,i in enumerate(final_ideas)])
-                    idea_prompt = f"""!@>instructions: Given the following discussion and previous ideas, try to give another idea to solve the proposed problem. 
-!@>discussion:
+                    idea_prompt = f"""{self.config.start_header_id_template}instructions: Given the following discussion and previous ideas, try to give another idea to solve the proposed problem. 
+{self.config.start_header_id_template}discussion:
 {previous_discussion_text}
-!@>previous ideas: {final_ideas_text}
-!@>idea:"""
+{self.config.start_header_id_template}previous ideas: {final_ideas_text}
+{self.config.start_header_id_template}idea:"""
                 else:
-                    idea_prompt = f"""!@>instructions: Given the following discussion, try to give an original idea to solve the proposed problem. 
-!@>discussion:
+                    idea_prompt = f"""{self.config.start_header_id_template}instructions: Given the following discussion, try to give an original idea to solve the proposed problem. 
+{self.config.start_header_id_template}discussion:
 {previous_discussion_text}
-!@>idea:"""
+{self.config.start_header_id_template}idea:"""
                 idea = self.generate(idea_prompt,self.personality_config.max_thought_size,temperature=self.personality_config.idea_temperature)
                 output += f"\n## Idea {i+1}:\n {idea}\n"
                 self.full(output)
                 local_ideas.append(idea.strip())
-                judgement_prompt += f"\n!@>Idea {i}:{idea}\n"
+                judgement_prompt += f"{self.config.separator_template}{self.config.start_header_id_template}Idea {i}:{idea}\n"
                 self.step_end(f"Generating idea number {j+1}:{i+1}/{self.personality_config.nb_samples_per_idea}")
 
             idea_id = self.multichoice_question(f"What is the most adequate idea to the context?\n",[f"{i} - {local_idea}" for local_idea in local_ideas],previous_discussion_text)
@@ -163,23 +163,23 @@ class Processor(APScript):
 
         self.step_start(f"Building final summary")
         if self.personality_config.thinking_method=="synthesize":
-            summary_prompt += "!@>Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
+            summary_prompt += f"{self.config.start_header_id_template}Instructions: Combine these ideas in a comprihensive essai. Give a detailed explanation.\n"
             for idea in final_ideas:
                 summary_prompt += f">Idea: {idea}\n"
-            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
-            summary_prompt += "!@>Synthesis:"
+            summary_prompt += f"{self.config.start_header_id_template}Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += f"{self.config.start_header_id_template}Synthesis:"
         if self.personality_config.thinking_method=="pick_best":
-            summary_prompt += "!@>Instructions: Pick the best idea out of the proposed ones and rewrite it in a comprehensive paragraph. Give a detailed explanation.\nDo not mention its number, just its full description"
+            summary_prompt += f"{self.config.start_header_id_template}Instructions: Pick the best idea out of the proposed ones and rewrite it in a comprehensive paragraph. Give a detailed explanation.\nDo not mention its number, just its full description"
             for idea in final_ideas:
                 summary_prompt += f">Idea: {idea}\n"
-            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
-            summary_prompt += "!@>Best idea :"
+            summary_prompt += f"{self.config.start_header_id_template}Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += f"{self.config.start_header_id_template}Best idea :"
         if self.personality_config.thinking_method=="develop":
-            summary_prompt += "!@>Instructions: Out of the above ideas, write an essai inspired from the ideas in order to answer the user request.\n"
+            summary_prompt += f"{self.config.start_header_id_template}Instructions: Out of the above ideas, write an essai inspired from the ideas in order to answer the user request.\n"
             for idea in final_ideas:
                 summary_prompt += f">Idea: {idea}\n"
-            summary_prompt += f"!@>Previous context:\n{previous_discussion_text}\n"
-            summary_prompt += "!@>Essai:"
+            summary_prompt += f"{self.config.start_header_id_template}Previous context:\n{previous_discussion_text}\n"
+            summary_prompt += f"{self.config.start_header_id_template}Essai:"
 
         final_summary = self.fast_gen(summary_prompt)
 

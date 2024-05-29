@@ -114,7 +114,7 @@ class Processor(APScript):
         self.step_end(f"summerizing position subject {subject_path.stem}")
         
         self.step_start(f"building evaluation grid {subject_path.stem}")
-        evaluation_grid = self.fast_gen(f"!@>instructions: Given the following position description, build a list of criteria that should be met for the subject to be fit for this position. Use the following columns: Theme, Criteria, Importance, grade. Leave the grade columns empty. Group the criterias by themes and classify them from important to nice to have. Put this in a table markdown format. Do not add tailing comments.\nPosition description:\n{subject_summary}\n!@>interview ai:Requested description in markdown format\n```markdown\n")
+        evaluation_grid = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following position description, build a list of criteria that should be met for the subject to be fit for this position. Use the following columns: Theme, Criteria, Importance, grade. Leave the grade columns empty. Group the criterias by themes and classify them from important to nice to have. Put this in a table markdown format. Do not add tailing comments.\nPosition description:\n{subject_summary}{self.config.separator_template}{self.config.start_header_id_template}interview ai:Requested description in markdown format\n```markdown\n")
         evaluation_grid = evaluation_grid.replace("```","")
         self.save_text(evaluation_grid, output_path/("evaluation_grid.md"))
         self.step_end(f"building evaluation grid {subject_path.stem}")
@@ -149,15 +149,15 @@ class Processor(APScript):
 
 
         self.step_start(f"building candidate description {cv_path.stem}")
-        candidate_description = self.fast_gen(f"!@>instructions: Given the following position description and candidate cv, build an organized description of the candidate information taking into consideration the position description. Do not add comments after the description.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}\n!@>interview ai:Requested description in markdown format\n```markdown\n")
+        candidate_description = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following position description and candidate cv, build an organized description of the candidate information taking into consideration the position description. Do not add comments after the description.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}{self.config.separator_template}{self.config.start_header_id_template}interview ai:Requested description in markdown format\n```markdown\n")
         candidate_description = candidate_description.replace("```","")
         self.save_text(candidate_description, output_path/("candidate_description.md"))
         self.step_end(f"building candidate description {cv_path.stem}")
         
         self.step_start(f"judging candidate {cv_path.stem}")
-        candidate_judgement = self.fast_gen(f"!@>instructions: Given the following position description and candidate cv, write an objective judgement about the candidate fitness to the position.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}\n!@>interview ai: Ok, here are the requested interview questions in markdown format\n```markdown\n")
+        candidate_judgement = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following position description and candidate cv, write an objective judgement about the candidate fitness to the position.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}{self.config.separator_template}{self.config.start_header_id_template}interview ai: Ok, here are the requested interview questions in markdown format\n```markdown\n")
         candidate_judgement.replace("```","")
-        grade = self.fast_gen(f"!@>instructions: Given the following candidate judgement, give a mark from 0 to 10.\n!@>judgement: {candidate_judgement}\n!@>grade: ")
+        grade = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following candidate judgement, give a mark from 0 to 10.{self.config.separator_template}{self.config.start_header_id_template}judgement: {candidate_judgement}{self.config.separator_template}{self.config.start_header_id_template}grade: ")
         candidate_judgement += "\n\n## grade: "+grade+"\n"
         output += "\n## Candidate judgement:\n"+candidate_judgement        
         self.full(output)
@@ -170,7 +170,7 @@ class Processor(APScript):
         self.step_end(f"judging candidate {cv_path.stem}")
         
         self.step_start(f"building candidate interview questions {cv_path.stem}")
-        interview_questions = self.fast_gen(f"!@>instructions: Given the following position description and candidate cv, build a list of interview questions to test the candidate against the position subject. Try to challenge the candidate about what's mentionned in the CV. Group the questions by theme. Make sure you mension elements from the cv that can be connected to the subject and ask questions about them. Also test social skills and subject ambition. Do not add comments after the description.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}\n!@>interview ai: Ok, here are the requested interview questions in markdown format\n```markdown\n")
+        interview_questions = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following position description and candidate cv, build a list of interview questions to test the candidate against the position subject. Try to challenge the candidate about what's mentionned in the CV. Group the questions by theme. Make sure you mension elements from the cv that can be connected to the subject and ask questions about them. Also test social skills and subject ambition. Do not add comments after the description.\nPosition description:{subject_summary}\nCandidate cv:\n{cv_summary}{self.config.separator_template}{self.config.start_header_id_template}interview ai: Ok, here are the requested interview questions in markdown format\n```markdown\n")
         interview_questions.replace("```","")
         self.save_text(interview_questions, output_path/("interview_questions.md"))
         self.step_end("building candidate interview questions")
@@ -183,7 +183,7 @@ class Processor(APScript):
         self.step_end(f"building full report {cv_path.stem}")
         
         self.step_start(f"Converting to latex {cv_path.stem}")
-        full_candidate_file_latex = self.fast_gen(f"!@>instructions: Convert the following markdown text to a full latex document using the article format. Format the markdown tables in order to make them fit the page width.\n```markdown\n{full_candidate_file_markdown}\n```\n!@>conversion:\n```latex\n")
+        full_candidate_file_latex = self.fast_gen(f"{self.config.start_header_id_template}instructions: Convert the following markdown text to a full latex document using the article format. Format the markdown tables in order to make them fit the page width.\n```markdown\n{full_candidate_file_markdown}\n```{self.config.separator_template}{self.config.start_header_id_template}conversion:\n```latex\n")
         full_candidate_file_latex = full_candidate_file_latex.replace("```","")        
         self.save_text(full_candidate_file_latex, output_path/(cv_path.stem+"_interview.tex"))
         self.step_end("Converting to latex")
@@ -194,12 +194,12 @@ class Processor(APScript):
 
         if self.personality_config.language!="":
             self.step_start(f"Translating to:{self.personality_config.language}")
-            full_candidate_file_latex_lang = self.fast_gen(f"!@>instructions: Translate this markdown text to {self.personality_config.language}.\n```markdown\n{full_candidate_file_markdown}\n``\n!@>translation:\n```markdown\n")
+            full_candidate_file_latex_lang = self.fast_gen(f"{self.config.start_header_id_template}instructions: Translate this markdown text to {self.personality_config.language}.\n```markdown\n{full_candidate_file_markdown}\n``{self.config.separator_template}{self.config.start_header_id_template}translation:\n```markdown\n")
             full_candidate_file_latex_lang = full_candidate_file_latex_lang.replace("```","")
             self.save_text(full_candidate_file_latex_lang, output_path/(f"full_candidate_file_latex_{self.personality_config.language}.md"))
             self.step_end(f"Translating to:{self.personality_config.language}")
             self.step_start("Converting to latex")
-            full_candidate_file_latex = self.fast_gen(f"!@>instructions: Convert the following markdown text to a full latex document using the article format. Format the markdown tables in order to make them fit the page width. Keep the same language and do not translate it to english.\n```markdown\n{full_candidate_file_latex_lang}\n```\n!@>conversion:\n```latex\n")
+            full_candidate_file_latex = self.fast_gen(f"{self.config.start_header_id_template}instructions: Convert the following markdown text to a full latex document using the article format. Format the markdown tables in order to make them fit the page width. Keep the same language and do not translate it to english.\n```markdown\n{full_candidate_file_latex_lang}\n```{self.config.separator_template}{self.config.start_header_id_template}conversion:\n```latex\n")
             full_candidate_file_latex = full_candidate_file_latex.replace("```","")
             self.save_text(full_candidate_file_latex, output_path/(cv_path.stem+f"_interview_{self.personality_config.language}.tex"))
             self.step_end("Converting to latex")

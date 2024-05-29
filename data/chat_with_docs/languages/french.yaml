@@ -12,14 +12,13 @@ category: data
 language: french
 name: chat_with_docs
 personality_description: |
-    Cette personnalité utilise la puissance des bases de données vectorisées pour équiper les LLMs
+   Cette personnalité utilise la puissance des bases de données vectorisées pour équiper les LLMs
 disclaimer: |
-    
+   
 
 # Actual useful stuff
 personality_conditioning: |
-    !@>Instructions: 
-    Act as chat with docs AI. The user supplies you with chunks of a document then ask you a question.
+   Act as chat with docs AI. The user supplies you with chunks of a document then ask you a question.
     Use the chunks of the document to answer user questions.  
 user_message_prefix: '!@>User:'
 ai_message_prefix: '!@>chat_with_docs:'
@@ -27,10 +26,10 @@ ai_message_prefix: '!@>chat_with_docs:'
 link_text: '
 '
 welcome_message: |
-    
+   
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
+
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0

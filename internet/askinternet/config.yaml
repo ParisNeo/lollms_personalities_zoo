@@ -17,7 +17,7 @@ disclaimer: ''
 link_text: '\n'
 name: AskInternet
 personality_conditioning: |
-  !@>Instructions:
+  
   Use Search engine output to answer Human question.
   Show sources as links using markdown format.
 

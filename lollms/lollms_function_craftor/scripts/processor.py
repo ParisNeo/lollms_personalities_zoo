@@ -183,11 +183,11 @@ class Processor(APScript):
         """
         self.callback = callback
         custom_entries = "\n".join([
-            "!@>function_call_template:",
+            f"{self.config.start_header_id_template}function_call_template:",
             "```python",
             self.template_code,
             "```",
-            "!@>Instyructions",
+            f"{self.config.start_header_id_template}Instyructions",
             "Using the template code and the user prompt, build a python code of a lollms function call script with the function itself and the metadata function that returns thefunction definition, description, parameters etc."
         ])
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)

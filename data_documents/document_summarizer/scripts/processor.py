@@ -85,10 +85,10 @@ class Processor(APScript):
         for i, chunk in enumerate(chunks):
             self.step_start(f"Processing chunk : {i+1}/{len(chunks)}")
             txt= "\n".join([
-                            f"!@>{chunk_name}:",
+                            f"{self.config.start_header_id_template}{chunk_name}:",
                             f"{chunk}",
-                            f"!@>system: {summary_instruction}",
-                            f"!@>information in bullet points:",
+                            f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}{summary_instruction}",
+                            f"{self.config.start_header_id_template}information in bullet points:",
                             f"```markdown\n{answer_start}"
                             ])
             ASCIIColors.magenta(txt)
@@ -116,13 +116,13 @@ class Processor(APScript):
                 chunk_size = int(self.personality.config.ctx_size*0.6) if self.personality_config.chunk_size==0 else self.personality_config.chunk_size
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
                 document_text = self.bulletpoints(document_chunks,"\n".join([
-                        f"!@>global context: {self.personality_config.global_context}",
+                        f"{self.config.start_header_id_template}global context: {self.personality_config.global_context}",
                         f"Extract the informations needed to fullfill the document anlysis from the current chunk in form of bullet points.",
                         "Do not answer the user question, just perform information scraping.",
                         "If you detect the document title in this chunks do not strip it aout and just keep it as a separate bullet point.",
                         "The ouput should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
-                        "!@>discussion:",
+                        f"{self.config.start_header_id_template}discussion:",
                         context_details["discussion_messages"] if self.personality_config.global_context else prompt
                     ]),
                     "Document chunk"
@@ -133,14 +133,14 @@ class Processor(APScript):
                 depth += 1
                 self.step_start(f"Last composition")
                 document_text = self.fast_gen("\n".join([
-                f"!@>global context: {self.personality_config.global_context}",
-                f"!@>system: Use the bulletpoint information to analyze the document and answer the user request.",
+                f"{self.config.start_header_id_template}global context: {self.personality_config.global_context}",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Use the bulletpoint information to analyze the document and answer the user request.",
                 f"Analyze the document taking into consideration the context information from the discussion.",
-                "!@>discussion:",
+                f"{self.config.start_header_id_template}discussion:",
                 context_details["discussion_messages"] if self.personality_config.global_context else prompt,
-                "!@>information extracted from document:",
+                f"{self.config.start_header_id_template}information extracted from document:",
                 document_text,
-                "!@>Response:\n"
+                f"{self.config.start_header_id_template}Response:\n"
                 ""
             ]))
         self.step_end(f"Last composition")
@@ -159,7 +159,7 @@ class Processor(APScript):
         document_text = self.fast_gen("\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"Analyze the document taking into consideration the context information from the discussion",
-                "!@>discussion:",
+                f"{self.config.start_header_id_template}discussion:",
                 previous_discussion
             ]))
         self.step_end(f"Last composition")
@@ -209,7 +209,7 @@ class Processor(APScript):
                                                             f"{self.personality.config.user_name} is asking to analyze the document", 
                                                             f"{self.personality.config.user_name} is just asking for information or chatting",
                                                         ],
-                                                        f"!@>{self.personality.config.user_name}: "+prompt)
+                                                        f"{self.config.start_header_id_template}{self.personality.config.user_name}: "+prompt)
             if index==1:
                 self.step_end("Analyzing request")
                 self.personality.step_start("Analyzing the document ...")
@@ -220,13 +220,13 @@ class Processor(APScript):
             else:
                 self.step_end("Analyzing request")
                 self.personality.step_start("Generating a response ...")
-                out = self.fast_gen(f"!@>global context: {self.personality_config.global_context}\n"+previous_discussion_text)
+                out = self.fast_gen(f"{self.config.start_header_id_template}global context: {self.personality_config.global_context}\n"+previous_discussion_text)
                 self.full(out)
                 self.personality.step_end("Generating ...")
                 
         else:
             self.personality.step_start("Generating ...")
-            out = self.fast_gen(f"!@>global context: {self.personality_config.global_context}\n"+previous_discussion_text)
+            out = self.fast_gen(f"{self.config.start_header_id_template}global context: {self.personality_config.global_context}\n"+previous_discussion_text)
             self.full(out)
         return out
 

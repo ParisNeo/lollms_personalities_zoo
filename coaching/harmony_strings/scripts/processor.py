@@ -516,7 +516,7 @@ class Processor(APScript):
     def get_welcome(self, welcome_message:str, client):
         user_level = self.get_or_create_user_profile()
         if user_level:
-            return self.fast_gen(f"!@>system: Build a better  welcome message for the user.\n!@>current_welcome_message: {welcome_message}\n!@>last session data: {user_level}\n!@>adapted welcome message:")
+            return self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Build a better  welcome message for the user.{self.config.separator_template}{self.config.start_header_id_template}current_welcome_message: {welcome_message}{self.config.separator_template}{self.config.start_header_id_template}last session data: {user_level}{self.config.separator_template}{self.config.start_header_id_template}adapted welcome message:")
         else:
             return welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n"
 
@@ -714,17 +714,17 @@ class Processor(APScript):
 
         prompt = self.build_prompt([
             context_details["conditionning"] if context_details["conditionning"] else "",
-            "!@>documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-            "!@>knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
+            f"{self.config.start_header_id_template}documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
+            f"{self.config.start_header_id_template}knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
             context_details["user_description"] if context_details["user_description"] else "",
-            "!@>positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-            "!@>negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-            "!@>current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-            "!@>fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-            "!@>discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
-            "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-            "!@>happiness_index:\n"+str(course_step) if course_step is not None else "",
-            "!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
+            f"{self.config.start_header_id_template}positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
+            f"{self.config.start_header_id_template}negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
+            f"{self.config.start_header_id_template}current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
+            f"{self.config.start_header_id_template}fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
+            f"{self.config.start_header_id_template}discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+            f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
+            f"{self.config.start_header_id_template}happiness_index:\n"+str(course_step) if course_step is not None else "",
+            f"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
         ], 
         8)
         chords_folder:Path = self.personality.assets_path/"chords"

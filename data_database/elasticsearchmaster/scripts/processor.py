@@ -163,13 +163,13 @@ class Processor(APScript):
 
     def get_index_name(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
-        index_name=self.fast_gen(f"!@>instruction: extract the index name from the prompt?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
+        index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: extract the index name from the prompt?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
         self.operation(index_name.replace("\"","").replace(".",""))
         self.full("Index created successfully")
 
     def get_mapping(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
-        output="```json\n{\n    \"properties\": {"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
+        output="```json\n{\n    \"properties\": {"+self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested mapping in json format?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
         output=self.remove_backticks(output.strip())
         self.create_mapping(json.loads(output))
         self.full("Mapping created successfully")
@@ -188,7 +188,7 @@ class Processor(APScript):
                                                     f"{self.personality.config.user_name} is asking for querying the database",
                                                     f"{self.personality.config.user_name} is just asking for information or chatting",
                                                 ],
-                                                f"!@>{self.personality.config.user_name}: "+prompt)
+                                                f"{self.config.start_header_id_template}{self.personality.config.user_name}: "+prompt)
         self.step_end("Analyzing request")
 
         if index==0:# "The prompt is asking for creating a new index"
@@ -206,7 +206,7 @@ class Processor(APScript):
         elif index==1:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for creating a new index")
             if self.yes_no("does the prompt contain the index name?",prompt):
-                index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
+                index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested index name?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
                 if self.create_index(index_name.replace("\"","").replace(".","")):
                     self.full("Index created successfully")
                 else:
@@ -220,7 +220,7 @@ class Processor(APScript):
         elif index==2:# "The prompt is asking for changing index"
             self.step("Analysis result: The prompt is asking for changing index")
             if self.yes_no("does the prompt contain the index name?",prompt):
-                index_name=self.fast_gen(f"!@>instruction: what is the requested index name?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is ").split("\n")[0].strip()
+                index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested index name?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
                 self.set_index(index_name)
                 self.full("Index set successfully")
             else:
@@ -231,7 +231,7 @@ class Processor(APScript):
         elif index==3:# "creating a mapping"
             self.step("Analysis result: The prompt is asking for creating a mapping")
             if self.yes_no("does the prompt contain the mapping information required to build a mapping json out of it?",prompt):
-                output="```json\n{\n    \"properties\": {"+self.fast_gen(f"!@>instruction: what is the requested mapping in json format?\n!@>user prompt: {prompt}\n!@>answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
+                output="```json\n{\n    \"properties\": {"+self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested mapping in json format?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
                 output=self.remove_backticks(output.strip())
                 self.create_mapping(json.loads(output))
                 self.full("Mapping created successfully")
@@ -249,7 +249,7 @@ class Processor(APScript):
         elif index==6:# "add an entry to the database"
             self.step("Analysis result: The prompt is asking to add an entry to the database")
             mapping = self.read_mapping()
-            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+f"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.\n!@>mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\nfrom elasticsearch import Elasticsearch\n", callback=self.sink)
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("{self.config.start_header_id_template}context!:\n"+previous_discussion_text+f"{self.config.separator_template}{self.config.start_header_id_template}instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to add an entry to the database as asked by the user. The output should be in form of a boolean.{self.config.separator_template}{self.config.start_header_id_template}mapping:{mapping}\nHere is the signature of the function:\ndef add_entry(es:ElasticSearch, index_name):\nDo not provide explanations or usage example.{self.config.separator_template}{self.config.start_header_id_template}elasticsearch_ai:Here is the query function that you are asking for:\n```python\nfrom elasticsearch import Elasticsearch\n", callback=self.sink)
             code = code.replace("ElasticSearch","Elasticsearch")
             code=self.extract_code_blocks(code)
 
@@ -263,13 +263,13 @@ class Processor(APScript):
                 exec(code, module.__dict__)
                 if module.add_entry(self.es, self.personality_config.index_name):
                     self.personality.info("Generating")
-                    out = f"<div hidden>\n{code}\n</div>\n" + self.fast_gen(f"!@>system: Describe the data being added to the database.\n!@>code: {code}"+"!@>elesticsearchai: ")
+                    out = f"<div hidden>\n{code}\n</div>\n" + self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Describe the data being added to the database.{self.config.separator_template}{self.config.start_header_id_template}code: {code}"+"{self.config.start_header_id_template}elesticsearchai: ")
                 else:
                     out = f"<div hidden>\n{code}\n</div>\n" + "Couldn't add data to the database"
                 self.full(out)
         elif index==7:# "querying the database"
             self.step("Analysis result: The prompt is asking for querying the database")
-            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("!@>context!:\n"+previous_discussion_text+"\n!@>instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be a string containing the requested information in markdown format.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str)->str:\nDo not provide explanations or usage example.\n!@>elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
+            code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("{self.config.start_header_id_template}context!:\n"+previous_discussion_text+"{self.config.separator_template}{self.config.start_header_id_template}instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be a string containing the requested information in markdown format.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str)->str:\nDo not provide explanations or usage example.{self.config.separator_template}{self.config.start_header_id_template}elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
             code = code.replace("ElasticSearch","Elasticsearch")
             code=self.extract_code_blocks(code)
 
@@ -286,15 +286,15 @@ class Processor(APScript):
                 search_result = module.query(self.es, self.personality_config.index_name)
                 if search_result:
                     # Process the search results
-                    docs= f"!@>query result:\n{search_result}"
+                    docs= f"{self.config.start_header_id_template}query result:\n{search_result}"
                     self.personality.info("Generating")
                     for document in tqdm.tqdm(docs, desc="Processing documents"):
                         chunks = [document[i:i+self.personality_config.chunk_size] for i in range(0, len(document), self.personality_config.chunk_size)]
                         for i,chunk in enumerate(chunks):
                             str_json = "[" + self.fast_gen("\n".join([
-                            "!@>log chunk:",
+                            f"{self.config.start_header_id_template}log chunk:",
                             f"{chunk}",
-                            "!@>instructions:",
+                            f"{self.config.start_header_id_template}instructions:",
                             "Act as if you are ElasticSearchMaster a cutting-edge artificial intelligence designed to assist analysts identify information related to their query and provide comprehensive analysis.",
                             "- I will make sure my query formulation is accurate and specific. I will ignore entries that are irrevalent to the query.",
                             "- Summarize documents accurately, ensuring clarity, relevance, and logical flow for efficient analysis.",
@@ -306,7 +306,7 @@ class Processor(APScript):
                             "- Answer in valid json format.",
 
 
-                            "!@>JSON format:",
+                            f"{self.config.start_header_id_template}JSON format:",
                             "[",
                             "    A list of entries.",
                             "Each entry represents an information response that should only be provided if you understand the query and can qualify it with arguments using only the document chunk, if not then you should leave it blank",
@@ -316,7 +316,7 @@ class Processor(APScript):
                             "   \"Document_Summary\": Provide a detailed summary of the document based on the document chunk. Summarize documents accurately, ensuring clarity, relevance, and logical flow for efficient analysis. If no summary can be generated based on the document chunk then leave it blank,",
                             "}",
                             "]",
-                            "!@>ElasticSearchMaster:",
+                            f"{self.config.start_header_id_template}ElasticSearchMaster:",
                             "Here is my report as a valid json:",
                             "["
                             ])

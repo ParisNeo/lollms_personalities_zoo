@@ -71,10 +71,10 @@ class Processor(APScript):
     def process_chunk(self, title, chunk, message = ""):
         self.step_start(f"Processing {title}")
         prompt = self.build_prompt([
-            "!@>system: Read the code chunk and try to detect any portential vulenerabilities. Point out the error by rewriting the code line where it occures, then propose a fix to it with a small example.",
-            "!@>code:\n",
+            f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Read the code chunk and try to detect any portential vulenerabilities. Point out the error by rewriting the code line where it occures, then propose a fix to it with a small example.",
+            f"{self.config.start_header_id_template}code:\n",
             chunk,
-            "!@>analysis:\n"
+            f"{self.config.start_header_id_template}analysis:\n"
         ])
         self.step_end(f"Processing {title}")
         analysis = self.fast_gen(prompt)

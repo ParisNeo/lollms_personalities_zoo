@@ -329,7 +329,7 @@ class Processor(APScript):
     def get_welcome(self, welcome_message:str, client):
         happiness_level = self.get_or_create_user_profile()
         if happiness_level:
-            return self.fast_gen(f"!@>system: Build a better  welcome message for the user.\n!@>current_welcome_message: {welcome_message}\n!@>last happiness level: {happiness_level}\n!@>adapted welcome message:")
+            return self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Build a better  welcome message for the user.{self.config.separator_template}{self.config.start_header_id_template}current_welcome_message: {welcome_message}{self.config.separator_template}{self.config.start_header_id_template}last happiness level: {happiness_level}{self.config.separator_template}{self.config.start_header_id_template}adapted welcome message:")
         else:
             return welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n"
 
@@ -505,8 +505,8 @@ class Processor(APScript):
         
 
         prompt = self.build_prompt_from_context_details(context_details,"\n".join([
-            "!@>memory_data:\n"+memory_data if memory_data is not None else "",
-            "!@>happiness_index:\n"+str(happiness_index) if happiness_index is not None else "",
+            f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
+            f"{self.config.start_header_id_template}happiness_index:\n"+str(happiness_index) if happiness_index is not None else "",
         ]))
 
         function_definitions = [

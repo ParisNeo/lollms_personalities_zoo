@@ -193,7 +193,7 @@ class Processor(APScript):
             if self.personality_config.synthesize:
                 prompt = f"""{previous_discussion_text}
                         Use this data and images to answer the user
-                        !@>wikipedia data:
+                        {self.config.start_header_id_template}wikipedia data:
                         {search_results}
                         answer>"""
                 self.step_start("Generating response")

@@ -127,7 +127,7 @@ class Processor(APScript):
         collective:List[AIPersonality] = self.personality.app.mounted_personalities
 
 
-        q_prompt = "!@>You are the queen of borg.\nYou have access to the following assimilated drones:\n"
+        q_prompt = f"{self.config.start_header_id_template}You are the queen of borg.\nYou have access to the following assimilated drones:\n"
         collective_infos = ""
         for i,drone in enumerate(collective):
             collective_infos +=  f"drone id: {i}\n"
@@ -136,8 +136,8 @@ class Processor(APScript):
         q_prompt += collective_infos
         answer = ""
         q_prompt += f"You are a great leader and you know which drone is most suitable to answer the user request.\n"
-        q_prompt += f"!@>user:{prompt}\n"
-        q_prompt += "!@>Queen of borg: To answer the user I summon the drone with id "
+        q_prompt += f"{self.config.start_header_id_template}user:{prompt}\n"
+        q_prompt += f"{self.config.start_header_id_template}Queen of borg: To answer the user I summon the drone with id "
         attempts = 0
 
 
@@ -152,7 +152,7 @@ class Processor(APScript):
                 collective[selection].callback=callback
 
                 if collective[selection].processor and collective[selection].name!="Queen of the Borg":
-                    q_prompt += f"!@>sytsem:Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"
+                    q_prompt += f"{self.config.start_header_id_template}sytsem:Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                     reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                     self.full(f"{collective[selection].name}, {reformulated_request}")
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
@@ -163,7 +163,7 @@ class Processor(APScript):
                     collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
                 else:
                     if collective[selection].name!="Queen of the Borg":
-                        q_prompt += f"!@>system: Reformulate the question for the drone.\n!@>Queen of borg: {collective[selection].name},"
+                        q_prompt += f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                         reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                         self.full(f"{collective[selection].name}, {reformulated_request}")
                         previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)

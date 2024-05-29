@@ -121,7 +121,7 @@ class Processor(APScript):
         done =  False
         while attempts<self.personality_config.nb_attempts and not done:
             q_prompt = "\n".join([
-                "!@>system:",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
                 "Utilizing the abilities of a select few team members, devise a strategy to address the issue presented by the user. Engage only the indispensable members to contribute to this solution.",
                 "Team members:\n"
             ]) 
@@ -151,9 +151,9 @@ class Processor(APScript):
                 "```",
                 "Do not add any comments to your answer."
             ])
-            q_prompt += f"!@>user:{prompt}\n"
+            q_prompt += f"{self.config.start_header_id_template}user:{prompt}\n"
             q_prompt += "\n".join([
-                "!@>project_manager_ai:\n"
+                f"{self.config.start_header_id_template}project_manager_ai:\n"
             ])
             answer = self.fast_gen(q_prompt, 1024, show_progress=True)
             code = self.extract_code_blocks(answer)
@@ -179,7 +179,7 @@ class Processor(APScript):
                     try:
                         members[member_id].callback=callback
                         if members[member_id].processor:
-                            q_prompt += f"!@>sytsem: Starting task by {members[member_id].name}, provide details\n!@>project_manager_ai: "
+                            q_prompt += f"{self.config.start_header_id_template}sytsem: Starting task by {members[member_id].name}, provide details{self.config.separator_template}{self.config.start_header_id_template}project_manager_ai: "
                             reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                             members[member_id].new_message("")
                             output = ""
@@ -191,11 +191,11 @@ class Processor(APScript):
                             members[member_id].processor.run_workflow(reformulated_request, previous_discussion_text, callback,context_details, client)
                         else:
                             previous_discussion_text_= previous_discussion_text.replace(prompt,"\n".join([
-                                "!@>user:",
+                                f"{self.config.start_header_id_template}user:",
                                 f"{prompt}",
-                                "!@>AI name:",
+                                f"{self.config.start_header_id_template}AI name:",
                                 members[member_id].name,
-                                "!@>task:",
+                                f"{self.config.start_header_id_template}task:",
                                 step["task"],
                             ]))
                             members[member_id].new_message("")

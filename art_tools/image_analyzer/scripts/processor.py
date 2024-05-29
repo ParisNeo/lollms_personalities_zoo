@@ -114,7 +114,7 @@ class Processor(APScript):
                 self.full(token_str, callback=callback)
                 print(token_str, end='')
             print("Processing...")
-            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=local_callback)
+            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.app.config.max_n_predict)[0], skip_special_tokens=True, callback=local_callback)
             print("Image description: "+output)
             self.full(f"File added successfully\nImage description :\n{output}\nImage:\n!{file_path}", callback=callback)
             self.finished_message()
@@ -209,7 +209,7 @@ class Processor(APScript):
                     print(token_str, end='')
 
 
-            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.model_n_predicts)[0], skip_special_tokens=True, callback=local_callback)
+            output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.app.config.max_n_predict)[0], skip_special_tokens=True, callback=local_callback)
         except Exception as ex:
             print(ex)
             trace_exception(ex)

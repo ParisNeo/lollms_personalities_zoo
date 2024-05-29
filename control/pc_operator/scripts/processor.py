@@ -157,7 +157,7 @@ class Processor(APScript):
                             "This triggers the end of the operation. It should be called when the objective is reached."
                             ),
                 ],
-                previous_discussion_text+"\n!@>obligation:Do not close the lollms tabin the browser.\n",max_answer_length=512)
+                previous_discussion_text+"{self.config.separator_template}{self.config.start_header_id_template}obligation:Do not close the lollms tabin the browser.\n",max_answer_length=512)
             self.full("\n".join([p.description for p in plan]))
             self.step_end("Planning operation")
             for action in plan:

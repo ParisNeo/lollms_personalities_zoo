@@ -203,7 +203,7 @@ class Processor(APScript):
         prompt = self.build_prompt_from_context_details(context_details)
 
         if self.yes_no("is the user asking to start the debate?", prompt):
-            p= self.build_prompt_from_context_details(context_details,f"!@>debaters list:\n{members}\n!@>Instruction: Debate manager, please introduce our guests and the subject.")
+            p= self.build_prompt_from_context_details(context_details,f"{self.config.start_header_id_template}debaters list:\n{members}{self.config.separator_template}{self.config.start_header_id_template}Instruction: Debate manager, please introduce our guests and the subject.")
             out = self.fast_gen(p)
             self.full(out)
             while not self.yes_no("should we stop the debate?", prompt):
@@ -212,7 +212,7 @@ class Processor(APScript):
                 prompt_data, content, tokens, context_details, internet_search_infos = self.personality.app.prepare_query(client.client_id)
                 prompt = self.build_prompt_from_context_details(context_details)
         else:
-            prompt +="interruption\n!@>Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"!@>"+context_details["ai_prefix"].replace("!@>","").replace(":","")+":"
+            prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
             out = self.interact_with_function_call(prompt, minimal_function_definitions, callback = self.sink)
 
         self.full(out)

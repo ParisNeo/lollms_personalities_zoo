@@ -125,7 +125,7 @@ class Processor(APScript):
         """
         self.personality.info("Generating")
         self.callback = callback
-        header_text = f"!@>Extra infos:\n"
+        header_text = f"{self.config.start_header_id_template}Extra infos:\n"
         header_text += f"server:{self.personality_config.server}\n"
         if self.personality_config.index_name!="":
             header_text += f"index_name:{self.personality_config.index_name}\n"
@@ -139,7 +139,7 @@ class Processor(APScript):
             header_text += f'es = Elasticsearch("{self.personality_config.server}", verify_certs=False)'
 
         execution_output = "\n".join([
-                    "!@>Requirements:",
+                    f"{self.config.start_header_id_template}Requirements:",
                     "Encase full code within one block.",
                     "Import all necessary libraries.",
                     "Submit a single, self-contained code block.",
@@ -156,7 +156,7 @@ class Processor(APScript):
                     context_details["conditionning"],
                     context_details["discussion_messages"],
                     execution_output,
-                    "\n!@>ElasticExplorer:",
+                    "{self.config.separator_template}{self.config.start_header_id_template}ElasticExplorer:",
                 ],
                 2
             )
@@ -164,7 +164,7 @@ class Processor(APScript):
             out = self.fast_gen(prompt, callback=self.sink)
             self.full(out)
             self.chunk("")
-            context_details["discussion_messages"] += "!@>ElasticExplorer:\n"+ out
+            context_details["discussion_messages"] += f"{self.config.start_header_id_template}ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""
             if len(code_blocks)>0:
@@ -179,14 +179,14 @@ class Processor(APScript):
                             stdout, stderr = execute_code(code)
 
                             execution_output += f"Output of script {i}:\n" + stdout +"\n"+f"\n" + stderr +"\n"+"\n".join([
-                                "!@>Requirements:",
+                                f"{self.config.start_header_id_template}Requirements:",
                                 "Disregard any warnings during code execution.",
                                 "Upon successful output, respond to user requests directly without incorporating any Python code blocks. If the output includes JSON data, enclose it within JSON code tags.",
                                 "In case of errors, rectify the code and provide a complete fixed code block without explanations. Ensure that you use a single code block to maintain readability and organization.",
                             ])
                         except Exception as ex:
                             execution_output += f"Error detected in script {i}:\n" + ex +"\n"+"\n".join([
-                                "!@>Requirements:",
+                                f"{self.config.start_header_id_template}Requirements:",
                                 "Utilize the error to correct and improve the code.",
                                 "Upon fixing the code, respond to user requests with the complete fixed code.",
                                 "Avoid providing any additional explanations or comments within your response.",

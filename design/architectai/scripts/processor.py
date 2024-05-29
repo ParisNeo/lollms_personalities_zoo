@@ -345,7 +345,7 @@ class Processor(APScript):
                 return default_resolution
                     
         self.step_start("Choosing resolution")
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect a suitable image size (width, height).\nThe default resolution uis ({default_resolution[0]},{default_resolution[1]})\n!@>selected_image_size:"
+        prompt=f"{full_context}{self.config.separator_template}{self.config.start_header_id_template}user:{prompt}\nSelect a suitable image size (width, height).\nThe default resolution uis ({default_resolution[0]},{default_resolution[1]}){self.config.separator_template}{self.config.start_header_id_template}selected_image_size:"
         sz = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","").split("\n")[0]
 
         self.step_end("Choosing resolution")
@@ -363,10 +363,10 @@ class Processor(APScript):
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
                 if not self.yes_no(f"Pay attention to the prompt tone and answer this, is the user's message explicitly asking to generate {self.personality_config.production_type}?", initial_prompt, self.personality_config.max_generation_prompt_size):
-                    pr  = PromptReshaper("""!@>instructions>ArchitectAI is an art generation AI that discusses with humains about art.
-!@>discussion:
+                    pr  = PromptReshaper("""{self.config.start_header_id_template}instructions>ArchitectAI is an art generation AI that discusses with humains about art.
+{self.config.start_header_id_template}discussion:
 {{previous_discussion}}{{initial_prompt}}
-!@>architectai:""")
+{self.config.start_header_id_template}architectai:""")
                     prompt = pr.build({
                             "previous_discussion":full_context,
                             "initial_prompt":initial_prompt
@@ -396,13 +396,13 @@ class Processor(APScript):
             # ====================================================================================
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
-            past = "!@>".join(self.remove_image_links(full_context).split("!@>")[:-2])
-            pr  = PromptReshaper(f"""!@>discussion:                                 
+            past = f"{self.config.start_header_id_template}".join(self.remove_image_links(full_context).split("{self.config.start_header_id_template}")[:-2])
+            pr  = PromptReshaper(f"""{self.config.start_header_id_template}discussion:                                 
 {past if self.personality_config.continuous_discussion else ''}
-!@>instructions:
+{self.config.start_header_id_template}instructions:
 Act as architectai, the art prompt generation AI. Use the previous discussion to come up with an image generation prompt. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details. 
 {initial_prompt}
-!@>art_generation_prompt: Create {self.personality_config.production_type}""")
+{self.config.start_header_id_template}art_generation_prompt: Create {self.personality_config.production_type}""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,
@@ -423,16 +423,16 @@ Act as architectai, the art prompt generation AI. Use the previous discussion to
             if not self.personality_config.use_fixed_negative_prompts:
                 self.step_start("Imagining negative prompt")
                 # 1 first ask the model to formulate a query
-                pr  = PromptReshaper("""!@>instructions:
+                pr  = PromptReshaper("""{self.config.start_header_id_template}instructions:
     Generate negative prompt based on the discussion with the user.
     The negative prompt is a list of keywords that should not be present in our image.
     Try to force the generator not to generate text or extra fingers or deformed faces.
     Use as many words as you need depending on the context.
     To give more importance to a term put it ibti multiple brackets ().
     example: {{fixed_negative_prompts}}
-    !@>discussion:
+    {self.config.start_header_id_template}discussion:
     {{previous_discussion}}{{initial_prompt}}
-    !@>architectai:
+    {self.config.start_header_id_template}architectai:
     prompt:{{sd_positive_prompt}}
     negative_prompt: ((morbid)),""")
                 prompt = pr.build({
@@ -457,13 +457,13 @@ Act as architectai, the art prompt generation AI. Use the previous discussion to
             if self.personality_config.build_title:
                 self.step_start("Making up a title")
                 # 1 first ask the model to formulate a query
-                pr  = PromptReshaper("""!@>instructions:
+                pr  = PromptReshaper("""{self.config.start_header_id_template}instructions:
 Given this image description prompt and negative prompt, make a consize title
-!@>positive_prompt:
+{self.config.start_header_id_template}positive_prompt:
 {{positive_prompt}}
-!@>negative_prompt:
+{self.config.start_header_id_template}negative_prompt:
 {{negative_prompt}}
-!@>title:
+{self.config.start_header_id_template}title:
 """)
                 prompt = pr.build({
                         "positive_prompt":sd_positive_prompt,

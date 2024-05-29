@@ -102,10 +102,10 @@ class Processor(APScript, FileSystemEventHandler):
                 for i, chunk in enumerate(chunks):
                     self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}")
                     str_json = "[" + self.fast_gen(
-                        f"""!@>log chunk:
+                        f"""{self.config.start_header_id_template}log chunk:
 {chunk}
 """+"""
-!@>instructions:
+{self.config.start_header_id_template}instructions:
 Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches from the content of the log chunk.
 - Analyze the provided chunk of data and extract all potential security breach attempts from the chunk.
 - Identify any suspicious patterns or anomalies that may indicate a security breach.
@@ -120,7 +120,7 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 - Only report breaches. Do not report legitimed access to the network.
 
 
-!@>JSON format:
+{self.config.start_header_id_template}JSON format:
 [
     A list of entries.
     Each entry represents a suspicious breach that should only be reported if you understand the problem and can qualify it with arguments
@@ -132,7 +132,7 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
         "proposed_fix": If you know a counter measure to avoid this, report it here or just say, I have no idea.
     }
 ]
-!@>cyber_sentinel_AI:
+{self.config.start_header_id_template}cyber_sentinel_AI:
 Here is my report as a valid json:
 ["""
                     )

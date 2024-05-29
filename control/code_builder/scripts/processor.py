@@ -143,7 +143,7 @@ class Processor(APScript):
             title = self.make_title(prompt)
             output = f"### {title}\n"
             plan = self.fast_gen("\n".join([
-                "!@>system: write a plan to build the project provided by the user.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}write a plan to build the project provided by the user.",
                 "Create a summary of your plan without writing the code.",
                 "Then present a file structure in the following format:",
                 "```structure",
@@ -180,25 +180,25 @@ class Processor(APScript):
                            file.mkdir(parents=True, exist_ok=True)
                         else:
                             # plan = self.fast_gen(self.build_prompt([
-                            #     f"!@>system: What other files should you know about in order to be able to build the file {file}",
+                            #     f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}What other files should you know about in order to be able to build the file {file}",
                             #     context_details["positive_boost"],
                             #     context_details["negative_boost"],
                             #     context_details["current_language"],
                             #     context_details["discussion_messages"],
-                            #     f"!@>file:{file}",
+                            #     f"{self.config.start_header_id_template}file:{file}",
                             #     context_details["ai_prefix"],
                             # ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
 
 
                             plan = self.fast_gen(self.build_prompt([
-                                "!@>system: Write the code of the file in a single markdown code tag.",
+                                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Write the code of the file in a single markdown code tag.",
                                 "Don't write the code of other files, just the file requested",
                                 "Don't provide explanations, just build the file and write it",
                                 context_details["positive_boost"],
                                 context_details["negative_boost"],
                                 context_details["current_language"],
                                 context_details["discussion_messages"],
-                                f"!@>file:{file}",
+                                f"{self.config.start_header_id_template}file:{file}",
                                 context_details["ai_prefix"],
                             ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
                             code_blocks = self.extract_code_blocks(plan)
@@ -216,7 +216,7 @@ class Processor(APScript):
             attempt =0
             while attempt<self.personality_config.max_coding_attempts:
                 self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                code = self.build_python_code(previous_discussion_text+"!@>Plan:\n"+plan+"\n")
+                code = self.build_python_code(previous_discussion_text+"{self.config.start_header_id_template}Plan:\n"+plan+"\n")
                 if code!="":
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
                     previous_discussion_text += code
@@ -225,7 +225,7 @@ class Processor(APScript):
                         break
                     except Exception as ex:
                         self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                        previous_discussion_text += f"!@> Exception detected:\n{ex}\n!@>request:Fix the bug.\n"
+                        previous_discussion_text += f"{self.config.start_header_id_template} Exception detected:\n{ex}{self.config.separator_template}{self.config.start_header_id_template}request:Fix the bug.\n"
                         attempt +=1 
                         self.output += "```exception\n"+str(ex)+"\n```"
                 else:

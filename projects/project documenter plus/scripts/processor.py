@@ -108,8 +108,8 @@ class Processor(APScript):
         gen_prompt = f"""Act as document title builder assistant. Infer a document title out of the project information.
 project_information:
 {prompt}
-!@>User: Using the project information, Create a title for the document.
-!@>Assistant:
+{self.config.start_header_id_template}User: Using the project information, Create a title for the document.
+{self.config.start_header_id_template}Assistant:
 Here is a suitable title for this project:"""
         if self.personality_config.is_debug:
             ASCIIColors.info(gen_prompt)
@@ -156,10 +156,10 @@ Here is the table of contents in markdown format:
                     gen_prompt = f"""Act as document section filler assistant. Infer the data for the next section of the document from the project information.
 project information:
 {prompt}
-!@>User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
-!@>previous chunk of text preview:
+{self.config.start_header_id_template}User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
+{self.config.start_header_id_template}previous chunk of text preview:
 {document_text[-500:]}
-!@>Assistant:
+{self.config.start_header_id_template}Assistant:
 Here is the subsection content:
 ### {subsection['title']}"""
                     if self.personality_config.is_debug:
@@ -172,10 +172,10 @@ Here is the subsection content:
                 gen_prompt = f"""Act as document section filler assistant. Infer the data for the next section of the document from the project information.
 project information:
 {prompt}
-!@>User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
-!@>previous chunk of text preview:
+{self.config.start_header_id_template}User: Using the project information, populate the content of the section {section['title']}. Don't repeat information already stated in previous text. Only write information that is relevant to the section.
+{self.config.start_header_id_template}previous chunk of text preview:
 {document_text[-500:]}
-!@>Assistant:
+{self.config.start_header_id_template}Assistant:
 Here is the section content:
 ## {section['title']}"""
                 if self.personality_config.is_debug:

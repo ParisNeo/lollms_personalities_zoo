@@ -67,32 +67,14 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["none (use default icon)","stable_diffusion", "dall-e-2", "dall-e-3"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
-                {"name":"default_negative_prompt","type":"str","value":"((((ugly)))), ((((text)))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck)))", "help":"A negative prompt to be used in icon generation. The worlds list is the lis tof words to avoid having in the image"},
-
                 {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
-                {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
-                {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
-                {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
-                
-                {"name":"sampler_name","type":"str","value":"DPM++ 3M SDE", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS", "UniPC", "DPM++ 3M SDE", "DPM++ 3M SDE Karras", "DPM++ 3M SDE Exponential"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
-                {"name":"ddim_steps","type":"int","value":50, "min":10, "max":1024},
-                {"name":"scale","type":"float","value":7.5, "min":0.1, "max":100.0},
-                {"name":"steps","type":"int","value":50, "min":10, "max":1024},                
-                {"name":"W","type":"int","value":512, "min":10, "max":2048},
-                {"name":"H","type":"int","value":512, "min":10, "max":2048},
-                {"name":"skip_grid","type":"bool","value":True,"help":"Skip building a grid of generated images"},
-                {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
-                {"name":"batch_size","type":"int","value":1, "min":1, "max":100,"help":"Number of images per batch (requires more memory)"},
-                {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
-                {"name":"seed","type":"int","value":-1},
-                {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
-                
+                {"name":"num_images","type":"int","value":1, "help":"Number of icons to generate"},
+                {"name":"model_temperature","type":"float","value":0.1, "help":"The temperature of generation using this personality (lower = more deterministic, higher = more creative, very high may lead to halucinations (make sure to keep it between 0 and 1))"},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -198,17 +180,17 @@ class Processor(APScript):
                 "",
                 "# Actual useful stuff",
                 "personality_conditioning: |",
-                "    !@>system: ",
+                f"    {self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}",
                 f"    {request_data.ai_conditionning}",
-                "user_message_prefix: '!@>user:'",
-                f"ai_message_prefix: '!@>{request_data.ai_name.lower().replace(' ','_')}:'",
+                "user_message_prefix: '{self.config.start_header_id_template}user:'",
+                f"ai_message_prefix: '{self.config.start_header_id_template}{request_data.ai_name.lower().replace(' ','_')}:'",
                 "# A text to put between user and chatbot messages",
                 "link_text: '\n'",
                 "welcome_message: |",
                 f"    {request_data.ai_welcome_message}",
                 "# Here are default model parameters",
                 f"model_temperature: {request_data.ai_temperature} # higher: more creative, lower: more deterministic",
-                "model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words",
+                "",
                 "model_top_k: 50",
                 "model_top_p: 0.90",
                 "model_repeat_penalty: 1.0",
@@ -222,7 +204,7 @@ class Processor(APScript):
                 "dependencies: []",
                 "",
                 "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-                "anti_prompts: ['!@>']"
+                "anti_prompts: ['{self.config.start_header_id_template}']"
             ])   
             self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/request_data.ai_name.lower().replace(" ","_").replace("\n","").replace('"','')
             self.assets_path:Path = self.personality_path/"assets"
@@ -244,16 +226,8 @@ class Processor(APScript):
 
 
     def prepare(self):
-        if self.personality_config.generation_engine=="stable_diffusion":
-            if self.sd is None:
-                self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                self.sd = self.personality.app.sd if hasattr(self.personality.app, 'sd') else LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
-                self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            model = self.sd.util_get_current_model()
-            if model!=self.personality_config.sd_model_name:
-                self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
-                self.sd.util_set_model(self.personality_config.sd_model_name,True)
-                self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+        if not self.personality.app.tti and self.personality_config.generate_icon:
+            self.info("No tti engine is selected.\nPlease select an engine from the services settings or deactivate icon generation from the personality settings")
 
 
     def remove_image_links(self, markdown_text):
@@ -306,18 +280,18 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt(
             [
 
-                "!@>system: icon imaginer is a personality icon description AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}icon imaginer is a personality icon description AI.",
                 "The user describes a personality and the ai should describe a suitable icon for the ai personality",
                 "icon imaginer tries to express the personality of by describing a suitable eye catching icon",
                 "icon imaginer uses english to describe the icon.",
                 "icon imaginer may emphesize some aspects of the icon by putting it inside multiple brackets, like (((beautiful))) or ((detailed)) etc...",
                 "the more important the text is, the bigger the number of brackets.",
                 "icon imaginer description starts by describing the icon in details, then adds the name of the style or a description of the style for more original vibes then add boosting words, like detailed, beautiful, hires etc...",
-                "!@>context:",
+                f"{self.config.start_header_id_template}context:",
                 discussion_messages,
-                f"!@>name: {name}",
+                f"{self.config.start_header_id_template}name: {name}",
                 f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
-                f"!@>icon imaginer : An (((icon))) of a "
+                f"{self.config.start_header_id_template}icon imaginer : An (((icon))) of a "
             ],5
         )
         sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
@@ -342,94 +316,26 @@ class Processor(APScript):
             ui=""
             for img in range(self.personality_config.num_images):
                 self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-                if self.personality_config.generation_engine=="stable_diffusion":
-                    file, infos = self.sd.paint(
-                                    sd_prompt, 
-                                    sd_negative_prompt,
-                                    [],
-                                    sampler_name = self.personality_config.sampler_name,
-                                    seed = self.personality_config.seed,
-                                    scale = self.personality_config.scale,
-                                    steps = self.personality_config.steps,
-                                    img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
-                                    width = 512,
-                                    height = 512,
-                                    restore_faces = True,
-                                )
-                    if file is None:
-                        self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
-                        continue
-                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
-                    file = str(file)
-
-                    files.append(file)
-                    escaped_url =  file_path_to_url(file)
-                    file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
-                    ui += file_html
-                    self.full(f'\n![]({escaped_url})')
-                elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
-                    import openai
-                    openai.api_key = self.personality_config.config["openai_key"]
-                    if self.personality_config.generation_engine=="dall-e-2":
-                        closest_resolution = [512, 512]
-                    else:
-                        closest_resolution = [1024, 1024]
-
-
-                    # Update the width and height
-                    self.personality_config.width = closest_resolution[0]
-                    self.personality_config.height = closest_resolution[1]                    
-
-                    # Read the image file from disk and resize it
-                    if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
-                        image = Image.open(self.personality.image_files[0])
-                        width, height = self.personality_config.width, self.personality_config.height
-                        image = image.resize((width, height))
-
-                        # Convert the image to a BytesIO object
-                        byte_stream = BytesIO()
-                        image.save(byte_stream, format='PNG')
-                        byte_array = byte_stream.getvalue()
-                        response = openai.images.create_variation(
-                            image=byte_array,
-                            n=1,
-                            model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
-                            size=f"{self.personality_config.width}x{self.personality_config.height}"
-                        )
-                    else:
-                        response = openai.images.generate(
-                            model=self.personality_config.generation_engine,
-                            prompt=sd_prompt.strip(),
-                            quality="standard",
-                            size=f"{self.personality_config.width}x{self.personality_config.height}",
-                            n=1,
-                            
+                file, infos = self.personality.app.tti.paint(
+                                sd_prompt, 
+                                sd_negative_prompt,
+                                [],
+                                width = 512,
+                                height = 512,
+                                restore_faces = True,
                             )
-                        # download image to outputs
-                        output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
-                        output_dir.mkdir(parents=True, exist_ok=True)
-                        image_url = response.data[0].url
+                if file is None:
+                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
+                    continue
+                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
+                file = str(file)
 
-                        # Get the image data from the URL
-                        response = requests.get(image_url)
+                files.append(file)
+                escaped_url =  file_path_to_url(file)
+                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
+                ui += file_html
+                self.full(f'\n![]({escaped_url})')
 
-                        if response.status_code == 200:
-                            # Generate the full path for the image file
-                            file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
-
-                            # Save the image to the specified folder
-                            with open(file_name, "wb") as file:
-                                file.write(response.content)
-                            ASCIIColors.yellow(f"Image saved to {file_name}")
-                        else:
-                            ASCIIColors.red("Failed to download the image")
-                        file = str(file_name)
-                        files.append(file)
-                        escaped_url =  file_path_to_url(file)
-                        file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
-                        ui += file_html
-                        self.full(f'\n![]({escaped_url})')
-                        self.chunk("")
 
         except Exception as ex:
             try:
@@ -523,14 +429,14 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt(
             [
 
-                "!@>system: names maker is a personality name making AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}names maker is a personality name making AI.",
                 "The user describes a personality and the ai should give it an apropriate name",
                 "If the user explicitely proposed a name, qna responds with that name",
                 "qna uses the same language as the one spoken by the user to name the personality.",
                 "qna only answers with the personality name without any explanation.",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>qna: The chosen personality name is "
+                f"{self.config.start_header_id_template}qna: The chosen personality name is "
             ],6
         )
         name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
@@ -558,14 +464,14 @@ class Processor(APScript):
         self.step_start("Coming up with the category")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: category maker is a personality category guessing AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}category maker is a personality category guessing AI.",
                 "The user describes a personality and the ai should guess what category the AI fits in best",
                 "If the user explicitely proposed a category, category maker responds with that category",
                 "category maker only answers with the personality category name without any explanation.",
                 f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>category maker: The chosen personality category is "
+                f"{self.config.start_header_id_template}category maker: The chosen personality category is "
             ],6
         )        
         category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -579,17 +485,17 @@ class Processor(APScript):
         self.step_start("Coming up with the language")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: language finder is a personality language guessing AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}language finder is a personality language guessing AI.",
                 "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
-                "!@>context:",
+                f"{self.config.start_header_id_template}context:",
                 context_details["discussion_messages"],
-                "!@>instructions to follow:",
+                f"{self.config.start_header_id_template}instructions to follow:",
                 "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
                 "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
                 "If the user explicitely states the language that should be used, language finder uses that language",
                 "language finder does not provide the language iso name, just the plain english name of the language such as: french, english, spanish, chinese, arabic etc ...",
                 "language finder only answers with the personality language name without any explanation.",
-                f"!@>language: "
+                f"{self.config.start_header_id_template}language: "
             ],3
         )
         language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -606,15 +512,15 @@ class Processor(APScript):
         self.step_start("Coming up with the description")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: description builder is a personality description AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}description builder is a personality description AI.",
                 "The user describes a personality and the ai should build a better description of the AI",
                 "description builder pays attention to the user description and infer any more details that need to be added while keeping a relatively short description text."
                 "description builder makes sure that no information provided by the user is overseen.",
                 "description builder only answers with the personality description without any explanation.",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>personality name:{name}",
-                f"!@>description in {language}: "
+                f"{self.config.start_header_id_template}personality name:{name}",
+                f"{self.config.start_header_id_template}description in {language}: "
             ],6
         )
         description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -629,16 +535,16 @@ class Processor(APScript):
         self.step_start("Coming up with the disclaimer")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: disclaimer builder is a personality disclaimer AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}disclaimer builder is a personality disclaimer AI.",
                 "The user describes a personality and the ai should build a disclaimer message to show the users of the personality.",
                 "disclaimer builder pays attention to the user description and infer any more details that need to be in the desclaimer while keeping a relatively short disclaimer text."
                 "disclaimer builder makes sure that harms that can be caused by the ai personality is clearely stated.",
                 "if the personality is harmless or can't be used to cause harm, then disclaimer builder just builds a soft very short assuring disclaimer.",
                 "disclaimer builder only answers with the personality disclaimer without any explanation.",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>personality name:{name}",
-                f"!@>disclaimer in {language}: "
+                f"{self.config.start_header_id_template}personality name:{name}",
+                f"{self.config.start_header_id_template}disclaimer in {language}: "
             ],7
         )
         disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -653,16 +559,16 @@ class Processor(APScript):
         self.step_start("Coming up with the conditionning")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: conditionning builder is a personality conditionning AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}conditionning builder is a personality conditionning AI.",
                 "The user describes a personality and the ai should build a consistant AI conditionning system text.",
                 "conditionning builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short conditionning text."
                 "conditionning builder only answers with the personality conditionning without any explanation.",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>personality language:{language}",
-                f"!@>conditionning builder: {name} is "
+                f"{self.config.start_header_id_template}personality language:{language}",
+                f"{self.config.start_header_id_template}conditionning builder: {name} is "
                 f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
-                f"!@>conditionning:",
+                f"{self.config.start_header_id_template}conditionning:",
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
@@ -677,11 +583,11 @@ class Processor(APScript):
             self.step_start("Optimizing the prompt")
             crafted_prompt = self.build_prompt(
                 [
-                    "!@>system: Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
-                    f"!@>user: Write a comprehensive personality conditionning text for {name} from this rough idea:",
+                    f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
+                    f"{self.config.start_header_id_template}user: Write a comprehensive personality conditionning text for {name} from this rough idea:",
                     f"{conditioning}",
                     f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
-                    f"!@>optimus:",
+                    f"{self.config.start_header_id_template}optimus:",
                 ]
             )
             conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
@@ -702,14 +608,14 @@ class Processor(APScript):
         self.step_start("Coming up with the welcome message")
         crafted_prompt = self.build_prompt(
             [
-                "!@>system: welcome message builder is a personality welcome message building AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}welcome message builder is a personality welcome message building AI.",
                 "The user describes a personality and the ai should build a short AI welcome message.",
                 "welcome message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short welcome message."
                 "welcome message builder only answers with the personality conditionning without any explanation.",
-                "!@>context",
+                f"{self.config.start_header_id_template}context",
                 context_details["discussion_messages"],
-                f"!@>personality name: {name}",
-                f"!@>personality welcome message in {language}: "
+                f"{self.config.start_header_id_template}personality name: {name}",
+                f"{self.config.start_header_id_template}personality welcome message in {language}: "
             ],5
         )
         welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -748,17 +654,17 @@ class Processor(APScript):
             "",
             "# Actual useful stuff",
             "personality_conditioning: |",
-            "    !@>system: ",
+            "    {self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}",
             f"    {conditioning}",
-            "user_message_prefix: '!@>user:'",
-            f"ai_message_prefix: '!@>{name.lower().replace(' ','_')}:'",
+            "user_message_prefix: '{self.config.start_header_id_template}user:'",
+            f"ai_message_prefix: '{self.config.start_header_id_template}{name.lower().replace(' ','_')}:'",
             "# A text to put between user and chatbot messages",
             "link_text: '\n'",
             "welcome_message: |",
             f"    {welcome_message}",
             "# Here are default model parameters",
-            "model_temperature: 0.6 # higher: more creative, lower: more deterministic",
-            "model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words",
+            f"model_temperature: {self.personality_config.model_temperature} # higher: more creative, lower: more deterministic",
+            "",
             "model_top_k: 50",
             "model_top_p: 0.90",
             "model_repeat_penalty: 1.0",
@@ -772,7 +678,7 @@ class Processor(APScript):
             "dependencies: []",
             "",
             "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-            "anti_prompts: ['!@>']"
+            "anti_prompts: ['{self.config.start_header_id_template}']"
         ])
 
         self.step_end("Building the yaml file")

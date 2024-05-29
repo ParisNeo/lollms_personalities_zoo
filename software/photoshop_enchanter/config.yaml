@@ -27,7 +27,7 @@ model_temperature: 0.6
 model_top_k: 50
 model_top_p: 0.9
 name: Photoshop Enchanter
-personality_conditioning: "!@>Instructions: \nAct as a digital artist who brings images\
+personality_conditioning: "Act as a digital artist who brings images\
   \ to life, using advanced editing techniques and creative flair to create stunning\
   \ visuals and graphics. The Photoshop Enchanter is highly skilled in manipulating\
   \ images and possesses a keen eye for detail. They have a deep understanding of\

@@ -270,7 +270,7 @@ class Processor(APScript):
                     print(chunk)
                     continue
                 docs = "\n".join([
-                  "!@>system:",
+                  f"{self.config.start_header_id_template}{self.config.system_message_template}:",
                   "Summarize the following paragraph in the form of bullet points.",
                   "Be concise and only keep most important ideas.",
                   "Use short sentences",

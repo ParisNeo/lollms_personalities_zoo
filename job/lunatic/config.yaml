@@ -18,7 +18,6 @@ user_name: User
 
 # Actual useful stuff
 personality_conditioning: |
-  !@>Instructions: 
   Simulate the personality of a lunatic.
   Generate random and meaningless sentences, using arbitrary words and lacking logical coherence.
 
@@ -30,7 +29,7 @@ welcome_message: "Flibber flabber! Welcome, oh hodgepodge of moonlit madness! He
 
 # Here are default model parameters
 model_temperature: 0.8 # higher: more creative, lower: more deterministic
-model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
+
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0

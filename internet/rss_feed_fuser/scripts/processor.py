@@ -276,7 +276,7 @@ class Processor(APScript):
         themes = {}
         out = ""
         for subject_bundle in subjects:
-            prompt = "!@>system: As an authoritative figure in the designated category, provide an in-depth analysis of the document's content, summarizing key points while highlighting any notable trends, patterns, or relevant context. Consider the document's source, credibility, and potential biases, while incorporating your expertise and insights to deliver a comprehensive and engaging summary.\n"
+            prompt = f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}As an authoritative figure in the designated category, provide an in-depth analysis of the document's content, summarizing key points while highlighting any notable trends, patterns, or relevant context. Consider the document's source, credibility, and potential biases, while incorporating your expertise and insights to deliver a comprehensive and engaging summary.\n"
             thumbnails = []
             urls = []
             for feed in subject_bundle:
@@ -291,10 +291,10 @@ class Processor(APScript):
                     content = self.summerize_text(content,"summerize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
-            prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.\n!@>Today date:{datetime.now()}\n!@>summary:\n"
+            prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.{self.config.separator_template}{self.config.start_header_id_template}Today date:{datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}summary:\n"
             gen = self.fast_gen(prompt, callback=self.sink)
                 
-            title = self.fast_gen(f"!@>system: Generate a concise yet eye catching title for this article.\nInfo: No comments, just provide a comprehensive and informative summary.\n!@>Today date:{datetime.now()}\n!@>content:{gen}\n!@>title:", callback=self.sink)
+            title = self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Generate a concise yet eye catching title for this article.\nInfo: No comments, just provide a comprehensive and informative summary.{self.config.separator_template}{self.config.start_header_id_template}Today date:{datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}content:{gen}{self.config.separator_template}{self.config.start_header_id_template}title:", callback=self.sink)
             themes['title']={
                 'title':title,
                 'thumbnails':thumbnails,
@@ -409,7 +409,7 @@ Article classified as : {cats[answer]}
             self.step_end("Understanding request")
             self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
-            query = self.personality.fast_gen(f"!@>discussion:\n{previous_discussion_text}\n!@>system: Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.\n!@>current date: {datetime.now()}\n!@>websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
+            query = self.personality.fast_gen(f"{self.config.start_header_id_template}discussion:\n{previous_discussion_text}{self.config.separator_template}{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Read the discussion and craft a web search query suited to recover needed information to reply to last {self.personality.config.user_name} message.\nDo not answer the prompt. Do not add explanations.{self.config.separator_template}{self.config.start_header_id_template}current date: {datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}websearch query: ", max_generation_size=256, show_progress=True, callback=self.personality.sink).split("\n")[0]
             self.personality.step("Query: "+query)
             self.personality.step_end("Crafting internet search query")
 

@@ -197,8 +197,8 @@ class Processor(APScript):
                         "It can be text or formatted html like table or img tags pointing to the saved plots or a tags pointing to generated file.",
                         "Files list with their columns:",
                         f"{files_infos}",
-                        f"!@>previous code attempt:\n```python\n{code}\n```\n" if code!="" else "",
-                        f"!@>detected bug:\n{previous_error}" if previous_error != "" else "",
+                        f"{self.config.start_header_id_template}previous code attempt:\n```python\n{code}\n```\n" if code!="" else "",
+                        f"{self.config.start_header_id_template}detected bug:\n{previous_error}" if previous_error != "" else "",
                         ]),
                         "def reply_to_user(files, output_folder)->str:",
                         "\n".join([

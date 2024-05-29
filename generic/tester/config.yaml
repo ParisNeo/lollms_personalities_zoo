@@ -17,7 +17,7 @@ disclaimer: ''
 link_text: '\n'
 name: Personality tester
 personality_conditioning: |
-  !@>Instructions: Just a test personality
+  Just a test personality
 personality_description: |
   A prompt generator for Stable diffusion's artificial
   intelligence program.

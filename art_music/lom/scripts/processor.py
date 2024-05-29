@@ -134,7 +134,7 @@ class Processor(APScript):
             "classic"
         ]
         stl=", ".join(styles)
-        prompt=f"{full_context}\n!@>user:{prompt}\nSelect what style(s) among those is more suitable for this musicwork: {stl}\n!@>assistant:The most suitable style among the proposed is"
+        prompt=f"{full_context}{self.config.separator_template}{self.config.start_header_id_template}user:{prompt}\nSelect what style(s) among those is more suitable for this musicwork: {stl}{self.config.separator_template}{self.config.start_header_id_template}assistant:The most suitable style among the proposed is"
         stl = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
         self.step_end("Selecting style")
 
@@ -148,10 +148,10 @@ class Processor(APScript):
         
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-                pr  = PromptReshaper("""!@>discussion:
+                pr  = PromptReshaper("""{self.config.start_header_id_template}discussion:
 {{previous_discussion}}{{initial_prompt}}
-!@>question: Is the user's message asking to generate a music sequence? Make a very short answer.
-!@>musicbot:Request answer:<answer>""")
+{self.config.start_header_id_template}question: Is the user's message asking to generate a music sequence? Make a very short answer.
+{self.config.start_header_id_template}musicbot:Request answer:<answer>""")
                 prompt = pr.build({
                         "previous_discussion":full_context,
                         "initial_prompt":initial_prompt
@@ -165,10 +165,10 @@ class Processor(APScript):
                 is_discussion = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 ASCIIColors.cyan(is_discussion)
                 if "yes" not in is_discussion.lower():
-                    pr  = PromptReshaper("""!@>instructions>Lord of Music is a music geneation IA that discusses about making music with the user.
-!@>discussion:
+                    pr  = PromptReshaper("""{self.config.start_header_id_template}instructions>Lord of Music is a music geneation IA that discusses about making music with the user.
+{self.config.start_header_id_template}discussion:
 {{previous_discussion}}{{initial_prompt}}
-!@>musicbot:""")
+{self.config.start_header_id_template}musicbot:""")
                     prompt = pr.build({
                             "previous_discussion":full_context,
                             "initial_prompt":initial_prompt
@@ -195,10 +195,10 @@ class Processor(APScript):
 
             self.step_start("Imagining prompt")
             # 1 first ask the model to formulate a query
-            past = "!@>".join(full_context.split("!@>")[:-2])
-            pr  = PromptReshaper("""!@>discussion:                                 
+            past = f"{self.config.start_header_id_template}".join(full_context.split("{self.config.start_header_id_template}")[:-2])
+            pr  = PromptReshaper("""{self.config.start_header_id_template}discussion:                                 
 {{previous_discussion}}
-!@>instructions:
+{self.config.start_header_id_template}instructions:
 Make a prompt based on the discussion with the user presented below to generate some music in the right style.
 Make sure you mention every thing asked by the user's idea.
 Do not make a very long text.
@@ -206,8 +206,8 @@ Do not use bullet points.
 The prompt should be in english.
 The generation ai has no access to the previous text so do not do references and just write the prompt.
 {{initial_prompt}}
-!@>style_choice: {{styles}}                                 
-!@>music_generation_prompt: Create""")
+{self.config.start_header_id_template}style_choice: {{styles}}                                 
+{self.config.start_header_id_template}music_generation_prompt: Create""")
             prompt = pr.build({
                     "previous_discussion":past if self.personality_config.continuous_discussion else '',
                     "initial_prompt":initial_prompt,

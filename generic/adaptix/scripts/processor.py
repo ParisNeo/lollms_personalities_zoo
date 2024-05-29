@@ -102,10 +102,10 @@ class Processor(APScript):
         self.personality.info("Rewriting Adaptix")
         self.callback = callback
         new_conditionning = self.fast_gen("\n".join([
-           "!@>system: Build a new system prompt to adapt Adaptix to the current user request. if no changes are needed, then respond with the current system prompt.",
+           f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Build a new system prompt to adapt Adaptix to the current user request. if no changes are needed, then respond with the current system prompt.",
            context_details["conditionning"],
            context_details["discussion_messages"],
-           "!@>adaptix:"
+           f"{self.config.start_header_id_template}adaptix:"
            "Here is the new system prompt that is fine tuned to maximize the probability that the AI acheives the requested task:"
         ]), callback=self.sink)
         self.personality_config.current_conditionning=new_conditionning
@@ -113,19 +113,19 @@ class Processor(APScript):
         self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen("\n".join([
-           f"!@>system: {self.personality_config.current_conditionning}",
+           f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}{self.personality_config.current_conditionning}",
            context_details["discussion_messages"],
            context_details["documentation"],
            context_details["knowledge"],
            context_details["user_description"],
            context_details["discussion_messages"],
-           "!@>current user prompt:",
+           f"{self.config.start_header_id_template}current user prompt:",
            prompt,
            context_details["positive_boost"],
            context_details["negative_boost"],
            context_details["current_language"],
            context_details["fun_mode"],
-           "!@>adaptix:"]))
+           f"{self.config.start_header_id_template}adaptix:"]))
         self.full(out)
         return out
 

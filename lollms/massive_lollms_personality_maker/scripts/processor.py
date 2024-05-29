@@ -192,8 +192,8 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_start("Imagining personas list")
         list_of_personas = "- " + self.generate(f"""{self.personality.personality_conditioning}
-!@>user request:{prompt}
-!@>task: Let's embark on a journey into the enchanting realm of imagination and conjure up the names and descriptions of {self.personality.personality_conditioning} mesmerizing personas. You, as the user, will provide an idea, and I'll present you with a list where each output is formatted as follows:
+{self.config.start_header_id_template}user request:{prompt}
+{self.config.start_header_id_template}task: Let's embark on a journey into the enchanting realm of imagination and conjure up the names and descriptions of {self.personality.personality_conditioning} mesmerizing personas. You, as the user, will provide an idea, and I'll present you with a list where each output is formatted as follows:
 - Name: A concise and captivating description.
 For instance:
 - Genius coder: A knowledgeable genius who guides and assists users with coding.
@@ -213,8 +213,8 @@ Here is the output in the format you have requested:
             # ----------------------------------------------------------------
             self.step_start("Coming up with the personality name")
             name = self.generate(f"""{self.personality.personality_conditioning}
-!@>user request:{persona}
-!@>task: What is the name of the personality requested by the user?
+{self.config.start_header_id_template}user request:{persona}
+{self.config.start_header_id_template}task: What is the name of the personality requested by the user?
 If the request contains already the name, then use that.
 {self.personality.ai_message_prefix}
 name:""",50,0.1,10,0.98).strip().split("\n")[0]
@@ -237,9 +237,9 @@ name:""",50,0.1,10,0.98).strip().split("\n")[0]
             # ----------------------------------------------------------------
             self.step_start("Coming up with the category")
             category = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{persona}
-!@>personality name:{name}
-!@>task: Infer the category of the personality
+{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}personality name:{name}
+{self.config.start_header_id_template}task: Infer the category of the personality
 {self.personality.ai_message_prefix}
 author name:""",256,0.1,10,0.98).strip().split("\n")[0]
             self.step_end("Coming up with the category")
@@ -249,8 +249,8 @@ author name:""",256,0.1,10,0.98).strip().split("\n")[0]
             # ----------------------------------------------------------------
             self.step_start("Coming up with the language")
             language = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{persona}
-!@>task: Infer the language of the request (english, french, chinese etc)
+{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}task: Infer the language of the request (english, french, chinese etc)
 {self.personality.ai_message_prefix}
 language:""",256,0.1,10,0.98).strip().split("\n")[0]
             self.step_end("Coming up with the language")
@@ -260,9 +260,9 @@ language:""",256,0.1,10,0.98).strip().split("\n")[0]
             # ----------------------------------------------------------------
             self.step_start("Coming up with the description")
             description = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{persona}
-!@>personality name:{name}
-!@>task: Write a description of the personality
+{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}personality name:{name}
+{self.config.start_header_id_template}task: Write a description of the personality
 Use detailed description of the most important traits of the personality
 {self.personality.ai_message_prefix}
 description:""",256,0.1,10,0.98).strip() 
@@ -273,9 +273,9 @@ description:""",256,0.1,10,0.98).strip()
             # ----------------------------------------------------------------
             self.step_start("Coming up with the disclaimer")
             disclaimer = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{persona}
-!@>personality name:{name}
-!@>task: Write a disclaimer about the ai personality infered from the request
+{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}personality name:{name}
+{self.config.start_header_id_template}task: Write a disclaimer about the ai personality infered from the request
 {self.personality.ai_message_prefix}
 disclaimer:""",256,0.1,10,0.98).strip()  
             self.step_end("Coming up with the disclaimer")
@@ -284,11 +284,11 @@ disclaimer:""",256,0.1,10,0.98).strip()
 
             # ----------------------------------------------------------------
             self.step_start("Coming up with the conditionning")
-            conditioning = self.generate(f"""!@>request:{persona}
-!@>personality name:{name}
-!@>task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request.
+            conditioning = self.generate(f"""{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}personality name:{name}
+{self.config.start_header_id_template}task: Craft a concise and detailed description of the personality and its key traits to condition a text AI. Use minimal words to simulate the inferred personality from the request.
 {self.personality.ai_message_prefix}
-!@>lollms_personality_maker: Here is the conditionning text for the personality {name}:
+{self.config.start_header_id_template}lollms_personality_maker: Here is the conditionning text for the personality {name}:
 Act as""",256,0.1,10,0.98).strip()
             conditioning = "Act as "+conditioning
             self.step_end("Coming up with the conditionning")
@@ -298,9 +298,9 @@ Act as""",256,0.1,10,0.98).strip()
             # ----------------------------------------------------------------
             self.step_start("Coming up with the welcome message")
             welcome_message = self.generate(f"""{self.personality.personality_conditioning}
-!@>request:{persona}
-!@>personality name:{name}
-!@>task: Write a welcome message text that {name} sends to the user at startup. Keep it short and sweet.
+{self.config.start_header_id_template}request:{persona}
+{self.config.start_header_id_template}personality name:{name}
+{self.config.start_header_id_template}task: Write a welcome message text that {name} sends to the user at startup. Keep it short and sweet.
 {self.personality.ai_message_prefix}
 welcome message:""",256,0.1,10,0.98).strip()          
             self.step_end("Coming up with the welcome message")
@@ -334,17 +334,17 @@ disclaimer: |
 
 # Actual useful stuff
 personality_conditioning: |
-    !@>Instructions: 
+    {self.config.start_header_id_template}Instructions: 
     {conditioning}  
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>{name.lower().replace(' ','_')}:'
+user_message_prefix: '{self.config.start_header_id_template}User:'
+ai_message_prefix: '{self.config.start_header_id_template}{name.lower().replace(' ','_')}:'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
     {welcome_message}
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
-model_n_predicts: 8192 # higher: generates more words, lower: generates fewer words
+
 model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
@@ -358,7 +358,7 @@ recommended_model: ''
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
+anti_prompts: ["{self.config.start_header_id_template}","<|end|>","<|user|>","<|system|>"]
             """
             personality_path:Path = output_path/(name.lower().replace(" ","_").replace("\n","").replace('"',''))
             personality_path.mkdir(parents=True, exist_ok=True)
@@ -378,14 +378,14 @@ anti_prompts: ["!@>","<|end|>","<|user|>","<|system|>"]
             # ----------------------------------------------------------------
             self.step_start("Imagining Icon")
             # 1 first ask the model to formulate a query
-            sd_prompt = self.generate(f"""!@>request: {persona}
-!@>task: Write a prompt to describe an icon to the personality being built to be generated by a text2image ai. 
+            sd_prompt = self.generate(f"""{self.config.start_header_id_template}request: {persona}
+{self.config.start_header_id_template}task: Write a prompt to describe an icon to the personality being built to be generated by a text2image ai. 
 The prompt should be descriptive and include stylistic information in a single paragraph.
 Try to show the face of the personality in the icon if it is not an abstract concept.
 Try to write detailed description of the icon as well as stylistic elements like rounded corners or glossy and try to invoke a particular style or artist to help the generrator ai build an accurate icon.
 Avoid text as the generative ai is not good at generating text.
-!@>personality name: {name}
-!@>prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
+{self.config.start_header_id_template}personality name: {name}
+{self.config.start_header_id_template}prompt:""",self.personality_config.max_generation_prompt_size,0.1,10,0.98).strip()
             self.step_end("Imagining Icon")
             ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
             # ----------------------------------------------------------------
