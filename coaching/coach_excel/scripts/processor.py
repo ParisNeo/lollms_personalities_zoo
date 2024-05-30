@@ -9,9 +9,12 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
-from lollms.functions.bibliography import arxiv_pdf_search_function, rate_relevance_function, search_and_rank_function
+from lollms.functions.generate_image import build_image, build_image_function
+from lollms.functions.select_image_file import select_image_file_function
+from lollms.functions.take_a_photo import take_a_photo_function
 
 from lollms.utilities import discussion_path_to_url
+from functions import add_training_session_function, update_training_session_function, delete_training_session_function
 import subprocess
 from typing import Callable
 from functools import partial
@@ -46,8 +49,6 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
-                
-                {"name":"score_threshold", "type":"float", "value":0.5, "help":"Rating threshold (between 0 and 1)."},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -187,11 +188,15 @@ class Processor(APScript):
 
         # TODO: add more functions to call
         function_definitions = [
-            arxiv_pdf_search_function(client),
-            search_and_rank_function(self, self.personality_config.score_threshold, client)
+            build_image_function(self, client),
+            take_a_photo_function(self, client),
+            select_image_file_function(self, client),
+            add_training_session_function(self.personality.app.lollms_paths.personal_outputs_path/self.personality.name/"Infos.xlsx"),
+            update_training_session_function(self.personality.app.lollms_paths.personal_outputs_path/self.personality.name/"Infos.xlsx"),
+            delete_training_session_function(self.personality.app.lollms_paths.personal_outputs_path/self.personality.name/"Infos.xlsx")
         ]
 
-        out = self.interact_with_function_call(prompt, function_definitions, prompt_after_execution=False, hide_function_call=False, separate_output=True)
+        out = self.interact_with_function_call(prompt, function_definitions)
 
         self.full(out)
 
