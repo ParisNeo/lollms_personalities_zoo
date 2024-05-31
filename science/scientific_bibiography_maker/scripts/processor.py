@@ -53,8 +53,8 @@ class Processor(APScript):
                 {"name":"nb_arxiv_results","type":"int","value":10, "min":1, "help":"number of results to recover for ARXIV"},                
                 {"name":"sort_by","type":"str","value":"relevance", "options":["relevance"], "help":"Sorting parameter"},                
                 {"name":"start_date","type":"str","value":"", "help":"Start date"},                
-                {"name":"end_date","type":"str","value":"relevance","help":"End date"},                
-                {"name":"author","type":"str","value":"relevance","help":"Search for a specific author"},                
+                {"name":"end_date","type":"str","value":"","help":"End date"},                
+                {"name":"author","type":"str","value":"","help":"Search for a specific author"},                
                 
                 {"name":"nb_ieee_explore_results","type":"int","value":0, "min":1, "help":"number of results to recover for IEEE explore"},                
                 {"name":"nb_hal_results","type":"int","value":0, "min":1, "help":"number of results to recover for HAL (French portal)"},                
