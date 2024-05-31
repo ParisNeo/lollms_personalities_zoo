@@ -525,7 +525,7 @@ class Processor(APScript):
             self.personality.error("No article found about this subject!")
 
     def search_organize_and_summerize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
-        report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details)
+        report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details, client=client)
         report = classify_reports(report)
         self.json("Report",report)
         try:
