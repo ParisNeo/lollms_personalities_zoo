@@ -10,6 +10,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.functions.bibliography import arxiv_pdf_search_function, rate_relevance_function, search_and_rank_function
+from lollms.functions.summary import summerize_discussion_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -188,7 +189,8 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             arxiv_pdf_search_function(client),
-            search_and_rank_function(self, self.personality_config.score_threshold, client)
+            search_and_rank_function(self, self.personality_config.score_threshold, client),
+            summerize_discussion_function(self, client.discussion)
         ]
 
         out = self.interact_with_function_call(prompt, function_definitions, prompt_after_execution=False, hide_function_call=False, separate_output=True)
