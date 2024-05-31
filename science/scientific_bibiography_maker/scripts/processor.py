@@ -502,22 +502,26 @@ class Processor(APScript):
                 code_blocks = self.extract_code_blocks(summary_latex)
                 if len(code_blocks)>0:
                     for code_block in code_blocks[:1]:
-                        self.full(self.build_prompt([
-                            "```latex",
-                            f"{code_block['content']}",
-                            "```"
-                        ]))
+                        self.full(
+                            "\n".join([
+                                "```latex",
+                                f"{code_block['content']}",
+                                "```"
+                            ])
+                        )
                         with open(download_folder/f"{self.personality_config.output_file_name}.tex","w",encoding="utf-8") as f:
                             f.write(code_block["content"])
                     if self.personality_config.pdf_latex_path!="":
                         output_file = download_folder/f"{self.personality_config.output_file_name}.tex"
                         self.compile_latex(output_file,self.personality_config.pdf_latex_path)
-                        self.full(self.build_prompt([
-                            "```latex",
-                            f"{code_block['content']}",
-                            "```",
-                            self.build_a_file_link(str(output_file).replace(".tex",".pdf"),"Click here to vew the generated PDF file")
-                        ]))
+                        self.full(
+                            "\n".join([
+                                "```latex",
+                                f"{code_block['content']}",
+                                "```",
+                                self.build_a_file_link(str(output_file).replace(".tex",".pdf"),"Click here to vew the generated PDF file")
+                            ])
+                        )
 
         else:
             self.personality.error("No article found about this subject!")
