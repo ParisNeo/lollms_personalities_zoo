@@ -6,6 +6,8 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
+from lollms.functions.bibliography import arxiv_pdf_search
+
 from safe_store.generic_data_loader import GenericDataLoader
 import requests
 import json
@@ -46,10 +48,14 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"research_subject","type":"str","value":"", "min":1, "help":"The subject of your research. This is useful to help the AI identify the relevance of the documents for your research subject"},
-                {"name":"research_output_path","type":"str","value":"", "min":1, "help":"path to a folder where to put the downloaded bibliography files as well as the summary and analysis results"},                
                 {"name":"pdf_latex_path","type":"str","value":"", "min":1, "help":"path to the pdflatex file pdf compiler used to compile pdf files"},
                 {"name":"ieee_explore_key","type":"str","value":"", "min":1, "help":"The key to use for accessing ieeexplore api"},                
                 {"name":"nb_arxiv_results","type":"int","value":10, "min":1, "help":"number of results to recover for ARXIV"},                
+                {"name":"sort_by","type":"str","value":"relevance", "options":["relevance"], "help":"Sorting parameter"},                
+                {"name":"start_date","type":"str","value":"", "help":"Start date"},                
+                {"name":"end_date","type":"str","value":"relevance","help":"End date"},                
+                {"name":"author","type":"str","value":"relevance","help":"Search for a specific author"},                
+                
                 {"name":"nb_ieee_explore_results","type":"int","value":0, "min":1, "help":"number of results to recover for IEEE explore"},                
                 {"name":"nb_hal_results","type":"int","value":0, "min":1, "help":"number of results to recover for HAL (French portal)"},                
                 {"name":"output_file_name","type":"str","value":"summary_latex", "min":1, "help":"Name of the pdf file to generate"},
@@ -136,11 +142,8 @@ class Processor(APScript):
     def search_analyze_organize_summerize(self, prompt="", full_context="", client = None):
         self.prepare()
 
-        if self.personality_config.research_output_path!="":
-            download_folder = Path(self.personality_config.research_output_path)
-        else:
-            download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
-            self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
+        download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
+        self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
         if self.personality_config.research_subject=="":
             self.personality.InfoMessage("Please set the research subject entry in the personality settings")
             return
@@ -149,11 +152,8 @@ class Processor(APScript):
 
 
     def analyze_articles(self, prompt="", full_context="", client = None):
-        if self.personality_config.research_output_path!="":
-            download_folder = Path(self.personality_config.research_output_path)
-        else:
-            download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
-            self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
+        download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
+        self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
         
         if len(self.personality.text_files)==0:
             self.personality.InfoMessage("Please upload articles to analyze then trigger this command")
@@ -231,16 +231,10 @@ class Processor(APScript):
             "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
             "Do not answer with text, just a single integer value without explanation.",
             f"{self.config.start_header_id_template}document:",
-            "title: {{title}}",
-            "content: {{content}}",
-            f"{self.config.start_header_id_template}subject:{{subject}}",
-            f"{self.config.start_header_id_template}relevance_value:"]), 10, 
-            {
-                "title":title,
-                "content":abstract,
-                "subject":research_subject,
-                "relevance_check_severity":str(self.personality_config.relevance_check_severity)
-            },
+            f"title: {title}",
+            f"content: {abstract}",
+            f"{self.config.start_header_id_template}subject:{research_subject}",
+            f"{self.config.start_header_id_template}relevance_value:"]), 10,
             debug=self.personality.config.debug, 
             callback=self.sink)
         relevance_score = self.find_numeric_value(relevance_score)
@@ -270,17 +264,12 @@ class Processor(APScript):
                     f"{self.config.start_header_id_template}{self.config.system_message_template}:",
                     "Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject."
                     f"{self.config.start_header_id_template}document:",
-                    "title: {{title}}",
-                    "authors: {{authors}}",
-                    "content: {{content}}",
-                    f"{self.config.start_header_id_template}subject: {{research_subject}}",
+                    f"title: {title}",
+                    f"authors: {authors}",
+                    f"content: {abstract}",
+                    f"{self.config.start_header_id_template}subject: {research_subject}",
                     f"{self.config.start_header_id_template}Explanation: "                    
-                    ]), self.personality_config.max_generation_prompt_size, {
-                    "title":title,
-                    "abstract":abstract,
-                    "research_subject":research_subject,
-                    "relevance_check_severity":str(self.personality_config.relevance_check_severity)
-                },
+                    ]), self.personality_config.max_generation_prompt_size,
                 debug=self.personality.config.debug,
                 callback=self.sink)
         else:
@@ -338,10 +327,7 @@ class Processor(APScript):
         self.new_message("")
         self.full(text)
         
-        if self.personality_config.research_output_path!="":
-            output_file = Path(self.personality_config.research_output_path)/"organized_search_results.html"
-        else:
-            output_file = client.discussion_path/"organized_search_results.html" if client is not None else None
+        output_file = client.discussion_path/"organized_search_results.html" if client is not None else None
         if output_file:
             with open(output_file,"w",encoding="utf-8") as f:
                 f.write("\n".join([
@@ -372,11 +358,7 @@ class Processor(APScript):
 
 
         # Specify the folder where you want to save the articles
-        if self.personality_config.research_output_path!="":
-            download_folder = Path(self.personality_config.research_output_path)
-        else:
-            download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
-            self.warning(f"You did not specify an analysis folder path to put the output into, please do that in the personality settings page.\nUsing default path {download_folder}")
+        download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
 
         # Create the download folder if it doesn't exist
         download_folder.mkdir(parents=True, exist_ok=True)
@@ -416,117 +398,67 @@ class Processor(APScript):
         # ----------------------------------- ARXIV ----------------------------------
         if self.personality_config.nb_arxiv_results>0:
             self.step_start(f"Searching articles on arxiv")
-            search_results_ = self.arxiv.Search(query=query, max_results=self.personality_config.nb_arxiv_results).results()
+            # "title": title,
+            # "authors": authors,
+            # "affiliations": affiliations,
+            # "abstract": abstract,
+            # "published_date": published_date,
+            # "journal_ref": journal_ref,
+            # "pdf_url": pdf_url,
+            # "local_url": local_url
+            html_output, pdf_info = arxiv_pdf_search(
+                                query, 
+                                self.personality_config.nb_arxiv_results, sort_by=self.personality_config.sort_by,
+                                start_date=self.personality_config.start_date if self.personality_config.start_date!="" else None,
+                                end_date=self.personality_config.end_date if self.personality_config.end_date!="" else None,
+                                author=self.personality_config.author if self.personality_config.author!="" else None)
+            # search_results_ = self.arxiv.Search(query=query, max_results=self.personality_config.nb_arxiv_results).results()
             self.step_end(f"Searching articles on arxiv")
-            search_results =[]
-            for i, result in enumerate(search_results_):
-                search_results.append(result)
-            articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(search_results)} articles on the subject"))
+            articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(pdf_info)} articles on the subject"))
             self.full("\n".join(articles_checking_text))
             # Download and save articles
-            for i, result in enumerate(search_results):
+            for i,(key, val)  in enumerate(pdf_info.items()):
+                pdf_url = val["pdf_url"]
+                doi = ""
+                journal_ref = val["journal_ref"]
+                authors = val["authors"]
+                local_url = val["local_url"]
+                title = val["title"]
+                abstract = val["abstract"]
+                document_file_name = local_url.split('/')[-1]
                 try:
-                    pdf_url = result.pdf_url
-                    doi = result.doi
-                    journal_ref = result.journal_ref
                     try:
-                        publication_date = result.published.strftime("%Y-%m-%d")
+                        publication_date = val["published_date"]
                     except Exception as ex:
                         publication_date = "Unknown"
-
-                    try:
-                        last_update_date = result.updated.strftime("%Y-%m-%d")
-                    except Exception as ex:
-                        last_update_date = "Unknown"
                     
                     if pdf_url:
-                        document_file_name = result.entry_id.split('/')[-1]
                         self.step_start(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
                         # Get the PDF content
-                        response = requests.get(pdf_url)
-                        if response.status_code == 200:
-                            # Create the filename for the downloaded article
-                            file_name = download_folder/f"{document_file_name}.pdf"
-                            # Save the PDF to the specified folder
-                            with open(file_name, "wb") as file:
-                                file.write(response.content)
-                            ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result.title}\n    to {file_name}")
-                            authors = ",".join([str(a.name) for a in result.authors])
-                            
-                            if self.analyze_pdf(
-                                                query, 
-                                                pdf_url, 
-                                                doi,
-                                                journal_ref,
-                                                publication_date,
-                                                last_update_date,
-                                                result.title, 
-                                                authors, 
-                                                result.summary, 
-                                                file_name, 
-                                                document_file_name, 
-                                                articles_checking_text, 
-                                                report
-                                            ):
-                                self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
-                            else:
-                                self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
+                        if self.analyze_pdf(
+                                            query, 
+                                            pdf_url, 
+                                            doi,
+                                            journal_ref,
+                                            publication_date,
+                                            "",
+                                            title, 
+                                            authors, 
+                                            abstract, 
+                                            local_url, 
+                                            document_file_name, 
+                                            articles_checking_text, 
+                                            report
+                                        ):
+                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
                         else:
-                            ASCIIColors.red(f"Failed to download {result.title}")
-                            self.step_start(f"{i}/{self.personality_config.nb_arxiv_results} {result.title}")
                             self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
                 except Exception as ex:
                     ASCIIColors.error(ex)
                     self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}", False)
 
         # ----------------------------------- HAL ----------------------------------
-        try:
-            if self.personality_config.nb_hal_results>0:
-                self.step_start(f"Searching articles on hal")
-                base_url = "http://api.archives-ouvertes.fr/search/"
-                keywords_fr=self.translate(keywords,"french")
-                query_params = {
-                    "q": f"{keywords_fr}",
-                    "wt":"json",
-                    "fl": "label_s,en_title_s,uri_s,abstract_s",
-                    "rows": self.personality_config.nb_hal_results,
-                    "sort": "submittedDate_tdate desc"
-                }
-                search_results = query_server(base_url, query_params)
-                articles_checking_text.append(self.build_a_document_block(f"Searching on hal {self.personality_config.nb_hal_results} articles.","",f"Found : {len(search_results['response']['docs'])} articles on the subject\n"))
-                self.full("\n".join(articles_checking_text))
-                self.step_end(f"Searching articles on hal")
 
-                # Download and save articles
-                for i, result in enumerate(search_results["response"]["docs"]):
-                    if "en_title_s" not in result: result["en_title_s"]=["undefined"]
-                    pdf_url = result["uri_s"]
-                    if pdf_url:
-                        document_file_name = result["uri_s"].split('/')[-1]
-                        self.step_start(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
-                        # Get the PDF content
-                        response = requests.get(pdf_url)
-                        if response.status_code == 200:
-                            # Create the filename for the downloaded article
-                            filename = download_folder/f"{document_file_name}.pdf"
-                            # Save the PDF to the specified folder
-                            with open(filename, "wb") as file:
-                                file.write(response.content)
-                            ASCIIColors.yellow(f"{i+1}/{self.personality_config.nb_arxiv_results} - Downloaded {result['en_title_s'][0]}\n    to {filename}")
-                            self.analyze_pdf(title=result["en_title_s"][0],
-                                    authors=result['label_s'],
-                                    abstract=result['abstract_s'][0],
-                                    research_subject = query,
-                                    document_file_name = document_file_name)
-
-                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}")
-
-                        else:
-                            ASCIIColors.red(f"Failed to download {result['en_title_s']}")
-                            self.step_start(f"{i}/{self.personality_config.nb_hal_results} {result['en_title_s']}")
-                            self.step_end(f"Processing document {i+1}/{self.personality_config.nb_hal_results}: {document_file_name}", False)
-        except Exception as ex:
-            ASCIIColors.error(ex)       
         
         return report, articles_checking_text, download_folder
 
