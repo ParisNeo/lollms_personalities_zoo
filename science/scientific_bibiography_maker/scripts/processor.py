@@ -375,9 +375,10 @@ class Processor(APScript):
                 f"{previous_discussion_text}",
                 f"{self.config.start_header_id_template}user prompt: {query}",
                 f"{self.config.start_header_id_template}keywords: "
-            ]), self.personality_config.max_generation_prompt_size, 
-                self.personality.config.debug,
-                self.sink)
+            ]),
+            self.personality_config.max_generation_prompt_size,,
+            debug=self.personality.config.debug,
+            callback=self.sink)
             self.step_end("Building Keywords...")
             self.full(keywords)
             if keywords=="":
