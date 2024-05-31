@@ -372,15 +372,12 @@ class Processor(APScript):
                 "The keywords should be as few as possible and be separated by comma.",
                 "Do not use quotation marks",
                 f"{self.config.start_header_id_template}context discussion:",
-                "{{previous_discussion}}",
-                f"{self.config.start_header_id_template}user prompt: {{research_subject}}",
+                f"{previous_discussion_text}",
+                f"{self.config.start_header_id_template}user prompt: {query}",
                 f"{self.config.start_header_id_template}keywords: "
-            ]), self.personality_config.max_generation_prompt_size, {
-                    "previous_discussion":previous_discussion_text,
-                    "research_subject":query
-                    }, ["previous_discussion"], 
-                    self.personality.config.debug,
-                    self.sink)
+            ]), self.personality_config.max_generation_prompt_size, 
+                self.personality.config.debug,
+                self.sink)
             self.step_end("Building Keywords...")
             self.full(keywords)
             if keywords=="":
