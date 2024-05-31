@@ -376,7 +376,7 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}user prompt: {query}",
                 f"{self.config.start_header_id_template}keywords: "
             ]),
-            self.personality_config.max_generation_prompt_size,,
+            self.personality_config.max_generation_prompt_size,
             debug=self.personality.config.debug,
             callback=self.sink)
             self.step_end("Building Keywords...")
