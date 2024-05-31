@@ -411,7 +411,8 @@ class Processor(APScript):
                                 self.personality_config.nb_arxiv_results, sort_by=self.personality_config.sort_by,
                                 start_date=self.personality_config.start_date if self.personality_config.start_date!="" else None,
                                 end_date=self.personality_config.end_date if self.personality_config.end_date!="" else None,
-                                author=self.personality_config.author if self.personality_config.author!="" else None)
+                                author=self.personality_config.author if self.personality_config.author!="" else None,
+                                client=client)
             # search_results_ = self.arxiv.Search(query=query, max_results=self.personality_config.nb_arxiv_results).results()
             self.step_end(f"Searching articles on arxiv")
             articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(pdf_info)} articles on the subject"))
