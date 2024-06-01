@@ -10,7 +10,7 @@
 #
 ai_message_prefix: '!@>artbot:'
 author: ParisNeo
-
+language: english
 category: art
 dependencies: []
 disclaimer: ''
@@ -21,11 +21,11 @@ include_welcome_message_in_discussion: False
 
 personality_description: |
   An art and illustration generation AI that can be inspired by the user to build interesting artworks.
-user_message_prefix: '!@>User:'
+user_message_prefix: 'user'
 user_name: user
-version: 3.0.0
+version: 4.0.0
 welcome_message: |
-  Welcome to Artbot 3, your reliable text-to-image generation program.
+  Welcome to Artbot 4, your reliable text-to-image generation program.
   With our cutting-edge technology, we transform your words into captivating visual masterpieces.
   Simply provide us with your prompt, and watch as your ideas come to life in stunning imagery.
   Get ready to unlock a world of limitless creativity and imagination.
@@ -57,7 +57,7 @@ commands:
     help: shows the stable diffusion settings
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!>","User:","!>User","!>Prompt"]
+anti_prompts: []
 
 # Here are default model parameters
 model_temperature: 0.9 # higher: more creative, lower more deterministic
