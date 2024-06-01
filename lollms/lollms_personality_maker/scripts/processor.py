@@ -180,10 +180,9 @@ class Processor(APScript):
                 "",
                 "# Actual useful stuff",
                 "personality_conditioning: |",
-                f"    {self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}",
                 f"    {request_data.ai_conditionning}",
-                "user_message_prefix: '{self.config.start_header_id_template}user:'",
-                f"ai_message_prefix: '{self.config.start_header_id_template}{request_data.ai_name.lower().replace(' ','_')}:'",
+                f"user_message_prefix: 'user'",
+                f"ai_message_prefix: '{request_data.ai_name.lower().replace(' ','_')}'",
                 "# A text to put between user and chatbot messages",
                 "link_text: '\n'",
                 "welcome_message: |",
@@ -204,7 +203,7 @@ class Processor(APScript):
                 "dependencies: []",
                 "",
                 "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-                "anti_prompts: ['{self.config.start_header_id_template}']"
+                "anti_prompts: []"
             ])   
             self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/request_data.ai_name.lower().replace(" ","_").replace("\n","").replace('"','')
             self.assets_path:Path = self.personality_path/"assets"
@@ -287,11 +286,11 @@ class Processor(APScript):
                 "icon imaginer may emphesize some aspects of the icon by putting it inside multiple brackets, like (((beautiful))) or ((detailed)) etc...",
                 "the more important the text is, the bigger the number of brackets.",
                 "icon imaginer description starts by describing the icon in details, then adds the name of the style or a description of the style for more original vibes then add boosting words, like detailed, beautiful, hires etc...",
-                f"{self.config.start_header_id_template}context:",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 discussion_messages,
-                f"{self.config.start_header_id_template}name: {name}",
+                f"{self.config.start_header_id_template}name{self.config.end_header_id_template}{name}",
                 f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
-                f"{self.config.start_header_id_template}icon imaginer : An (((icon))) of a "
+                f"{self.config.start_header_id_template}icon imaginer{self.config.end_header_id_template}An (((icon))) of a "
             ],5
         )
         sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
@@ -434,9 +433,9 @@ class Processor(APScript):
                 "If the user explicitely proposed a name, qna responds with that name",
                 "qna uses the same language as the one spoken by the user to name the personality.",
                 "qna only answers with the personality name without any explanation.",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}qna: The chosen personality name is "
+                f"{self.config.start_header_id_template}qna{self.config.end_header_id_template}The chosen personality name is "
             ],6
         )
         name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
@@ -469,9 +468,9 @@ class Processor(APScript):
                 "If the user explicitely proposed a category, category maker responds with that category",
                 "category maker only answers with the personality category name without any explanation.",
                 f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}category maker: The chosen personality category is "
+                f"{self.config.start_header_id_template}category maker{self.config.end_header_id_template}The chosen personality category is "
             ],6
         )        
         category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -487,15 +486,15 @@ class Processor(APScript):
             [
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}language finder is a personality language guessing AI.",
                 "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
-                f"{self.config.start_header_id_template}context:",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}instructions to follow:",
+                f"{self.config.start_header_id_template}instructions to follow{self.config.end_header_id_template}",
                 "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
                 "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
                 "If the user explicitely states the language that should be used, language finder uses that language",
                 "language finder does not provide the language iso name, just the plain english name of the language such as: french, english, spanish, chinese, arabic etc ...",
                 "language finder only answers with the personality language name without any explanation.",
-                f"{self.config.start_header_id_template}language: "
+                f"{self.config.start_header_id_template}language{self.config.end_header_id_template}"
             ],3
         )
         language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -517,10 +516,10 @@ class Processor(APScript):
                 "description builder pays attention to the user description and infer any more details that need to be added while keeping a relatively short description text."
                 "description builder makes sure that no information provided by the user is overseen.",
                 "description builder only answers with the personality description without any explanation.",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}personality name:{name}",
-                f"{self.config.start_header_id_template}description in {language}: "
+                f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}description in {language}{self.config.end_header_id_template}"
             ],6
         )
         description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -541,10 +540,10 @@ class Processor(APScript):
                 "disclaimer builder makes sure that harms that can be caused by the ai personality is clearely stated.",
                 "if the personality is harmless or can't be used to cause harm, then disclaimer builder just builds a soft very short assuring disclaimer.",
                 "disclaimer builder only answers with the personality disclaimer without any explanation.",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}personality name:{name}",
-                f"{self.config.start_header_id_template}disclaimer in {language}: "
+                f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}disclaimer in {language}{self.config.end_header_id_template}"
             ],7
         )
         disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -563,12 +562,12 @@ class Processor(APScript):
                 "The user describes a personality and the ai should build a consistant AI conditionning system text.",
                 "conditionning builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short conditionning text."
                 "conditionning builder only answers with the personality conditionning without any explanation.",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}personality language:{language}",
-                f"{self.config.start_header_id_template}conditionning builder: {name} is "
+                f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}personality language{self.config.end_header_id_template}{language}",
                 f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
-                f"{self.config.start_header_id_template}conditionning:",
+                f"{self.config.start_header_id_template}conditionning{self.config.end_header_id_template}",
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
@@ -584,14 +583,14 @@ class Processor(APScript):
             crafted_prompt = self.build_prompt(
                 [
                     f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
-                    f"{self.config.start_header_id_template}user: Write a comprehensive personality conditionning text for {name} from this rough idea:",
+                    f"{self.config.start_header_id_template}user{self.config.end_header_id_template}Write a comprehensive personality conditionning text for {name} from this rough idea:",
                     f"{conditioning}",
                     f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
-                    f"{self.config.start_header_id_template}optimus:",
+                    f"{self.config.start_header_id_template}optimus{self.config.end_header_id_template}",
                 ]
             )
             conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
-            conditioning = f"{name} is "+conditioning
+            conditioning = conditioning
             self.step_end("Coming up with the conditionning")
             ASCIIColors.yellow(f"Conditioning: {conditioning}")
             output_text+=self.build_a_document_block('refined conditioning',"",conditioning)
@@ -612,10 +611,10 @@ class Processor(APScript):
                 "The user describes a personality and the ai should build a short AI welcome message.",
                 "welcome message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short welcome message."
                 "welcome message builder only answers with the personality conditionning without any explanation.",
-                f"{self.config.start_header_id_template}context",
+                f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}personality name: {name}",
-                f"{self.config.start_header_id_template}personality welcome message in {language}: "
+                f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}personality welcome message in {language}{self.config.end_header_id_template}"
             ],5
         )
         welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -654,10 +653,9 @@ class Processor(APScript):
             "",
             "# Actual useful stuff",
             "personality_conditioning: |",
-            "    {self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}",
             f"    {conditioning}",
-            "user_message_prefix: '{self.config.start_header_id_template}user:'",
-            f"ai_message_prefix: '{self.config.start_header_id_template}{name.lower().replace(' ','_')}:'",
+            f"user_message_prefix: 'user:'",
+            f"ai_message_prefix: '{name.lower().replace(' ','_')}'",
             "# A text to put between user and chatbot messages",
             "link_text: '\n'",
             "welcome_message: |",
@@ -678,7 +676,7 @@ class Processor(APScript):
             "dependencies: []",
             "",
             "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-            "anti_prompts: ['{self.config.start_header_id_template}']"
+            f"anti_prompts: []"
         ])
 
         self.step_end("Building the yaml file")
