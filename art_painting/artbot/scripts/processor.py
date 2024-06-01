@@ -5,7 +5,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager, find_next_available_filename
+from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager, find_next_available_filename, discussion_path_to_url
 from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
@@ -38,9 +38,9 @@ class Processor(APScript):
         
         
         self.callback = None
-        self.sd = None
+        self.tti = None
         self.previous_sd_positive_prompt = None
-        self.sd_negative_prompt = None
+        self.negative_prompt = None
 
         self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
         if self.sd_models_folder.exists():
@@ -50,7 +50,7 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
-                {"name":"generation_engine","type":"str","value":"stable_diffusion", "options":["stable_diffusion", "dall-e-2", "dall-e-3", "comfyui"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
+                {"name":"generation_engine","type":"str","value":"system_tti", "options":["system_tti", "stable_diffusion", "dall-e-2", "dall-e-3", "midjourney", "comfyui", "diffusers", "foocus"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
@@ -163,17 +163,83 @@ class Processor(APScript):
 
 
     def prepare(self):
-        if self.sd is None and self.personality_config.generation_engine=="stable_diffusion":
-            self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            self.sd = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
-            self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-        
-        if self.personality_config.generation_engine=="stable_diffusion":
-            model = self.sd.util_get_current_model().split(".")[0]
-            if model!=self.personality_config.sd_model_name:
-                self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
-                self.sd.util_set_model(self.personality_config.sd_model_name,True)
-                self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+        if self.tti is None or self.tti.name!=self.personality_config.generation_engine:
+            
+            if self.personality_config.generation_engine=="system_tti":
+                if self.personality.app.tti:
+                    self.step(f"Using system tti system: {self.personality.app.tti.name}")
+                    self.tti = self.personality.app.tti
+                else:
+                    self.InfoMessage("You have selected system TTI but you have no system TTI selected. Please make sure you install a TTI service and select it ni your services settings or select another service in artbot settings.")              
+                    raise Exception("No service available")
+            if self.personality_config.generation_engine=="stable_diffusion":
+                from lollms.services.sd.lollms_sd import LollmsSD
+                if self.personality.app.tti and type(self.tts)==LollmsSD:
+                    self.step("Using system SD")
+                    self.tti = self.personality.app.tti
+                else:
+                    self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+                    self.tti = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
+                    self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
+            
+                if self.personality_config.generation_engine=="stable_diffusion":
+                    model = self.tti.util_get_current_model().split(".")[0]
+                    if model!=self.personality_config.sd_model_name:
+                        self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
+                        self.tti.util_set_model(self.personality_config.sd_model_name,True)
+                        self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
+
+            if self.personality_config.generation_engine=="dall-e-2":
+                from lollms.services.dalle.lollms_dalle import LollmsDalle
+                if self.personality.app.tti and type(self.tts)==LollmsDalle:
+                    self.step("Using system Dalle-2")
+                    self.tti = self.personality.app.tti
+                    self.tti.generation_engine = "dall-e-2"
+                else:
+                    self.tti = LollmsDalle(self.personality.app, self.personality_config.openai_key)
+
+            if self.personality_config.generation_engine=="dall-e-3":
+                from lollms.services.dalle.lollms_dalle import LollmsDalle
+                if self.personality.app.tti and type(self.tts)==LollmsDalle:
+                    self.step("Using system Dalle-3")
+                    self.tti = self.personality.app.tti
+                    self.tti.generation_engine = "dall-e-3"
+                else:
+                    self.tti = LollmsDalle(self.personality.app, self.personality_config.openai_key)
+
+            if self.personality_config.generation_engine=="midjourney":
+                from lollms.services.midjourney.lollms_midjourney import LollmsMidjourney
+                if self.personality.app.tti and type(self.tts)==LollmsMidjourney:
+                    self.step("Using system midjourney")
+                    self.tti = self.personality.app.tti
+                else:
+                    self.tti = LollmsMidjourney(self.personality.app, self.personality_config.openai_key)
+
+
+            if self.personality_config.generation_engine=="diffusers":
+                from lollms.services.diffusers.lollms_diffusers import LollmsDiffusers
+                if self.personality.app.tti and type(self.tts)==LollmsDiffusers:
+                    self.step("Using system Diffusers")
+                    self.tti = self.personality.app.tti
+                    self.tti.generation_engine = "diffusers"
+                else:
+                    self.tti = LollmsDiffusers(self.personality.app)
+
+            if self.personality_config.generation_engine=="comfyui":
+                from lollms.services.comfyui.lollms_comfyui import LollmsComfyUI
+                if self.personality.app.tti and type(self.tts)==LollmsComfyUI:
+                    self.step("Using system ComfyUI")
+                    self.tti = self.personality.app.tti
+                else:
+                    self.tti = LollmsComfyUI(self.personality.app)
+
+            if self.personality_config.generation_engine=="fooocus":
+                from lollms.services.fooocus.lollms_fooocus import LollmsFooocus
+                if self.personality.app.tti and type(self.tts)==LollmsFooocus:
+                    self.step("Using system Fooocus")
+                    self.tti = self.personality.app.tti
+                else:
+                    self.tti = LollmsFooocus(self.personality.app)
 
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
@@ -233,7 +299,7 @@ class Processor(APScript):
             # Convert the image to RGB mode
             img = img.convert("RGB")
             description = self.personality.model.interrogate_blip([img])[0]
-            # description = self.sd.interrogate(str(path)).info
+            # description = self.tti.interrogate(str(path)).info
             self.print_prompt("Blip description",description)
             self.step_end("Understanding the image", callback=callback)           
             file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
@@ -248,11 +314,11 @@ class Processor(APScript):
         self.prepare()
         if self.previous_sd_positive_prompt:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
-            output0 = f"### Positive prompt:\n{self.previous_sd_positive_prompt}\n\n### Negative prompt:\n{self.previous_sd_negative_prompt}"
+            output0 = f"### Positive prompt:\n{self.previous_sd_positive_prompt}\n\n### Negative prompt:\n{self.previous_negative_prompt}"
             output = output0
             self.full(output)
 
-            infos = self.paint(self.previous_sd_positive_prompt, self.previous_sd_negative_prompt, self.previous_sd_title, output)
+            infos = self.paint(self.previous_sd_positive_prompt, self.previous_negative_prompt, self.previous_sd_title, output, client)
          
             self.step_end("Regenerating using the previous prompt")
         else:
@@ -323,132 +389,33 @@ class Processor(APScript):
 
         return extract_resolution(sz, default_resolution)
 
-    def paint(self, sd_positive_prompt, sd_negative_prompt, sd_title, metadata_infos):
+    def paint(self, positive_prompt, negative_prompt, sd_title, metadata_infos, client:Client):
         files = []
         ui=""
         metadata_infos0=metadata_infos
         for img in range(self.personality_config.num_images):
             self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-            if self.personality_config.generation_engine=="stable_diffusion":
-                file, infos = self.sd.paint(
-                                sd_positive_prompt, 
-                                sd_negative_prompt,
+            file, infos = self.tti.paint(
+                                positive_prompt,
+                                negative_prompt,
                                 self.personality.image_files,
-                                sampler_name = self.personality_config.sampler_name,
-                                seed = self.personality_config.seed,
-                                scale = self.personality_config.scale,
-                                steps = self.personality_config.steps,
-                                img2img_denoising_strength = self.personality_config.img2img_denoising_strength,
+                                self.personality_config.sampler_name,
+                                self.personality_config.seed,
+                                self.personality_config.scale,
+                                self.personality_config.steps,
+                                self.personality_config.img2img_denoising_strength,
                                 width = self.personality_config.width,
                                 height = self.personality_config.height,
-                                restore_faces = self.personality_config.restore_faces,
+                                output_path=client.discussion.discussion_folder
+                                
                             )
-                infos["title"]=sd_title
-                file = str(file)
+            file = str(file)
+            escaped_url =  discussion_path_to_url(file)
+            metadata_infos += f'\n![]({escaped_url})'
+            file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
+            ui += file_html
+            self.full(metadata_infos) 
 
-                escaped_url =  file_path_to_url(file)
-
-                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
-                files.append(escaped_url)
-                ui += file_html
-                metadata_infos += f'\n![]({escaped_url})'
-                self.full(metadata_infos)
-                
-            elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
-                if not PackageManager.check_package_installed("openai"):
-                    PackageManager.install_package("openai")
-                import openai
-                openai.api_key = self.personality_config.config["openai_key"]
-                if self.personality_config.generation_engine=="dall-e-2":
-                    supported_resolutions = [
-                        [512, 512],
-                        [1024, 1024],
-                    ]
-                    # Find the closest resolution
-                    closest_resolution = min(supported_resolutions, key=lambda res: abs(res[0] - self.personality_config.width) + abs(res[1] - self.personality_config.height))
-                    
-                else:
-                    supported_resolutions = [
-                        [1024, 1024],
-                        [1024, 1792],
-                        [1792, 1024]
-                    ]
-                    # Find the closest resolution
-                    if self.personality_config.width>self.personality_config.height:
-                        closest_resolution = [1792, 1024]
-                    elif self.personality_config.width<self.personality_config.height: 
-                        closest_resolution = [1024, 1792]
-                    else:
-                        closest_resolution = [1024, 1024]
-
-
-                # Update the width and height
-                self.personality_config.width = closest_resolution[0]
-                self.personality_config.height = closest_resolution[1]                    
-
-                if len(self.personality.image_files)>0 and self.personality_config.generation_engine=="dall-e-2":
-                    # Read the image file from disk and resize it
-                    image = Image.open(self.personality.image_files[0])
-                    width, height = self.personality_config.width, self.personality_config.height
-                    image = image.resize((width, height))
-
-                    # Convert the image to a BytesIO object
-                    byte_stream = BytesIO()
-                    image.save(byte_stream, format='PNG')
-                    byte_array = byte_stream.getvalue()
-                    response = openai.images.create_variation(
-                        image=byte_array,
-                        n=1,
-                        model=self.personality_config.generation_engine, # for now only dalle 2 supports variations
-                        size=f"{self.personality_config.width}x{self.personality_config.height}"
-                    )
-                else:
-
-                    response = openai.images.generate(
-                        model=self.personality_config.generation_engine,
-                        prompt=sd_positive_prompt.strip(),
-                        quality="standard",
-                        size=f"{self.personality_config.width}x{self.personality_config.height}",
-                        n=1,
-                        
-                        )
-                infos = {
-                    "title":sd_title,
-                    "prompt":self.previous_sd_positive_prompt,
-                    "negative_prompt":""
-                }
-                # download image to outputs
-                output_dir = self.personality.lollms_paths.personal_outputs_path/"dalle"
-                output_dir.mkdir(parents=True, exist_ok=True)
-                image_url = response.data[0].url
-
-                # Get the image data from the URL
-                response = requests.get(image_url)
-
-                if response.status_code == 200:
-                    # Generate the full path for the image file
-                    file_name = output_dir/find_next_available_filename(output_dir, "img_dalle_")  # You can change the filename if needed
-
-                    # Save the image to the specified folder
-                    with open(file_name, "wb") as file:
-                        file.write(response.content)
-                    ASCIIColors.yellow(f"Image saved to {file_name}")
-                else:
-                    ASCIIColors.red("Failed to download the image")
-                file = str(file_name)
-
-                url = "/"+file[file.index("outputs"):].replace("\\","/")
-                file_html = self.make_selectable_photo(Path(file).stem, url, infos)
-                files.append("/"+file[file.index("outputs"):].replace("\\","/"))
-                ui += file_html
-                metadata_infos += f'\n![]({url})'
-                self.full(metadata_infos)
-
-            self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
-
-        if self.personality_config.continue_from_last_image:
-            self.personality.image_files= [file]
-        self.full(metadata_infos0)
         self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)        
         return infos
 
@@ -517,9 +484,9 @@ class Processor(APScript):
 
             self.print_prompt("Positive prompt",prompt)
 
-            sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{sd_positive_prompt}") 
+            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
@@ -535,16 +502,16 @@ class Processor(APScript):
                                 f"{self.config.start_header_id_template}discussion:",
                                 past if self.personality_config.continuous_discussion else '',
                                 stl,
-                                f"{self.config.start_header_id_template}positive prompt: {sd_positive_prompt}",
+                                f"{self.config.start_header_id_template}positive prompt: {positive_prompt}",
                                 f"{self.config.start_header_id_template}negative prompt: ((morbid)),",
                 ],6)
 
                 self.print_prompt("Generate negative prompt", prompt)
-                sd_negative_prompt = "((morbid)),"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                negative_prompt = "((morbid)),"+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Imagining negative prompt")
             else:
-                sd_negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{sd_negative_prompt}") 
+                negative_prompt = self.personality_config.fixed_negative_prompts
+            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{negative_prompt}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
@@ -559,8 +526,8 @@ Given this image description prompt and negative prompt, make a consize title
 {self.config.start_header_id_template}title:
 """)
                 prompt = pr.build({
-                        "positive_prompt":sd_positive_prompt,
-                        "negative_prompt":sd_negative_prompt,
+                        "positive_prompt":positive_prompt,
+                        "negative_prompt":negative_prompt,
                         }, 
                         self.personality.model.tokenize, 
                         self.personality.model.detokenize, 
@@ -577,21 +544,21 @@ Given this image description prompt and negative prompt, make a consize title
             self.height=self.personality_config.height
             prompt = initial_prompt.split("\n")
             if len(prompt)>1:
-                sd_positive_prompt = prompt[0]
-                sd_negative_prompt = prompt[1]
+                positive_prompt = prompt[0]
+                negative_prompt = prompt[1]
             else:
-                sd_positive_prompt = prompt[0]
-                sd_negative_prompt = ""
+                positive_prompt = prompt[0]
+                negative_prompt = ""
             
-        self.previous_sd_positive_prompt = sd_positive_prompt
-        self.previous_sd_negative_prompt = sd_negative_prompt
+        self.previous_sd_positive_prompt = positive_prompt
+        self.previous_negative_prompt = negative_prompt
         self.previous_sd_title = sd_title
 
         output = metadata_infos
 
         if self.personality_config.paint:
             self.prepare()
-            infos = self.paint(sd_positive_prompt, sd_negative_prompt, sd_title, metadata_infos)
+            infos = self.paint(positive_prompt, negative_prompt, sd_title, metadata_infos, client)
             self.full(output.strip())
 
         else:
@@ -631,7 +598,7 @@ Given this image description prompt and negative prompt, make a consize title
             self.personality.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             self.personality.info("Regenerating")
             self.previous_sd_positive_prompt = prompt
-            self.previous_sd_negative_prompt = negative_prompt
+            self.previous_negative_prompt = negative_prompt
             self.new_message(f"Generating {self.personality_config.num_images} variations")
             self.prepare()
             self.regenerate()
