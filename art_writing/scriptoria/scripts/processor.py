@@ -188,7 +188,7 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
-            start_writing_story_function(self, client.discussion.discussion_folder/"story.md"),
+            start_writing_story_function(self, client.discussion.discussion_folder/"story.md",True),
         ]
         out = self.interact_with_function_call(prompt, function_definitions,prompt_after_execution=False, hide_function_call=True, separate_output=True)
         self.full(out)

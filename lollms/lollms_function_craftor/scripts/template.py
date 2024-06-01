@@ -24,11 +24,16 @@ import pyautogui
 # here is the core of the function to be built
 # Change the name of this function depending on the user requets, 
 def add_constant(parameter1:str, parameter2:int) -> float: # use typed parameters depending on the requested function, only int, float or text outputs are allowed
+    """
+    Put a detailed docstring here
+    """
+    
     try:
         # handle exceptions
 
         # Here you perform your computation or you execute the function
         result = 5.5+parameter2 if parameter1=="hi" else 5.5-parameter2
+        
         
         # Finally we return the output
         return result
