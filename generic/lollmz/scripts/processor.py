@@ -17,6 +17,9 @@ from lollms.functions.generate_image import build_image_function
 from lollms.functions.peripherals import move_mouse_to_position_function, press_mouse_button_function, type_text_function
 from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.search import search_and_clean_content_function
+from lollms.functions.summary import summerize_discussion_function
+from lollms.functions.youtube.search_and_show import search_youtube_and_play_function
+
 
 from typing import Callable
 from functools import partial
@@ -224,7 +227,8 @@ class Processor(APScript):
             search_and_clean_content_function(),
             move_mouse_to_position_function(), 
             press_mouse_button_function(), 
-            type_text_function()
+            type_text_function(),
+            search_youtube_and_play_function()
         ]
         out = self.interact_with_function_call(prompt, function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
