@@ -48,6 +48,9 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"use_illustrations", "type":"bool", "value":False, "help":"If true, the story will contain illustrations."},
+                {"name":"include_summary_between_chapters", "type":"bool", "value":False, "help":"If true, the story will be summerized up to the current section to provide global context for the AI. Otherwize it will only rely on the plan."},
+
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -188,7 +191,7 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
-            start_writing_story_function(self, client.discussion.discussion_folder/"story.md", True, client),
+            start_writing_story_function(self, client.discussion.discussion_folder/"story.md", True, self.personality_config.include_summary_between_chapters,  client),
         ]
         out = self.interact_with_function_call(prompt, function_definitions,prompt_after_execution=False, hide_function_call=True, separate_output=True)
         self.full(out)
