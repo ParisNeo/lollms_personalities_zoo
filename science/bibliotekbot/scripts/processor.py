@@ -181,7 +181,6 @@ class Processor(APScript):
         """
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        prompt = self.build_prompt_from_context_details(context_details)
 
         # TODO: add more functions to call
         function_definitions = [
@@ -189,7 +188,7 @@ class Processor(APScript):
             rate_relevance_function(self)
         ]
 
-        out = self.interact_with_function_call(prompt, function_definitions)
+        out = self.interact_with_function_call(context_details, function_definitions)
 
         self.full(out)
 

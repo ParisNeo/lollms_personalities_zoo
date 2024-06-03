@@ -184,7 +184,6 @@ class Processor(APScript):
         """
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        prompt = self.build_prompt_from_context_details(context_details)
 
         # TODO: add more functions to call
         function_definitions = [
@@ -193,7 +192,7 @@ class Processor(APScript):
             summerize_discussion_function(self, client.discussion)
         ]
 
-        out = self.interact_with_function_call(prompt, function_definitions, prompt_after_execution=False, hide_function_call=False, separate_output=True)
+        out = self.interact_with_function_call(context_details, function_definitions, prompt_after_execution=False, hide_function_call=False, separate_output=True)
 
         self.full(out)
 
