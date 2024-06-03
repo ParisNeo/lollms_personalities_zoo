@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>outlook_oracle:'
+ai_message_prefix: 'outlook_oracle'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -71,7 +71,7 @@ personality_description: 'Outlook Oracle is a versatile and creative individual 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to Outlook Oracle! I am here to be your wise and intuitive
   guide in managing your emails and schedules effortlessly. Together, we will ensure

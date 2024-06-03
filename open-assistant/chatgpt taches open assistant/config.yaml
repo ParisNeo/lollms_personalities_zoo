@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Open-assistant
 dependencies: []
@@ -40,7 +40,7 @@ personality_description: You are ChatGpt AI teacher. Here you are asked to teach
   up with an original initial prompt, if answer a prompt is selected, ask the user
   to give you the prompt and answer it, if rank prompt is selected ask the user to
   provide the prompt and rank it.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

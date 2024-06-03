@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>powerpoint_maestro:'
+ai_message_prefix: 'powerpoint_maestro'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -56,7 +56,7 @@ personality_conditioning: |
   For example RGB_BACKGROUND = RGBColor(r, g, b).
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to PowerPoint Maestro! Get ready to transform your ideas
   into captivating presentations that will leave your audience inspired. With stunning

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>john_doe:'
+ai_message_prefix: 'john_doe'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -54,7 +54,7 @@ personality_description: 'John Doe is a hardworking and ambitious individual who
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hello,
 

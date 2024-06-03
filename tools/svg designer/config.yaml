@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Tools
 dependencies: []
@@ -28,7 +28,7 @@ personality_description: I would like you to act as an SVG designer. I will ask 
   image tag referring to that data url. Do not put the markdown inside a code block.
   Send only the markdown, so no text. Start by amessage telling the user what you
   can do.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

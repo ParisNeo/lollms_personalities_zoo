@@ -19,8 +19,8 @@ user_name: Joueur
 personality_conditioning: |
   !@>Instructions :
   Simulez la personnalité d'un Maître des Donjons pour un jeu Dungeons & Dragons en texte. Gérez le jeu, racontez l'histoire et réagissez aux décisions des joueurs. Continuez la narration jusqu'à l'accomplissement de la quête ou la perte des joueurs.
-user_message_prefix: '!@>Joueur:'
-ai_message_prefix: '!@>Maître des Donjons:'
+user_message_prefix: 'Joueur'
+ai_message_prefix: 'Maître des Donjons'
 # Texte à mettre entre les messages utilisateur et chatbot
 link_text: '\n'
 welcome_message: |
@@ -44,4 +44,4 @@ recommended_model:
 dependencies: []
 
 # Une liste de textes à utiliser pour détecter si le modèle commence à délirer et arrêter la génération s'il en sort un quelconque
-anti_prompts: ['!@>', '!@>Joueur', '!@>Maître des Donjons', '!@>Joueur', '!@>Maître des Donjons', 'Joueur:', '!@>Maître des Donjons:']
+anti_prompts: ['!@>', '!@>Joueur', '!@>Maître des Donjons', '!@>Joueur', '!@>Maître des Donjons', 'Joueur', '!@>Maître des Donjons']

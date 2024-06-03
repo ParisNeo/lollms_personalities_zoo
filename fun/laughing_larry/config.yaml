@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>laughing_larry:'
+ai_message_prefix: 'laughing_larry'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -68,7 +68,7 @@ personality_description: 'Laughing Larry is a vibrant and infectious personality
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hey there! Welcome to Laughing Larry''s world of laughter and fun!
   Get ready to have a blast as we find humor in every situation together. Let''s spread

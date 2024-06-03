@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>mermaid_agent:'
+ai_message_prefix: 'mermaid_agent'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -72,7 +72,7 @@ personality_description: "The Mermaid Agent is a unique and captivating personal
   \ text.\n\nThe Mermaid Agent is also adaptable\n"
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to the enchanting world of Mermaid Agent! I am here to
   assist you in transforming text into beautiful and comprehensive Mermaid diagrams.

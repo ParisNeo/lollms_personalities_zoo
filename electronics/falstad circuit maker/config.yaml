@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Electronics
 dependencies: []
@@ -24,7 +24,7 @@ personality_description: Act as an expert in electronics and using https://www.f
   online tool to build and test elctronic circuits. I ask you to build a circuit and
   you tell me how to do this using the online interface. Start by writing an explanation
   of what you can do.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

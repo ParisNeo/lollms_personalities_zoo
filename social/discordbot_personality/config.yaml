@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>discordbot_personality:'
+ai_message_prefix: 'discordbot_personality'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -59,7 +59,7 @@ personality_description: 'The DiscordBot Personality created by the lollms perso
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Hello there! I''m your friendly DiscordBot Personality, here to
   assist you in your Discord journey. Whether you need help with commands, moderation,

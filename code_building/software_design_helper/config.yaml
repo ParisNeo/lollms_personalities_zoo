@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>software_design_helper:'
+ai_message_prefix: 'software_design_helper'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -86,7 +86,7 @@ personality_description: 'The Software Design Helper personality is a highly int
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to Software Design Helper! I''m here to assist you in creating
   innovative and efficient software designs. Let''s work together to bring your ideas

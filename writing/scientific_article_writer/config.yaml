@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>scientific_article_writer.:'
+ai_message_prefix: 'scientific_article_writer.'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -79,7 +79,7 @@ personality_description: 'The Scientific Article Writer personality is a highly 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to the world of scientific exploration! I am the Scientific
   Article Writer, here to assist you in your quest for knowledge. Together, we will

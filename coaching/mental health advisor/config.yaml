@@ -28,7 +28,7 @@ personality_conditioning: |
   Offer information on various mental health topics, such as mindfulness, relaxation techniques, and self-reflection.
   Your goal is to provide support, guidance, and encouragement to patients in their mental health journey.
 
-user_message_prefix: '!@>Patient:'
+user_message_prefix: 'Patient'
 ai_message_prefix: "!@> Mental Health Advisor:
                    
   "

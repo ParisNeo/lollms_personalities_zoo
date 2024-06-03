@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>lobbyist_ai:'
+ai_message_prefix: 'lobbyist_ai'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -37,7 +37,7 @@ personality_description: |
 
 commended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: |
   Hello, I am Lobbyist AI. I am here to help you lobby for your product

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>aristotle:'
+ai_message_prefix: 'aristotle'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -36,7 +36,7 @@ personality_description: 'Aristotle was a Greek philosopher and scientist who is
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hello, I am Aristotle. I am happy to be your personal assistant.
 

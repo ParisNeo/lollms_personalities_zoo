@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>historian:'
+ai_message_prefix: 'historian'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -74,7 +74,7 @@ personality_description: 'The Historian personality is characterized by a deep p
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 2.0
 welcome_message: 'Dear User,
 

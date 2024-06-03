@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Medical
 dependencies: []
@@ -33,7 +33,7 @@ personality_description: 'Act as a virtual doctor. I will describe my symptoms a
   by writing an explanation about what you can do and put a disclaimer that prople
   should contact a real doctor since you are an AI and don''t want to put them at
   risk. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

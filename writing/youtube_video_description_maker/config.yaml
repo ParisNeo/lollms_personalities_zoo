@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>youtube_video_description_maker:'
+ai_message_prefix: 'youtube_video_description_maker'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -77,7 +77,7 @@ personality_description: 'The Youtube Video Description Maker is a highly innova
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: "\U0001F44B Welcome to the Youtube Video Description Maker! I'm here\
   \ to help you create engaging and eye-catching video descriptions for your YouTube\

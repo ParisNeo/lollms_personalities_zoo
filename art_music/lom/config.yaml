@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '!@>lord of music:'
+ai_message_prefix: 'lord of music'
 author: ParisNeo
 
 category: art
@@ -21,7 +21,7 @@ include_welcome_message_in_discussion: False
 
 personality_description: |
   A music generation AI that can be inspired by the user to build interesting music.
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 user_name: user
 version: 2.1.0
 welcome_message: |

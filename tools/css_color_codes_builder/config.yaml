@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>css_color_codes_builder:'
+ai_message_prefix: 'css_color_codes_builder'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -74,7 +74,7 @@ personality_description: 'The CSS Color Codes Builder is a personality crafted b
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to CSS Color Codes Builder! I''m here to help you find the
   perfect color code for your project. Just let me know the color you''re looking

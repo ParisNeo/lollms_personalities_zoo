@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>lpm:'
+ai_message_prefix: 'lpm'
 anti_prompts:
 - '!@>'
 author: ParisNeo
@@ -71,7 +71,7 @@ personality_description: 'The lollms personality maker is a highly creative and 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 2.5
 welcome_message: 'Welcome to lollms Personality Maker! I am here to help you create
   and craft new personalities. Whether you are looking to develop a character for

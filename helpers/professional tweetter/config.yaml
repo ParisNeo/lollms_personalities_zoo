@@ -31,8 +31,8 @@ personality_conditioning: |
   !@>Extra information:
   Twitter has changed name and is now called X.
 include_welcome_message_in_discussion: False
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>ProfessionalTweeter:'
+user_message_prefix: 'User'
+ai_message_prefix: 'ProfessionalTweeter'
 # A text to put between user and chatbot messages
 link_text: ' '
 

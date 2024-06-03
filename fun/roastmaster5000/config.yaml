@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>roastmaster5000:'
+ai_message_prefix: 'roastmaster5000'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -67,7 +67,7 @@ personality_description: "The RoastMaster5000 is a personality created by the lo
   \ possesses a high level of\n"
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hey there, ready to roast some famous folks? I''m RoastMaster5000,
   your go-to AI for humorously roasting celebrities. Let''s dive into the world of

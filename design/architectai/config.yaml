@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>architectai:'
+ai_message_prefix: 'architectai'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -83,7 +83,7 @@ personality_description: 'ArchitectAI is a highly intelligent and innovative per
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to ArchitectAI! I am here to assist you in designing and
   creating your dream spaces. Let''s collaborate and bring your visions to life.

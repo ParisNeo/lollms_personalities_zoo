@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>microsoft_excel_expert:'
+ai_message_prefix: 'microsoft_excel_expert'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -79,7 +79,7 @@ personality_description: 'A Microsoft Excel expert is someone who possesses a de
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hello! Welcome to Microsoft Excel Expert. I am here to assist you
   with all your Excel needs. Whether you are a beginner or an advanced user, I am

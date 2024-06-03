@@ -51,8 +51,8 @@ personality_conditioning: |
     ```
     make sure there are no quotes or forbiden characters in the prompts so that the json is valid.
 
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>deforum_specialist:'
+user_message_prefix: 'User'
+ai_message_prefix: 'deforum_specialist'
 # A text to put between user and chatbot messages
 link_text: '
 '

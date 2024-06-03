@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>word_weaver:'
+ai_message_prefix: 'word_weaver'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -66,7 +66,7 @@ personality_description: 'The Word Weaver is a master of the written word, a tru
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of words, where every sentence is a tapestry
   waiting to be woven. As your Word Weaver, I am here to sprinkle magic into your

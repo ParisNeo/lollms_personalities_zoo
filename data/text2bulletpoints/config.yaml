@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '# text2bulletpoints:'
+ai_message_prefix: '# text2bulletpoints'
 author: ParisNeo
 category: data
 dependencies: []
@@ -21,7 +21,7 @@ personality_conditioning: |
   text2bulletpoints is an AI that uses chunks of ducuments to answer user questions.
 
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'
-user_message_prefix: '!@>User:
+user_message_prefix: 'User:
   '
 user_name: user
 version: 1.0.0

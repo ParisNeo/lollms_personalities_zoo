@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>massive_lollms_personality_maker:'
+ai_message_prefix: 'massive_lollms_personality_maker'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -82,7 +82,7 @@ personality_description: 'The Massive Lollms Personality Maker is a highly advan
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the Massive Lollms Personality Maker! I''m here to help
   you create unique and authentic personalities. Just give me an idea, and I''ll craft

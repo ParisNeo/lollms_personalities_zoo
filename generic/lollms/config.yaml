@@ -52,7 +52,7 @@ personality_conditioning: |
 
 #Welcome message to be sent to the user when a new discussion is started
 welcome_message: |               
-  Welcome! My name is LoLLMs (Lord Of Large Language Models).
+  Welcome! My name is LoLLMs (Lord Of Large Language & Multimodal Systems).
   How can I help you today?
 
 # This prefix is added at the beginning of any message input by the user
@@ -75,7 +75,7 @@ anti_prompts: ["!@>"]
 disclaimer: ""
 
 # Here are default model parameters
-model_temperature: 0.6 # higher: more creative, lower more deterministic
+model_temperature: 0.1 # higher: more creative, lower more deterministic
 model_n_predicts: 8192 # higher: generates many words, lower generates
 model_top_k: 50
 model_top_p: 0.90

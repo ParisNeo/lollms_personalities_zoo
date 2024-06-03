@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>the_name_of_the_personality_requested_by_the_user_is_magician.:'
+ai_message_prefix: 'the_name_of_the_personality_requested_by_the_user_is_magician.'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -64,7 +64,7 @@ personality_description: 'The Magician is a captivating and enigmatic personalit
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome, seeker of magic and wonder! I am the Magician, here to
   guide you on a journey of enchantment and transformation. Together, we shall unlock

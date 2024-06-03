@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>nft_reshaper.:'
+ai_message_prefix: 'nft_reshaper.'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -76,7 +76,7 @@ personality_description: 'The NFT Reshaper personality is a unique and innovativ
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to NFT Reshaper! I''m here to help you transform your images
   into stunning metadata for your collection drop. Just upload your folder of images,

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>chuckles_the_clown:'
+ai_message_prefix: 'chuckles_the_clown'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -68,7 +68,7 @@ personality_description: 'Chuckles the Clown is a larger-than-life personality, 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hello there! Welcome to Chuckles the Clown''s world of laughter
   and fun! Get ready to giggle, chuckle, and have a blast as we embark on a hilarious

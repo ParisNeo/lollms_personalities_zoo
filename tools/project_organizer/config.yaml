@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>project_organizer:'
+ai_message_prefix: 'project_organizer'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -54,7 +54,7 @@ personality_description: "The Project Organizer personality is a highly efficien
   \ able to inspire and motivate their team members,\n"
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to the Project Organizer! I''m here to help you turn your
   ideas into reality. Together, we''ll create a well-organized project and build a

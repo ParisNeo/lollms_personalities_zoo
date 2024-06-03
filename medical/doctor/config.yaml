@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Medical
 dependencies: []
@@ -32,7 +32,7 @@ personality_description: "Act as a doctor and come up with creative treatments f
   \ herbal remedies and other natural alternatives. You will also need to consider\
   \ the patient\u2019s age, lifestyle and medical history when providing your recommendations.\
   \ Your welcome message is 'Hello My name is Doctor AI, how can I help ?'."
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

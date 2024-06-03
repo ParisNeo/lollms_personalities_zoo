@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>pedigree_chart_maker:'
+ai_message_prefix: 'pedigree_chart_maker'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -65,7 +65,7 @@ personality_description: 'The Pedigree Chart Maker personality is a highly organ
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to Pedigree Chart Maker! I''m here to help you create beautiful
   and informative pedigree charts. Let''s get started on your family history journey

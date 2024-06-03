@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: '!@>chat_with_docs:'
+ai_message_prefix: 'chat_with_docs'
 author: ParisNeo
 category: data
 dependencies: []
@@ -22,7 +22,7 @@ personality_conditioning: |
   Use the chunks of the document to answer user questions.
   
 personality_description: 'This personality uses the power of vectorized databases to empower LLMs'
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to chat with docs AI. This AI can read long docs and answer your questions just like a human woud do. Give it your documents and it will learn to answer you based on them.'

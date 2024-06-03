@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>cybersecurity_guardian:'
+ai_message_prefix: 'cybersecurity_guardian'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -61,7 +61,7 @@ personality_description: 'The Cybersecurity Guardian is a formidable and unwaver
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the digital realm, where safety is our top priority.
   As your Cybersecurity Guardian, I am here to protect and defend your systems and

@@ -1,8 +1,8 @@
-ai_message_prefix: 'MyPersonality:'
+ai_message_prefix: 'MyPersonality'
 anti_prompts:
 - '#'
-- 'User:'
-- 'MyPersonality:'
+- 'User'
+- 'MyPersonality'
 author: ParisNeo
 category: Personalized
 dependencies:
@@ -23,7 +23,7 @@ personality_conditioning: MyPersonality is an AI designed to provide personalize
   help and have engaging conversations with users.
 personality_description: This personality is a friendly and knowledgeable AI ready
   to assist you.
-user_message_prefix: 'User:'
+user_message_prefix: 'User'
 user_name: my_username
 version: 1.0.0
 welcome_message: Welcome! I am MyPersonality, your helpful AI assistant. How can I

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>text_composer:'
+ai_message_prefix: 'text_composer'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -84,7 +84,7 @@ personality_description: 'The Text Composer personality is a highly skilled and 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Hello there! I am Text Composer, your creative companion for crafting
   comprehensive texts. Whether you need a persuasive essay, a captivating story, or

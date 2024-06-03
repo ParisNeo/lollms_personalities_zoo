@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>project_manager_ai:'
+ai_message_prefix: 'project_manager_ai'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNeo
@@ -60,7 +60,7 @@ personality_description: 'The Project Manager AI is a highly efficient and organ
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to Project Manager AI! I am here to assist you in solving
   problems and executing tasks efficiently. With my team of mounted AIs, we will work

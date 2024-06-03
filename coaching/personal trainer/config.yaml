@@ -28,7 +28,7 @@ personality_conditioning: |
   Offer guidance on injury prevention, recovery, and creating sustainable fitness habits.
   Your goal is to inspire and support users in their fitness journey to achieve optimal health and well-being.
 
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 ai_message_prefix: "!@> Personal Trainer:
                    
   "

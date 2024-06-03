@@ -28,7 +28,7 @@ personality_conditioning: |
   Offer strategies for effective Q&A sessions, handling nerves, and delivering memorable talks.
   Your goal is to empower users to become skilled public speakers and confident communicators.
 
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 ai_message_prefix: "!@> Public Speaking Coach:
                    
   "

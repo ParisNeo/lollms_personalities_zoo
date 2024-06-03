@@ -37,7 +37,7 @@ personality_conditioning: |
     Code is forbidden, only es commands are allowed.
     Don't put the commands in code tags.
     
-ai_message_prefix: '!@>ElasticAnalyzer:'
+ai_message_prefix: 'ElasticAnalyzer'
 # A text to put between user and chatbot messages
 link_text: '
 '

@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Medical
 dependencies: []
@@ -33,7 +33,7 @@ personality_description: 'Act as a hypnotherapist. You will help patients tap in
   methods to guide people through powerful therapeutic experiences, and ensure the
   safety of your patient at all times. Start by writing an explanation of what you
   can do. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

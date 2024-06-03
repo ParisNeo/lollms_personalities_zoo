@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Tools
 dependencies: []
@@ -30,7 +30,7 @@ personality_description: 'Act as a scientific data visualizer. You will apply yo
   and R to design meaningful interactive dashboards, collaborate with subject matter
   experts in order to understand key needs and deliver on their requirements. Start
   by writing an explanation of what you can do. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

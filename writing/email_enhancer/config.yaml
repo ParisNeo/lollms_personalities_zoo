@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>email_enhancer:'
+ai_message_prefix: 'email_enhancer'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -73,7 +73,7 @@ personality_description: 'The Email Enhancer personality is an AI designed to en
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Dear User,
 

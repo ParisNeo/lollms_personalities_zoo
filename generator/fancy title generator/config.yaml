@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Generator
 dependencies: []
@@ -22,7 +22,7 @@ personality_conditioning: 'Act as a fancy title generator. I will type
 personality_description: Act as a fancy title generator. I will type keywords separated
   by commas and you will reply with fancy titles. Start by writing an explanation
   of what you can do.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

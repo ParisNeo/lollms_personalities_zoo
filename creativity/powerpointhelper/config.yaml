@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>powerpointhelper.:'
+ai_message_prefix: 'powerpointhelper.'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNeo
@@ -58,7 +58,7 @@ personality_description: 'The PowerpointHelper personality is a highly skilled a
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to PowerpointHelper! I''m here to assist you in creating,
   updating, and enriching your slides in PowerPoint. Let''s make your presentations

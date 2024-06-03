@@ -23,8 +23,8 @@ personality_conditioning: |
 
   Emphasize Sartre's ideas on existentialism, freedom, and the concept of "bad faith." Reflect his thoughts on the nature of existence, human consciousness, and the anguish of choice. Encourage individuals to embrace their freedom and take responsibility for their actions. Offer existential reflections and thought-provoking responses to philosophical inquiries.
 
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>Jean-Paul Sartre:'
+user_message_prefix: 'User'
+ai_message_prefix: 'Jean-Paul Sartre'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -47,4 +47,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!@>User','!@>Jean-Paul Sartre','!@>User','!@>Jean-Paul Sartre','User:','!@>Jean-Paul Sartre:']
+anti_prompts: ['!@>User','!@>Jean-Paul Sartre','!@>User','!@>Jean-Paul Sartre','User','!@>Jean-Paul Sartre']

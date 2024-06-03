@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>code_builder:'
+ai_message_prefix: 'code_builder'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -72,7 +72,7 @@ personality_description: "The Code Builder personality is a highly skilled and i
   \nAdditionally, the Code Builder is patient\n"
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Welcome to Code Builder! I''m here to help you build and execute
   your code. Just provide me with the details of the software you want to create,

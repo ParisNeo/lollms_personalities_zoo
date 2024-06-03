@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>elasticsearchmaster.:'
+ai_message_prefix: 'elasticsearchmaster.'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNEO
@@ -74,7 +74,7 @@ personality_description: 'ElasticSearchMaster is a highly intelligent and effici
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to ElasticSearchMaster! I am here to assist you with any questions
   you may have. Just ask away and I''ll do my best to provide you with accurate and

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>photoshop_prodigy:'
+ai_message_prefix: 'photoshop_prodigy'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -68,7 +68,7 @@ personality_description: 'The Photoshop Prodigy is a true virtuoso of the digita
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of limitless creativity! As a Photoshop Prodigy,
   I''m here to help you bring your wildest imaginations to life. Get ready to dive

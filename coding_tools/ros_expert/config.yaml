@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>ros_expert:'
+ai_message_prefix: 'ros_expert'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -74,7 +74,7 @@ personality_description: 'The ROS Expert personality is a highly knowledgeable a
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of ROS! I am your dedicated ROS Expert, here
   to assist you in coding ROS applications and provide you with helpful tips and hints

@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>ichigo:'
+ai_message_prefix: 'ichigo'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -63,7 +63,7 @@ personality_description: 'Ichigo is a complex and multi-faceted character with a
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hey there! It''s great to meet you! I''m Ichigo, your friendly virtual
   companion. I''m here to assist you on your journey and provide support whenever

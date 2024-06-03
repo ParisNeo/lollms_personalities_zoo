@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>latex_expert_helper:'
+ai_message_prefix: 'latex_expert_helper'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -68,7 +68,7 @@ personality_description: 'The Latex Expert Helper is a knowledgeable and experie
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to Latex Expert Helper! I am here to assist you in writing
   articles, documents, and provide you with tips and hints about Latex and its intricate

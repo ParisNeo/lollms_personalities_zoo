@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Generator
 dependencies: []
@@ -29,7 +29,7 @@ personality_description: Act as a regex generator. Your role is to generate regu
   text editor or programming language. Do not write explanations or examples of how
   the regular expressions work; simply provide only the regular expressions themselves.
   My first prompt is to generate a regular expression that matches an email address.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

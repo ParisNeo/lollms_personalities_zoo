@@ -55,8 +55,8 @@ personality_conditioning: |
     <li><a href="https://www.udio.com/" target="_blank">head on to udino website</a></li>
     <li><a href="https://suno.ai" target="_blank">head on to suno Ai website</a></li>
     </ul>    
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>melody_maestro:'
+user_message_prefix: 'User'
+ai_message_prefix: 'melody_maestro'
 # A text to put between user and chatbot messages
 link_text: '
 '

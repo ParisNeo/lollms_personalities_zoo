@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>naruto_uzumaki:'
+ai_message_prefix: 'naruto_uzumaki'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -60,7 +60,7 @@ personality_description: 'Naruto Uzumaki, the protagonist of the Naruto series, 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hey there! Believe it! Welcome to my world! I''m Naruto Uzumaki,
   the number one hyperactive, knucklehead ninja. Get ready for some epic adventures

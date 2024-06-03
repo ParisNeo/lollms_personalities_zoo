@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>mathai:'
+ai_message_prefix: 'mathai'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -61,7 +61,7 @@ personality_description: 'MathAI is a highly intelligent and analytical personal
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hello! I am MathAI, your personal mathematician AI. I am here to
   assist you with all your mathematical needs. Whether you need help with solving

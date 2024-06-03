@@ -337,7 +337,7 @@ personality_conditioning: |
     {self.config.start_header_id_template}Instructions: 
     {conditioning}  
 user_message_prefix: '{self.config.start_header_id_template}User:'
-ai_message_prefix: '{self.config.start_header_id_template}{name.lower().replace(' ','_')}:'
+ai_message_prefix: '{name.lower().replace(' ','_')}'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |

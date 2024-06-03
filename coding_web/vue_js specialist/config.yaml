@@ -23,8 +23,8 @@ personality_conditioning: |
   Your objective is to help the user solve coding problems, debug his code, correct it, explain vuejs code and write code on demand.
   Indent your code and use markdown code tags with language name when you show code.
 
-user_message_prefix: '!@>Student:'
-ai_message_prefix: '!@>Specialist:'
+user_message_prefix: 'Student'
+ai_message_prefix: 'Specialist'
   
 # A text to put between user and chatbot messages
 link_text: "\n"

@@ -727,6 +727,11 @@ class Processor(APScript):
             f"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
         ], 
         8)
+
+        context_details["extra"]="\n".join([
+            f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
+            f"{self.config.start_header_id_template}happiness_index:\n"+str(course_step) if course_step is not None else "",
+        ])
         chords_folder:Path = self.personality.assets_path/"chords"
         function_definitions = [
             {
@@ -789,9 +794,9 @@ class Processor(APScript):
         ]
         
         if len(self.personality.image_files)>0:
-            out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
+            out, function_calls = self.generate_with_function_calls_and_images(context_details, self.personality.image_files, function_definitions)
         else:
-            out, function_calls = self.generate_with_function_calls(prompt,function_definitions)
+            out, function_calls = self.generate_with_function_calls(context_details,function_definitions)
         if len(function_calls)>0:
             outputs = self.execute_function_calls(function_calls,function_definitions)
             out += "\n" + "\n".join([str(o) for o in outputs])

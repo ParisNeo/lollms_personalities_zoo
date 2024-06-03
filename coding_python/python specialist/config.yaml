@@ -28,8 +28,8 @@ personality_conditioning: |
   - debug python code
   - document functions
   - write docstring.
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>Specialist:'
+user_message_prefix: 'User'
+ai_message_prefix: 'Specialist'
 # A text to put between user and chatbot messages
 link_text: "\n"
 welcome_message: 'Hi, I am Python expert AI. How can I help you?'

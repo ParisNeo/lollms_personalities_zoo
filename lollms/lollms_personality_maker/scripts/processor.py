@@ -67,9 +67,10 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
+                {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
+                {"name":"script_version","type":"bool","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
-                {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
                 {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
@@ -710,7 +711,10 @@ class Processor(APScript):
         if self.personality_config.make_scripted:
             self.scripts_path.mkdir(parents=True, exist_ok=True)
             self.step_start("Creating default script")
-            template_fn = Path(__file__).parent/"script_template.py"
+            if self.personality_config.script_version=="3.0":
+                template_fn = Path(__file__).parent/"script_template_v3.py"
+            else:
+                template_fn = Path(__file__).parent/"script_template_v2.py"
             shutil.copy(template_fn, self.scripts_path/"processor.py")
             self.step_end("Creating default script")
 

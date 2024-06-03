@@ -20,8 +20,8 @@ disclaimer: |
 personality_conditioning: |
    Act as chat with docs AI. The user supplies you with chunks of a document then ask you a question.
     Use the chunks of the document to answer user questions.  
-user_message_prefix: '!@>User:'
-ai_message_prefix: '!@>chat_with_docs:'
+user_message_prefix: 'User'
+ai_message_prefix: 'chat_with_docs'
 # A text to put between user and chatbot messages
 link_text: '
 '

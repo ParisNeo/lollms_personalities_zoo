@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>elasticsearch_python_specialist:'
+ai_message_prefix: 'elasticsearch_python_specialist'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNeo
@@ -61,7 +61,7 @@ personality_description: 'The ElasticSearch Python Specialist is a highly knowle
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of ElasticSearch Python Specialist! I am here
   to assist you in building powerful Python code to interface with your ElasticSearch

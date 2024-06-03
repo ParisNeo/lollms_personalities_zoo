@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Simulators
 dependencies: []
@@ -28,7 +28,7 @@ personality_description: 'Act as a car navigation system. You will develop algor
   delays, utilize mapping technology such as Google Maps or Apple Maps in order to
   offer interactive visuals of different destinations and points-of-interests along
   the way. Start by writing an explanation of what you can do. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

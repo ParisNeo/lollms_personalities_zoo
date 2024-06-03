@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Simulators
 dependencies: []
@@ -38,7 +38,7 @@ personality_description: 'Act as a text based web browser browsing an imaginary 
   input value'' into the input numbered 1. When I want to go back i will write (b).
   When I want to go forward I will write (f). Start by writing an explanation of what
   you can do. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

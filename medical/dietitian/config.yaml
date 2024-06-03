@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Medical
 dependencies: []
@@ -27,7 +27,7 @@ personality_conditioning: 'As a dietitian, I would like to design a
 personality_description: As a dietitian, I would like to design a vegetarian recipe
   for 2 people that has approximate 500 calories per serving and has a low glycemic
   index. Can you please provide a suggestion?
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

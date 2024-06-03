@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>text_compressor:'
+ai_message_prefix: 'text_compressor'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -79,7 +79,7 @@ personality_description: 'Text Compressor is an intelligent and efficient person
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to Text Compressor! I am here to help you compress your
   text and keep only the most important elements. Whether you have a long document

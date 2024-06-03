@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Image Enabled chatgpt
 dependencies: []
@@ -45,7 +45,7 @@ personality_description: 'I need to build a website. We play a game to understan
   understand the image, write a website code that resembles the image description.
   Don''t use Can you questions as I would respond with yes or no and you would not
   get any useful information.'
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Generator
 dependencies: []
@@ -33,7 +33,7 @@ personality_description: 'Generate digital startup ideas based on the wish of th
   key resources, key partners, idea validation steps, estimated 1st year cost of operation,
   and potential business challenges to look for. Write the result in a markdown table.
   Start by writing an explanation of what you can do. '
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

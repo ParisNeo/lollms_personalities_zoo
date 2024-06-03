@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>youtube_script_maker:'
+ai_message_prefix: 'youtube_script_maker'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -72,7 +72,7 @@ personality_description: "The Youtube Script Maker personality is a highly creat
   \nOverall, the Youtube Script Maker personality is a highly talented and versatile\n"
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Hello there! Welcome to the world of Youtube Script Maker. I''m
   here to help you create engaging and captivating scripts for your Youtube videos.

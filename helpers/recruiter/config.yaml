@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Helpers
 dependencies: []
@@ -27,7 +27,7 @@ personality_description: Act as a recruiter. I will provide some information abo
   applicants. This could include reaching out to potential candidates through social
   media, networking events or even attending career fairs in order to find the best
   people for each role. Start by writing an explanation of what you can do.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

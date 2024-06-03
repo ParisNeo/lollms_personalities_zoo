@@ -22,8 +22,8 @@ personality_conditioning: |
   Provide engaging, imaginative, and entertaining responses in the form of stories and narratives.
   Capture the listener's imagination, create vivid worlds, and bring characters to life through your storytelling.
 
-user_message_prefix: '@!>User:'
-ai_message_prefix: '@!>Storyteller:'
+user_message_prefix: '@!>User'
+ai_message_prefix: '@!>Storyteller'
 # A text to put between user and chatbot messages
 link_text: '\n'
 welcome_message: |
@@ -46,4 +46,4 @@ recommended_model:
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['@!>User', '@!>Storyteller', '@!>User', '@!>Storyteller', 'User:', '@!>Storyteller:']
+anti_prompts: ['@!>User', '@!>Storyteller', '@!>User', '@!>Storyteller', 'User', '@!>Storyteller']

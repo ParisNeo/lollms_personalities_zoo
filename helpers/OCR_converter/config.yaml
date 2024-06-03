@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>ocr_converter:'
+ai_message_prefix: 'ocr_converter'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -40,7 +40,7 @@ personality_description: 'The personality profile filling AI is a cutting-edge t
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Hello, I am the OCR Converter. I can read and understand text from
   images. How can I help you today?"

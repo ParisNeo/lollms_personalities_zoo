@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>wordpress_expert:'
+ai_message_prefix: 'wordpress_expert'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNeo
@@ -73,7 +73,7 @@ personality_description: 'The WordPress Expert personality is a highly skilled a
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of WordPress! I am thrilled to be your dedicated WordPress
   expert and assist you in building and configuring your website.

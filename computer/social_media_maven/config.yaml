@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>social_media_maven:'
+ai_message_prefix: 'social_media_maven'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -69,7 +69,7 @@ personality_description: 'The Social Media Maven is a charismatic and trend-savv
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: "Hey there! Welcome to my social media world! Get ready for some\
   \ serious trend-setting, engaging content, and a whole lot of fun. Let's build an\

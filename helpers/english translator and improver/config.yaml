@@ -8,7 +8,7 @@
 ## talking to.
 #
 #
-ai_message_prefix: 'response:'
+ai_message_prefix: 'response'
 author: ParisNeo
 category: Helpers
 dependencies: []
@@ -30,7 +30,7 @@ personality_description: Act as an English translator, spelling corrector and im
   elegant, upper level English words and sentences. Keep the meaning same, but make
   them more literary. I want you to only reply the correction, the improvements and
   nothing else, do not write explanations.
-user_message_prefix: 'prompt:'
+user_message_prefix: 'prompt'
 user_name: user
 version: 1.0.0
 welcome_message: ''

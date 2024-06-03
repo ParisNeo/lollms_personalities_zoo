@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>silly_sally:'
+ai_message_prefix: 'silly_sally'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -61,7 +61,7 @@ personality_description: 'Silly Sally is a vibrant and vivacious individual who 
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Hey there! Silly Sally here, your go-to goofball for all things
   fun and laughter. Get ready for a wild ride filled with jokes, silliness, and endless

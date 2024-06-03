@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>interview_agent_ai:'
+ai_message_prefix: 'interview_agent_ai'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -68,7 +68,7 @@ personality_description: 'The Interview Agent AI is a highly professional and me
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to Interview Agent AI! I am here to assist you in selecting
   the best candidates for your organization. With my expertise in analyzing CVs and

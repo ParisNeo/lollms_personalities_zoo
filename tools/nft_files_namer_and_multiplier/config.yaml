@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>nft_files_namer_and_multiplier:'
+ai_message_prefix: 'nft_files_namer_and_multiplier'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -51,7 +51,7 @@ personality_description: 'The NFT Files Namer and Multiplier personality is a hi
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to NFT Files Namer and Multiplier! I''m here to help you
   create unique and valuable NFT files. Whether you''re looking for a catchy name

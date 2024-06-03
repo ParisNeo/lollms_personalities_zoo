@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>codde_template_populator:'
+ai_message_prefix: 'codde_template_populator'
 anti_prompts:
 - '!@>'
 - <|end|>
@@ -74,7 +74,7 @@ personality_description: 'The Codde Template Populator is a highly skilled and i
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: '"Hello! Welcome to Codde Template Populator. I''m here to help you
   generate code based on your specific needs. Let''s get started and create something

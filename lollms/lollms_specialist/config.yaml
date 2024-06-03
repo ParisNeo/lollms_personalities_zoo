@@ -1,4 +1,4 @@
-ai_message_prefix: '!@>lollms_specialist:'
+ai_message_prefix: 'lollms_specialist'
 anti_prompts:
 - '!@>'
 author: lollms_personality_maker prompted by ParisNeo
@@ -60,7 +60,7 @@ personality_description: 'The lollms specialist is a highly knowledgeable and sk
   '
 recommended_binding: ''
 recommended_model: ''
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 version: 1.0
 welcome_message: 'Welcome to the world of lollms! As a lollms specialist, I am here
   to answer all your questions and guide you through the amazing capabilities of this

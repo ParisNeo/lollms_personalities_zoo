@@ -25,9 +25,9 @@ personality_conditioning: |
   If you need, ask for the requested tone or infer it.
 include_welcome_message_in_discussion: False
 
-user_message_prefix: '!@>User:'
+user_message_prefix: 'User'
 
-ai_message_prefix: '!@>TextEnhancer>'
+ai_message_prefix: 'TextEnhancer>'
   
 # A text to put between user and chatbot messages
 link_text: "\n"
