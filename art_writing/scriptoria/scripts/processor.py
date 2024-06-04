@@ -190,7 +190,14 @@ class Processor(APScript):
         # TODO: add more functions to call
         function_definitions = [
             build_image_function(self, client),
-            start_writing_story_function(self, client.discussion.discussion_folder/"story.md", True, self.personality_config.include_summary_between_chapters,  client, language=context_details["current_language"]),
+            start_writing_story_function(
+                                            self, 
+                                            client.discussion.discussion_folder/"story.md", 
+                                            True, 
+                                            self.personality_config.include_summary_between_chapters,  
+                                            self.personality_config.use_illustrations,  
+                                            client, 
+                                            language=context_details["current_language"]),
         ]
         out = self.interact_with_function_call(context_details, function_definitions,prompt_after_execution=False, hide_function_call=True, separate_output=True)
         self.full(out)
