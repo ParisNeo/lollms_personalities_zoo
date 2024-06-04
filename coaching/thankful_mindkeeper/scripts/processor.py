@@ -503,11 +503,10 @@ class Processor(APScript):
             self.full("Please create a profile by providing your name and happiness level in my configuration page. Just press my icon in the chatbar and give fill the form. When this is done, come back to me and we can start.")
             return
         
-
-        prompt = self.build_prompt_from_context_details(context_details,"\n".join([
+        context_details["extra"]="\n".join([
             f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
             f"{self.config.start_header_id_template}happiness_index:\n"+str(happiness_index) if happiness_index is not None else "",
-        ]))
+        ])
 
         function_definitions = [
             {
@@ -543,9 +542,9 @@ class Processor(APScript):
             build_image_function(self, client),            
         ]
         if len(self.personality.image_files)>0:
-            out, function_calls = self.generate_with_function_calls_and_images(prompt, self.personality.image_files, function_definitions)
+            out, function_calls = self.generate_with_function_calls_and_images(context_details, self.personality.image_files, function_definitions)
         else:
-            out, function_calls = self.generate_with_function_calls(prompt,function_definitions)
+            out, function_calls = self.generate_with_function_calls(context_details,function_definitions)
         if len(function_calls)>0:
             outputs = self.execute_function_calls(function_calls,function_definitions)
             out += "\n" + "\n".join([str(o) for o in outputs])
