@@ -68,7 +68,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-                {"name":"script_version","type":"bool","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
+                {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
