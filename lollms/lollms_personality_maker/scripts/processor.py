@@ -585,8 +585,8 @@ class Processor(APScript):
                 f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
                 f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
                 "Write a comprehensive personality conditionning text",
-                "Answer only with the conditionning text without any explanation or comments."                
-                f"{self.config.start_header_id_template}conditionning{self.config.end_header_id_template}",
+                "Answer only with the conditionning text without any explanation or comments.",             
+                f"{self.config.start_header_id_template}conditionning text{self.config.end_header_id_template}",
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
@@ -633,6 +633,9 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
                 f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "Write a comprehensive welcome message for the personality",
+                "Answer only with the welcome message text without any explanation or comments.",             
                 f"{self.config.start_header_id_template}personality welcome message in {language}{self.config.end_header_id_template}"
             ],5
         )
