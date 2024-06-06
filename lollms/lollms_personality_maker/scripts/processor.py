@@ -429,15 +429,18 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt(
             [
 
-                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}names maker is a personality name making AI.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}",
+                "personality names maker is a personality name making AI.",
                 "The user describes a personality and the ai should give it an apropriate name",
-                "If the user explicitely proposed a name, qna responds with that name",
-                "qna uses the same language as the one spoken by the user to name the personality.",
-                "qna only answers with the personality name without any explanation.",
+                "If the user explicitely proposed a name, personality names maker responds with that name",
+                "personality names maker uses the same language as the one spoken by the user to name the personality.",
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}qna{self.config.end_header_id_template}The chosen personality name is "
-            ],6
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "What is the appropriate name for this personality?",
+                "Answer only with the personality name without any explanation or comments."
+                f"{self.config.start_header_id_template}personality names maker{self.config.end_header_id_template}"
+            ],5
         )
         name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
         self.step_end("Coming up with the personality name")
@@ -471,7 +474,10 @@ class Processor(APScript):
                 f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}category maker{self.config.end_header_id_template}The chosen personality category is "
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "What is the appropriate category name for this personality?",
+                "Answer only with the category name without any explanation or comments."
+                f"{self.config.start_header_id_template}category maker{self.config.end_header_id_template}"
             ],6
         )        
         category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
@@ -489,12 +495,15 @@ class Processor(APScript):
                 "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
-                f"{self.config.start_header_id_template}instructions to follow{self.config.end_header_id_template}",
+                f"{self.config.start_header_id_template}extra information{self.config.end_header_id_template}",
                 "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
                 "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
                 "If the user explicitely states the language that should be used, language finder uses that language",
                 "language finder does not provide the language iso name, just the plain english name of the language such as: french, english, spanish, chinese, arabic etc ...",
                 "language finder only answers with the personality language name without any explanation.",
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "What is the appropriate language for this personality given the context?",
+                "Answer only with the language name without any explanation or comments."
                 f"{self.config.start_header_id_template}language{self.config.end_header_id_template}"
             ],3
         )
