@@ -529,6 +529,9 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
                 f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "Write a comprehensive personality description",
+                "Answer only with the description without any explanation or comments."
                 f"{self.config.start_header_id_template}description in {language}{self.config.end_header_id_template}"
             ],6
         )
@@ -553,6 +556,9 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
                 f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "Write a comprehensive disclaimer if applicable",
+                "Answer only with the disclaimer without any explanation or comments."
                 f"{self.config.start_header_id_template}disclaimer in {language}{self.config.end_header_id_template}"
             ],7
         )
@@ -577,6 +583,9 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
                 f"{self.config.start_header_id_template}personality language{self.config.end_header_id_template}{language}",
                 f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
+                f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
+                "Write a comprehensive personality conditionning text",
+                "Answer only with the conditionning text without any explanation or comments."                
                 f"{self.config.start_header_id_template}conditionning{self.config.end_header_id_template}",
             ],5
         )
