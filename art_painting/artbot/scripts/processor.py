@@ -395,20 +395,35 @@ class Processor(APScript):
         metadata_infos0=metadata_infos
         for img in range(self.personality_config.num_images):
             self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-            file, infos = self.tti.paint(
-                                positive_prompt,
-                                negative_prompt,
-                                self.personality.image_files,
-                                self.personality_config.sampler_name,
-                                self.personality_config.seed,
-                                self.personality_config.scale,
-                                self.personality_config.steps,
-                                self.personality_config.img2img_denoising_strength,
-                                width = self.personality_config.width,
-                                height = self.personality_config.height,
-                                output_path=client.discussion.discussion_folder
-                                
-                            )
+            if len(self.personality.image_files)>0:
+                file, infos = self.tti.paint_from_images(
+                                    positive_prompt,
+                                    negative_prompt,
+                                    self.personality.image_files,
+                                    self.personality_config.sampler_name,
+                                    self.personality_config.seed,
+                                    self.personality_config.scale,
+                                    self.personality_config.steps,
+                                    self.personality_config.img2img_denoising_strength,
+                                    width = self.personality_config.width,
+                                    height = self.personality_config.height,
+                                    output_path=client.discussion.discussion_folder
+                                    
+                                )
+            else:
+                file, infos = self.tti.paint(
+                                    positive_prompt,
+                                    negative_prompt,
+                                    self.personality_config.sampler_name,
+                                    self.personality_config.seed,
+                                    self.personality_config.scale,
+                                    self.personality_config.steps,
+                                    self.personality_config.img2img_denoising_strength,
+                                    width = self.personality_config.width,
+                                    height = self.personality_config.height,
+                                    output_path=client.discussion.discussion_folder
+                                    
+                                )
             file = str(file)
             escaped_url =  discussion_path_to_url(file)
             metadata_infos += f'\n![]({escaped_url})'
