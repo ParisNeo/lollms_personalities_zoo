@@ -146,7 +146,7 @@ class Processor(APScript):
             imageSource = data['imageSource']
             assets_path= data['assets_path']
 
-            shutil.copy(self.personality.lollms_paths.personal_outputs_path/"sd"/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
+            shutil.copy(self.personality.lollms_paths.personal_outputs_path/self.personality.app.tti.name/imageSource.split("/")[-1] , Path(assets_path)/"logo.png")
             ASCIIColors.success("image Selected successfully")
             return {"status":True}
         except Exception as ex:
