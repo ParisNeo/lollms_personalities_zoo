@@ -586,7 +586,7 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
                 "Write a comprehensive personality conditionning text",
                 "Answer only with the conditionning text without any explanation or comments.",             
-                f"{self.config.start_header_id_template}conditionning text{self.config.end_header_id_template}",
+                f"{self.config.start_header_id_template}conditionning builder{self.config.end_header_id_template}",
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
