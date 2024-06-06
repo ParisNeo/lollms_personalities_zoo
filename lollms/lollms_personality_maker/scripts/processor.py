@@ -574,18 +574,18 @@ class Processor(APScript):
         self.step_start("Coming up with the conditionning")
         crafted_prompt = self.build_prompt(
             [
-                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}conditionning builder is a personality conditionning AI.",
-                "The user describes a personality and the ai should build a consistant AI conditionning system text.",
-                "conditionning builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short conditionning text."
-                "conditionning builder only answers with the personality conditionning without any explanation.",
+                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}system message builder is a personality conditionning AI.",
+                "The user describes a personality and the ai should build a consistant AI system message text.",
+                "system message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short conditionning text."
+                "system message builder only answers with the personality conditionning without any explanation.",
                 f"{self.config.start_header_id_template}context{self.config.end_header_id_template}",
                 context_details["discussion_messages"],
                 f"{self.config.start_header_id_template}personality name{self.config.end_header_id_template}{name}",
                 f"{self.config.start_header_id_template}personality language{self.config.end_header_id_template}{language}",
                 f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
-                "Write a comprehensive personality conditionning text",
-                "Answer only with the conditionning text without any explanation or comments.",             
-                f"{self.config.start_header_id_template}conditionning builder{self.config.end_header_id_template}",
+                "Write a comprehensive personality system message text",
+                "Answer only with the system message text.",             
+                f"{self.config.start_header_id_template}system message builder{self.config.end_header_id_template}",
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}"
             ],5
         )
