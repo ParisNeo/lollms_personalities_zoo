@@ -191,7 +191,7 @@ class Processor(APScript):
             select_image_file_function(self, client)
         ]
 
-        out = self.interact_with_function_call(context_details, function_definitions)
+        out = self.interact_with_function_call(context_details, function_definitions, separate_output=True)
 
         self.full(out)
 
