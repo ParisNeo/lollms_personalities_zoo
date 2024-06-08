@@ -186,7 +186,7 @@ class Processor(APScript):
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
         # TODO: add more functions to call
-        function_definitions = [
+        self.function_definitions = [
             build_image_function(self, client),
             take_a_photo_function(self, client),
             select_image_file_function(self, client),
@@ -195,7 +195,7 @@ class Processor(APScript):
             delete_training_session_function(self.personality.app.lollms_paths.personal_outputs_path/self.personality.name/"Infos.xlsx")
         ]
 
-        out = self.interact_with_function_call(context_details, function_definitions)
+        out = self.interact_with_function_call(context_details, self.function_definitions)
 
         self.full(out)
 

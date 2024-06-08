@@ -188,7 +188,7 @@ class Processor(APScript):
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
         # TODO: add more functions to call
-        function_definitions = [
+        self.function_definitions = [
             build_image_function(self, client),
             start_writing_story_function(
                                             self, 
@@ -199,6 +199,6 @@ class Processor(APScript):
                                             client, 
                                             language=context_details["current_language"]),
         ]
-        out = self.interact_with_function_call(context_details, function_definitions,prompt_after_execution=False, hide_function_call=True, separate_output=True)
+        out = self.interact_with_function_call(context_details, self.function_definitions,prompt_after_execution=False, hide_function_call=True, separate_output=True)
         self.full(out)
 

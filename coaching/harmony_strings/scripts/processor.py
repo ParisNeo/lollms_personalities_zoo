@@ -733,7 +733,7 @@ class Processor(APScript):
             f"{self.config.start_header_id_template}happiness_index:\n"+str(course_step) if course_step is not None else "",
         ])
         chords_folder:Path = self.personality.assets_path/"chords"
-        function_definitions = [
+        self.function_definitions = [
             {
                 "function_name": "create_a_new_course",
                 "function": partial(self.create_a_new_course, user_id=user_id),
@@ -794,11 +794,11 @@ class Processor(APScript):
         ]
         
         if len(self.personality.image_files)>0:
-            out, function_calls = self.generate_with_function_calls_and_images(context_details, self.personality.image_files, function_definitions)
+            out, function_calls = self.generate_with_function_calls_and_images(context_details, self.personality.image_files, self.function_definitions)
         else:
-            out, function_calls = self.generate_with_function_calls(context_details,function_definitions)
+            out, function_calls = self.generate_with_function_calls(context_details, self.function_definitions)
         if len(function_calls)>0:
-            outputs = self.execute_function_calls(function_calls,function_definitions)
+            outputs = self.execute_function_calls(function_calls, self.function_definitions)
             out += "\n" + "\n".join([str(o) for o in outputs])
         self.full(out)
         return out

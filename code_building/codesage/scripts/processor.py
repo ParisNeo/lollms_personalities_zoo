@@ -8,30 +8,18 @@ Description: # Placeholder: Personality description (e.g., "A personality design
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
-from lollms.utilities import discussion_path_to_url, PackageManager, find_first_available_file_index
 from lollms.client_session import Client
-from lollms.functions.take_screen_shot import take_screenshot_function
-from lollms.functions.calculator import calculate_function
+from lollms.functions.generate_image import build_image, build_image_function
+from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
-from lollms.functions.generate_image import build_image_function
-from lollms.functions.peripherals import move_mouse_to_position_function, press_mouse_button_function, type_text_function
-from lollms.functions.timers import set_timer_with_alert_function
-from lollms.functions.search import search_and_clean_content_function
-from lollms.functions.summary import summerize_discussion_function
-from lollms.functions.youtube.search_and_show import search_youtube_and_play_function
+from lollms.functions.analyze_code import create_project_database_function, retrieve_information_for_task_function
 
-
+from lollms.utilities import discussion_path_to_url
+import subprocess
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
-
-if not PackageManager.check_package_installed("pyautogui"):
-    PackageManager.install_package("pyautogui")
-if not PackageManager.check_package_installed("cv2"):
-    PackageManager.install_package("opencv-python")
-
-import pyautogui
-
+from pathlib import Path
 
 class Processor(APScript):
     """
@@ -63,14 +51,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
-                {"name":"clean_images_between_sessions", "type":"bool", "value":False, "help":"This will remove images between two prompts"},
-
-                {"name":"show_screenshot_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
-                {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
-                {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
+                {"name":"project_path", "type":"str", "value":"", "help":"Path to your script"},
                 
-                {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
-                {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
@@ -176,17 +158,6 @@ class Processor(APScript):
         self.full(self.personality.help)
 
 
-
-    def move_mouse_to(self, x, y):
-        pyautogui.moveTo(x, y)
-
-    def click_mouse(self, x, y):
-        pyautogui.click(x, y)
-
-
-
-
-        
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
@@ -214,23 +185,17 @@ class Processor(APScript):
         """
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        if self.personality_config.clean_images_between_sessions:
-            self.personality.image_files.clear()
+
         # TODO: add more functions to call
         self.function_definitions = [
-            build_image_function(self, client),
-            calculate_function(self, client),
-            take_screenshot_function(client, self.personality_config.show_screenshot_ui,  self.personality_config.use_single_photo_at_a_time),
-            take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time),
-            set_timer_with_alert_function(self, client), 
-            search_and_clean_content_function(),
-            move_mouse_to_position_function(), 
-            press_mouse_button_function(), 
-            type_text_function(),
-            search_youtube_and_play_function()
+            create_project_database_function(self.personality_config.project_path, self),
+            retrieve_information_for_task_function(self.personality_config.project_path, self)
         ]
-        out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
+        if self.personality_config.project_path=="":
+            context_details["extra"]=f"{self.personality.app.config.start_header_id_template}infos{self.personality.app.config.end_header_id_template}Project pathg not configured and need to be updated in the personality configuration section."
+
+
+        out = self.interact_with_function_call(context_details, self.function_definitions)
 
         self.full(out)
-
 

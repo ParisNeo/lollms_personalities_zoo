@@ -214,11 +214,11 @@ class Processor(APScript):
         if self.personality_config.clean_images_between_sessions:
             self.personality.image_files.clear()
         # TODO: add more functions to call
-        function_definitions = [
+        self.function_definitions = [
             build_image_function(self, client),
             open_and_fill_udio_function()
         ]
-        out = self.interact_with_function_call(context_details, function_definitions,hide_function_call=self.personality_config.hide_function_call)
+        out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
         self.full(out)
 

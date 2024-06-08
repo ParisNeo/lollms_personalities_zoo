@@ -185,7 +185,7 @@ class Processor(APScript):
         Returns:
             None
         """
-        function_definitions = [
+        self.function_definitions = [
             list_personalities_function(self, client),
             summon_personality_function(self, callback, previous_discussion_text, context_details, client),
             build_image_function(self, client),
@@ -207,7 +207,7 @@ class Processor(APScript):
             self.full(out)
             while not self.yes_no("should we stop the debate?", prompt):
                 # TODO: add more functions to call
-                out = self.interact_with_function_call(context_details, function_definitions, callback = self.sink)
+                out = self.interact_with_function_call(context_details, self.function_definitions, callback = self.sink)
                 prompt_data, content, tokens, context_details, internet_search_infos = self.personality.app.prepare_query(client.client_id)
         else:
             prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
