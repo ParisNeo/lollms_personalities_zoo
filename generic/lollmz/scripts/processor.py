@@ -258,7 +258,7 @@ class Processor(APScript):
         if self.personality_config["enable_google_search_function"]:
             self.function_definitions.append(google_search_function())
         if self.personality_config["enable_read_text_function"]:
-            self.function_definitions.append(read_text_function())
+            self.function_definitions.append(read_text_function(self.personality.app.tts))
             
         out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
