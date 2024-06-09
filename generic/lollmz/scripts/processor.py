@@ -19,7 +19,8 @@ from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.search import search_and_clean_content_function
 from lollms.functions.summary import summerize_discussion_function
 from lollms.functions.youtube.search_and_show import search_youtube_and_play_function
-
+from lollms.functions.web.google_search import google_search_function
+from lollms.functions.tts.read_text import read_text_function
 
 from typing import Callable
 from functools import partial
@@ -71,6 +72,21 @@ class Processor(APScript):
                 
                 {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
                 {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
+
+                {"name": "enable_build_image_function", "type": "bool", "value": True, "help": "Enable or disable build_image_function"},
+                {"name": "enable_calculate_function", "type": "bool", "value": True, "help": "Enable or disable calculate_function"},
+                {"name": "enable_take_screenshot_function", "type": "bool", "value": True, "help": "Enable or disable take_screenshot_function"},
+                {"name": "enable_take_a_photo_function", "type": "bool", "value": True, "help": "Enable or disable take_a_photo_function"},
+                {"name": "enable_set_timer_with_alert_function", "type": "bool", "value": True, "help": "Enable or disable set_timer_with_alert_function"},
+                {"name": "enable_search_and_clean_content_function", "type": "bool", "value": True, "help": "Enable or disable search_and_clean_content_function"},
+                {"name": "enable_move_mouse_to_position_function", "type": "bool", "value": True, "help": "Enable or disable move_mouse_to_position_function"},
+                {"name": "enable_press_mouse_button_function", "type": "bool", "value": True, "help": "Enable or disable press_mouse_button_function"},
+                {"name": "enable_type_text_function", "type": "bool", "value": True, "help": "Enable or disable type_text_function"},
+                {"name": "enable_search_youtube_and_play_function", "type": "bool", "value": True, "help": "Enable or disable search_youtube_and_play_function"},
+                {"name": "enable_google_search_function", "type": "bool", "value": True, "help": "Enable or disable google_search_function"},
+                {"name": "enable_read_text_function", "type": "bool", "value": True, "help": "Enable or disable read_text_function"},
+
+
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
@@ -217,18 +233,33 @@ class Processor(APScript):
         if self.personality_config.clean_images_between_sessions:
             self.personality.image_files.clear()
         # TODO: add more functions to call
-        self.function_definitions = [
-            build_image_function(self, client),
-            calculate_function(self, client),
-            take_screenshot_function(client, self.personality_config.show_screenshot_ui,  self.personality_config.use_single_photo_at_a_time),
-            take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time),
-            set_timer_with_alert_function(self, client), 
-            search_and_clean_content_function(),
-            move_mouse_to_position_function(), 
-            press_mouse_button_function(), 
-            type_text_function(),
-            search_youtube_and_play_function()
-        ]
+        self.function_definitions = []
+
+        if self.personality_config["enable_build_image_function"]:
+            self.function_definitions.append(build_image_function(self, client))
+        if self.personality_config["enable_calculate_function"]:
+            self.function_definitions.append(calculate_function(self, client))
+        if self.personality_config["enable_take_screenshot_function"]:
+            self.function_definitions.append(take_screenshot_function(client, self.personality_config.show_screenshot_ui, self.personality_config.use_single_photo_at_a_time))
+        if self.personality_config["enable_take_a_photo_function"]:
+            self.function_definitions.append(take_a_photo_function(self, client, self.personality_config.take_photo_ui, self.personality_config.use_single_photo_at_a_time))
+        if self.personality_config["enable_set_timer_with_alert_function"]:
+            self.function_definitions.append(set_timer_with_alert_function())
+        if self.personality_config["enable_search_and_clean_content_function"]:
+            self.function_definitions.append(search_and_clean_content_function())
+        if self.personality_config["enable_move_mouse_to_position_function"]:
+            self.function_definitions.append(move_mouse_to_position_function())
+        if self.personality_config["enable_press_mouse_button_function"]:
+            self.function_definitions.append(press_mouse_button_function())
+        if self.personality_config["enable_type_text_function"]:
+            self.function_definitions.append(type_text_function())
+        if self.personality_config["enable_search_youtube_and_play_function"]:
+            self.function_definitions.append(search_youtube_and_play_function())
+        if self.personality_config["enable_google_search_function"]:
+            self.function_definitions.append(google_search_function())
+        if self.personality_config["enable_read_text_function"]:
+            self.function_definitions.append(read_text_function())
+            
         out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
         self.full(out)

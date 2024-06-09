@@ -1,4 +1,8 @@
 # Lollms function call definition file
+# File Name: <add a file name here>.py
+# Author: <the author of this code is the user name>
+# Description: <describe how this function works>
+
 # Here you need to import any necessary imports depending on the function requested by the user
 # exemple import math
 
@@ -22,7 +26,7 @@ if not PackageManager.check_package_installed("pyautogui"):
 import pyautogui
 
 # here is the core of the function to be built
-# Change the name of this function depending on the user requets, 
+# Change the name of this function depending on the user requets
 def add_constant(parameter1:str, parameter2:int) -> float: # use typed parameters depending on the requested function, only int, float or text outputs are allowed
     """
     Put a detailed docstring here

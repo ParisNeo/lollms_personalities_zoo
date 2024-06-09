@@ -9,17 +9,13 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
-from lollms.functions.generate_image import build_image, build_image_function
-from lollms.functions.select_image_file import select_image_file_function
-from lollms.functions.take_a_photo import take_a_photo_function
-from lollms.functions.analyze_code import create_project_database_function, retrieve_information_for_task_function, retrieve_classes_from_project_function, update_class_in_file_function
+from lollms.functions.tts.read_text_from_file import read_text_from_file_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
-from pathlib import Path
 
 class Processor(APScript):
     """
@@ -51,11 +47,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
-                {"name":"project_path", "type":"str", "value":"", "help":"Path to your script"},
-
-                # Boolean configuration for enabling scripted AI
-                {"name":"allow_direct_code_change", "type":"bool", "value":False, "help":"Allow the AI to directly modify your code. Please make sure you commit the code between updates so that you can go back to previous version whenever you need that."},
-
+                #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
+                
                 # String configuration with options
                 #{"name":"response_mode", "type":"string", "options":["verbose", "concise"], "value":"concise", "help":"Determines the verbosity of AI responses."},
                 
@@ -186,23 +179,24 @@ class Processor(APScript):
         Returns:
             None
         """
+        start_header_id_template    = self.personality.config.start_header_id_template
+        end_header_id_template      = self.personality.config.end_header_id_template
+        system_message_template     = self.personality.config.system_message_template
+        separator_template          = self.personality.config.separator_template
+
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
         # TODO: add more functions to call
-        self.function_definitions = [
-            create_project_database_function(self.personality_config.project_path, self),
-            retrieve_information_for_task_function(self.personality_config.project_path, self),
-            retrieve_classes_from_project_function(self.personality_config.project_path),
-        ]
-        if self.personality_config.allow_direct_code_change:
-            self.function_definitions.append(update_class_in_file_function(self.personality_config.project_path))
+        if len(self.personality.text_files)>0:
+            context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}Text file already received from user."
+            self.function_definitions = [
+                read_text_from_file_function(self.personality.text_files[0] ,self.personality.app.tts, self)
+            ]
 
-        if self.personality_config.project_path=="":
-            context_details["extra"]=f"{self.personality.app.config.start_header_id_template}infos{self.personality.app.config.end_header_id_template}Project pathg not configured and need to be updated in the personality configuration section."
-
-
-        out = self.interact_with_function_call(context_details, self.function_definitions)
-
+            out = self.interact_with_function_call(context_details, self.function_definitions,separate_output=True)
+        else:
+            context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}There are no text files to read, the user needs to press the add a file buitton then send a file to be read. We support any text file format like pdf or docx etc.."
+            out = self.interact(context_details)
         self.full(out)
 
