@@ -10,6 +10,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.client_session import Client
 from lollms.functions.tts.read_text_from_file import read_text_from_file_function
+from lollms.functions.writing.create_text_file import create_file_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -191,12 +192,17 @@ class Processor(APScript):
         if len(self.personality.text_files)>0:
             context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}Text file already received from user."
             self.function_definitions = [
-                read_text_from_file_function(self.personality.text_files[0] ,self.personality.app.tts, self)
+                read_text_from_file_function(self.personality.text_files[0] ,self.personality.app.tts, self),
+                create_file_function(client)
             ]
 
             out = self.interact_with_function_call(context_details, self.function_definitions,separate_output=True)
         else:
             context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}There are no text files to read, the user needs to press the add a file buitton then send a file to be read. We support any text file format like pdf or docx etc.."
-            out = self.interact(context_details)
+            self.function_definitions = [
+                create_file_function(client)
+            ]
+
+            out = self.interact_with_function_call(context_details, self.function_definitions,separate_output=True)
         self.full(out)
 
