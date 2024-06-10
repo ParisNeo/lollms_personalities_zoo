@@ -87,12 +87,9 @@ class Processor(APScript):
     def save_text(self, text, path:Path):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
-            
-    def zip_document(self, document_path:Path,  output =""):
-        document_text = GenericDataLoader.read_file(document_path)
+
+    def zip_text(self, document_text:str,  output =""):
         tk = self.personality.model.tokenize(document_text)
-        self.step_start(f"summary mode : {self.personality_config.zip_mode}")
-        self.step_start(f"summerizing {document_path.stem}")
         if len(tk)<int(self.personality_config.zip_size):
                 document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
@@ -141,9 +138,6 @@ class Processor(APScript):
             )
 
         self.step_end(f"Last composition")
-        self.step_end(f"summerizing {document_path.stem}")
-        if self.personality_config.output_path:
-            self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
         return document_text, output
                     
         
@@ -159,12 +153,26 @@ class Processor(APScript):
             ])
             )
             return
+        all_summaries=""
+        self.step_start(f"summary mode : {self.personality_config.zip_mode}")
         for file in self.personality.text_files:
             output=""
-            file = Path(file)
-            summary, output = self.zip_document(file, output)
-            output +=f"\n## Summary of {file.stem}\n{summary}"
+            document_path = Path(file)
+            self.step_start(f"summerizing {document_path.stem}")
+            document_text = GenericDataLoader.read_file(document_path)
+            summary, o = self.zip_text(document_text, "")
+            self.step_end(f"summerizing {document_path.stem}")
+            if self.personality_config.output_path:
+                self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
+            output +=f"\n## Summary of {document_path.stem}\n{summary}"
             self.full(output)
+            self.new_message("")
+            summary, o = self.zip_text(output, "")
+            output =f"\n## Global summary\n{summary}"
+            self.full(output)
+            if self.personality_config.output_path:
+                self.save_text(document_text, Path(self.personality_config.output_path)/("global_summary.txt"))
+            
 
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
