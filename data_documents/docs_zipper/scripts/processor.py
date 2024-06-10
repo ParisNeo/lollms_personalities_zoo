@@ -117,7 +117,6 @@ class Processor(APScript):
                     callback=self.sink
                     )
                 tk = self.personality.model.tokenize(document_text)
-                self.full(output+f"\n\n## Summerized chunk text:\n{document_text}")
                 depth += 1
                 if self.personality_config.zip_mode!="sequencial":
                     self.step_end(f"Comprerssing.. [depth {depth}]")
