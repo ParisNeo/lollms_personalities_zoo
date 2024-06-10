@@ -157,6 +157,7 @@ class Processor(APScript):
             files = [f for f in Path(self.personality_config.data_folder).iterdir()]
         else:
             files = self.personality.text_files
+            
         all_summaries=""
         self.step_start(f"summary mode : {self.personality_config.zip_mode}")
         for file in files:
@@ -166,7 +167,7 @@ class Processor(APScript):
             summary, o = self.zip_text(document_text, "")
             self.step_end(f"summerizing {document_path.stem}")
             if self.personality_config.output_path:
-                self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
+                self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
             all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
             self.full(all_summaries)
         self.new_message("")
@@ -174,7 +175,7 @@ class Processor(APScript):
         output =f"\n## Global summary\n{summary}"
         self.full(output)
         if self.personality_config.output_path:
-            self.save_text(document_text, Path(self.personality_config.output_path)/("global_summary.txt"))
+            self.save_text(summary, Path(self.personality_config.output_path)/("global_summary.txt"))
             
 
 
