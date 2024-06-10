@@ -172,7 +172,7 @@ class Processor(APScript):
             return
             
         all_summaries=""
-        self.step_start(f"summary mode : {self.personality_config.zip_mode}")
+        self.step(f"summary mode : {self.personality_config.zip_mode}")
         for file in files:
             if file.suffix.lower() in [".pdf", ".docx", ".pptx"]:
                 document_path = Path(file)
