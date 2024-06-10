@@ -90,33 +90,15 @@ class Processor(APScript):
             f.write(text)
 
     def zip_text(self, document_text:str,  output =""):
-        tk = self.personality.model.tokenize(document_text)
-        if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize_text(
-                                        document_text,
-                                        "\n".join([
-                                            f"Summerize the document chunk in a detailed comprehensive manner.",
-                                            "The summary should contain exclusively information from the document chunk.",
-                                            "Do not provide opinions nor extra information that is not in the document chunk",
-                                            f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                                            f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                                            f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                                            f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                                            f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                                            f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                                            f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                                        ])
-                                        ,"document chunk", max_summary_size=self.personality_config.zip_size)
-        else:
-            depth=0
-            while len(tk)>int(self.personality_config.zip_size):
-                if self.personality_config.zip_mode!="sequencial":
-                    self.step_start(f"Comprerssing.. [depth {depth}]")
-                chunk_size = int(self.personality.config.ctx_size*0.6)
-                document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize_chunks(document_chunks,"\n".join([
+        start_header_id_template    = self.config.start_header_id_template
+        end_header_id_template      = self.config.end_header_id_template
+        system_message_template     = self.config.system_message_template
+
+        start_ai_header_id_template     = self.config.start_ai_header_id_template
+        end_ai_header_id_template       = self.config.end_ai_header_id_template
+
+        zip_prompt="\n".join([
                         f"Summerize the document chunk in a detailed comprehensive manner.",
-                        "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
                         f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                         f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -125,7 +107,17 @@ class Processor(APScript):
                         f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                         f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                         f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                    ]),
+                    ])
+        tk = self.personality.model.tokenize(document_text)
+        if len(tk)>int(self.personality_config.zip_size):
+            depth=0
+            while len(tk)>int(self.personality_config.zip_size):
+                if self.personality_config.zip_mode!="sequencial":
+                    self.step_start(f"Comprerssing.. [depth {depth}]")
+                chunk_size = int(self.personality.config.ctx_size*0.6)
+                document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
+                document_text = self.summerize_chunks(document_chunks, 
+                    zip_prompt,
                     "Document chunk",
                     summary_mode=SUMMARY_MODE.SUMMARY_MODE_SEQUENCIAL if self.personality_config.zip_mode=="sequencial" else SUMMARY_MODE.SUMMARY_MODE_HIERARCHICAL,
                     callback=self.sink
@@ -137,8 +129,12 @@ class Processor(APScript):
                 else:
                     break
         self.step_start(f"Last composition")
-        document_text = self.summerize_chunks([document_text],"\n".join([
-                f"Rewrite this document in a better way while respecting the following guidelines:",
+        document_text = self.fast_gen("\n".join([
+                f"{start_header_id_template}Document text{end_header_id_template}",
+                {document_text},
+                f"{start_header_id_template}{system_message_template}{end_header_id_template}",
+                f"Rewrite this document text in a more comprehensive way while respecting the following guidelines:",
+                "The new text should contain exclusively information from the document text.",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
                 f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
@@ -146,6 +142,8 @@ class Processor(APScript):
                 f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                f"Answer directly with the summary with no extra comments.",
+                f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             ]),
             "Document chunk",
             callback=self.sink
