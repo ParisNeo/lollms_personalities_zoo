@@ -131,7 +131,7 @@ class Processor(APScript):
         self.step_start(f"Last composition")
         last_composition_prompt="\n".join([
                 f"{start_header_id_template}Document text{end_header_id_template}",
-                {document_text},
+                f"{document_text}",
                 f"{start_header_id_template}{system_message_template}{end_header_id_template}",
                 f"Rewrite this document text in a more comprehensive way while respecting the following guidelines:",
                 "The new text should contain exclusively information from the document text.",
@@ -141,13 +141,13 @@ class Processor(APScript):
                 f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
                 f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}",
                 f"Answer directly with the summary with no extra comments.",
                 f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             ])
         document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
             callback=self.sink
-            )
+        )
 
         self.step_end(f"Last composition")
         return document_text, output
