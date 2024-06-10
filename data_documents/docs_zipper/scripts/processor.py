@@ -33,6 +33,7 @@ class Processor(APScript):
             [
                 {"name":"zip_mode","type":"str","value":"sequencial","options":["sequencial", "hierarchical"], "help":"algorithm"},
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
+                {"name":"data_folder","type":"str","value":"", "help":"The path to a folder where to get the input files."},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
                 {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
@@ -91,7 +92,7 @@ class Processor(APScript):
     def zip_text(self, document_text:str,  output =""):
         tk = self.personality.model.tokenize(document_text)
         if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk", max_summary_size=self.personality_config.zip_size)
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
@@ -153,10 +154,13 @@ class Processor(APScript):
             ])
             )
             return
+        if self.personality_config.data_folder!="":
+            files = [f for f in Path(self.personality_config.data_folder).iterdir()]
+        else:
+            files = self.personality.text_files
         all_summaries=""
         self.step_start(f"summary mode : {self.personality_config.zip_mode}")
-        for file in self.personality.text_files:
-            output=""
+        for file in files:
             document_path = Path(file)
             self.step_start(f"summerizing {document_path.stem}")
             document_text = GenericDataLoader.read_file(document_path)
@@ -164,14 +168,14 @@ class Processor(APScript):
             self.step_end(f"summerizing {document_path.stem}")
             if self.personality_config.output_path:
                 self.save_text(document_text, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
-            output +=f"\n## Summary of {document_path.stem}\n{summary}"
-            self.full(output)
-            self.new_message("")
-            summary, o = self.zip_text(output, "")
-            output =f"\n## Global summary\n{summary}"
-            self.full(output)
-            if self.personality_config.output_path:
-                self.save_text(document_text, Path(self.personality_config.output_path)/("global_summary.txt"))
+            all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
+            self.full(all_summaries)
+        self.new_message("")
+        summary, o = self.zip_text(all_summaries, "")
+        output =f"\n## Global summary\n{summary}"
+        self.full(output)
+        if self.personality_config.output_path:
+            self.save_text(document_text, Path(self.personality_config.output_path)/("global_summary.txt"))
             
 
 
