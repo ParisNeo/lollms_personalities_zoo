@@ -158,7 +158,12 @@ class Processor(APScript):
 
     def start_zipping(self, prompt="", full_context="", client:Client=None):
         self.new_message("")
-        if len(self.personality.text_files)==0:
+        if self.personality_config.data_folder!="":
+            files = [f for f in Path(self.personality_config.data_folder).iterdir()]
+        else:
+            files = self.personality.text_files
+        
+        if len(files)==0:
 
             self.full("\n".join([
                 "Hey there! 🌟 It looks like you're itching for a bit of that magic summary action.",
@@ -167,10 +172,6 @@ class Processor(APScript):
             ])
             )
             return
-        if self.personality_config.data_folder!="":
-            files = [f for f in Path(self.personality_config.data_folder).iterdir()]
-        else:
-            files = self.personality.text_files
             
         all_summaries=""
         self.step_start(f"summary mode : {self.personality_config.zip_mode}")
