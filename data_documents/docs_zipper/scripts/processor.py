@@ -129,7 +129,7 @@ class Processor(APScript):
                 else:
                     break
         self.step_start(f"Last composition")
-        document_text = self.fast_gen("\n".join([
+        last_composition_prompt="\n".join([
                 f"{start_header_id_template}Document text{end_header_id_template}",
                 {document_text},
                 f"{start_header_id_template}{system_message_template}{end_header_id_template}",
@@ -144,8 +144,8 @@ class Processor(APScript):
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                 f"Answer directly with the summary with no extra comments.",
                 f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
-            ]),
-            "Document chunk",
+            ])
+        document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size
             callback=self.sink
             )
 
