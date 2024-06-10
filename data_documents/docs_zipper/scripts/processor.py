@@ -92,7 +92,21 @@ class Processor(APScript):
     def zip_text(self, document_text:str,  output =""):
         tk = self.personality.model.tokenize(document_text)
         if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk", max_summary_size=self.personality_config.zip_size)
+                document_text = self.summerize_text(
+                                        document_text,
+                                        "\n".join([
+                                            f"Summerize the document chunk in a detailed comprehensive manner.",
+                                            "The summary should contain exclusively information from the document chunk.",
+                                            "Do not provide opinions nor extra information that is not in the document chunk",
+                                            f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
+                                            f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
+                                            f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
+                                            f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
+                                            f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
+                                            f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
+                                            f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
+                                        ])
+                                        ,"document chunk", max_summary_size=self.personality_config.zip_size)
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
@@ -161,16 +175,18 @@ class Processor(APScript):
         all_summaries=""
         self.step_start(f"summary mode : {self.personality_config.zip_mode}")
         for file in files:
-            document_path = Path(file)
-            self.step_start(f"summerizing {document_path.stem}")
-            document_text = GenericDataLoader.read_file(document_path)
-            summary, o = self.zip_text(document_text, "")
-            self.step_end(f"summerizing {document_path.stem}")
-            if self.personality_config.output_path:
-                self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
-            all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
-            self.full(all_summaries)
-        self.new_message("")
+            if file.suffix.lower() in [".pdf", ".docx", ".pptx"]:
+                document_path = Path(file)
+                self.step_start(f"summerizing {document_path.stem}")
+                document_text = GenericDataLoader.read_file(document_path)
+                summary, o = self.zip_text(document_text, "")
+                self.step_end(f"summerizing {document_path.stem}")
+                if self.personality_config.output_path:
+                    self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
+                all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
+                self.full(all_summaries)
+        self.new_message("")        
+        ASCIIColors.yellow(all_summaries)
         summary, o = self.zip_text(all_summaries, "")
         output =f"\n## Global summary\n{summary}"
         self.full(output)
