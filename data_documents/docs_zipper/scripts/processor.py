@@ -145,7 +145,7 @@ class Processor(APScript):
                 f"Answer directly with the summary with no extra comments.",
                 f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             ])
-        document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size
+        document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
             callback=self.sink
             )
 
