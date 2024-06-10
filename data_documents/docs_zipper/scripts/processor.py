@@ -135,6 +135,7 @@ class Processor(APScript):
                 f"{start_header_id_template}{system_message_template}{end_header_id_template}",
                 f"Rewrite this document text in a more comprehensive way while respecting the following guidelines:",
                 "The new text should contain exclusively information from the document text.",
+                "The new text should be clear and an enhanced version of the document text",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
                 f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
@@ -142,7 +143,7 @@ class Processor(APScript):
                 f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}",
-                f"Answer directly with the summary with no extra comments.",
+                f"Answer directly with the new enhanced document text with no extra comments.",
                 f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             ])
         document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
