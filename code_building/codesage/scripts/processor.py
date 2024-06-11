@@ -13,7 +13,10 @@ from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
 from lollms.functions.analyze_code import create_project_database_function, retrieve_information_for_task_function, retrieve_classes_from_project_function, update_class_in_file_function
-
+from lollms.functions.analyze_code.list_files import list_project_structure_function
+from lollms.functions.analyze_code.list_classes import list_project_classes_function
+from lollms.functions.analyze_code.add_code_to_file import add_code_to_file_function
+from lollms.functions.analyze_code.search_class_in_project import search_class_in_project_function
 from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
@@ -194,6 +197,10 @@ class Processor(APScript):
             create_project_database_function(self.personality_config.project_path, self),
             retrieve_information_for_task_function(self.personality_config.project_path, self),
             retrieve_classes_from_project_function(self.personality_config.project_path),
+            list_project_structure_function(self.personality_config.project_path),
+            list_project_classes_function(self.personality_config.project_path),
+            add_code_to_file_function(self.personality_config.project_path),
+            search_class_in_project_function(self.personality_config.project_path),
         ]
         if self.personality_config.allow_direct_code_change:
             self.function_definitions.append(update_class_in_file_function(self.personality_config.project_path))
