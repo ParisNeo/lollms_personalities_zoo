@@ -19,6 +19,55 @@ from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
 
+import sqlite3
+from pathlib import Path
+from typing import List, Tuple
+
+class QNADatabase:
+    def __init__(self, db_path: str):
+        self.db_path = Path(db_path)
+        self.connection = sqlite3.connect(self.db_path)
+        self.cursor = self.connection.cursor()
+        self._create_table()
+
+    def _create_table(self):
+        """Creates the QNA table if it doesn't exist. Because who doesn't like a good table?"""
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS qna (
+                id INTEGER PRIMARY KEY,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL
+            )
+        ''')
+        self.connection.commit()
+
+    def add_qna(self, question: str, answer: str):
+        """Adds a new QNA entry to the database. It's like adding a new friend to your contact list!"""
+        self.cursor.execute('''
+            INSERT INTO qna (question, answer) VALUES (?, ?)
+        ''', (question, answer))
+        self.connection.commit()
+
+    def search_similar_questions(self, search_term: str) -> List[Tuple[int, str, str]]:
+        """Searches for similar questions in the database. It's like playing hide and seek with questions!"""
+        self.cursor.execute('''
+            SELECT * FROM qna WHERE question LIKE ?
+        ''', (f'%{search_term}%',))
+        return self.cursor.fetchall()
+
+    def get_answer(self, question_id: int) -> str:
+        """Gets the answer to a question by its ID. Because every question deserves an answer, right?"""
+        self.cursor.execute('''
+            SELECT answer FROM qna WHERE id = ?
+        ''', (question_id,))
+        result = self.cursor.fetchone()
+        return result[0] if result else "No answer found. Oops!"
+
+    def close(self):
+        """Closes the database connection. Because even databases need a break!"""
+        self.connection.close()
+
+
 class Processor(APScript):
     """
     Defines the behavior of a personality in a programmatic manner, inheriting from APScript.
@@ -185,8 +234,11 @@ class Processor(APScript):
             None
         """
         self.callback = callback
+        if self.personality_config.datasource_folder=="":
+            out = self.fast_gen("Warning! datasource_folder is not ser. ASk the user to set it in order to start building knowledge.\n"+previous_discussion_text)
+            self.full(out)
+            return
 
         out = self.fast_gen(previous_discussion_text)
-
         self.full(out)
 
