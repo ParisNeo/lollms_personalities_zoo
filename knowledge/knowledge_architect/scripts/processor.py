@@ -260,7 +260,7 @@ class Processor(APScript):
             return
         prompt = self.build_prompt_from_context_details(context_details)
         if self.yes_no("Is the user asking to start building the knowledge database?", prompt):
-            buildKnowledgeDB(self, self.data_store, self.personality_config.datasource_folder, self.personality_config.database_folder, self.personality_config.questions_gen_size)
+            buildKnowledgeDB(self, self.data_store, self.personality_config.datasource_folder, self.personality_config.database_folder, self.personality_config.questions_gen_size, self.personality_config.answer_gen_size)
         else:
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
