@@ -1,6 +1,6 @@
 APScript useful methods:
 fast_gen:
-    Fast way to generate text from prompt
+    Fast way to gener       ate text from prompt
     
     This method takes in a prompt, maximum generation size, optional placeholders, sacrifice list, and debug flag.
     It reshapes the context before performing text generation by adjusting and cropping the number of tokens.
@@ -52,3 +52,17 @@ yes_no(self, question: str, context:str="", max_answer_length: int = 50) -> bool
         Returns:
             bool: True if the user prompt is asking to generate an image, False otherwise.
 
+def multichoice_question(self, question: str, possible_answers: list, context: str = "", max_answer_length: int = 50, conditionning="") -> int:
+    """
+    Interprets a multi-choice question from a user's response. Expects one correct choice; returns -1 if none are correct.
+
+    Args:
+        question (str): The multi-choice question.
+        possible_answers (List[Any]): List of valid options. Each item can be 'True', 'False', None, or a callable for truth testing.
+        context (str, optional): Additional context for the question. Defaults to "".
+        max_answer_length (int, optional): Max length of user response. Defaults to 50.
+        conditionning (str, optional): System message at the beginning of the prompt. Defaults to "".
+
+    Returns:
+        int: Index of the selected option in possible_answers, or -1 if no match.
+    """

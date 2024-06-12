@@ -230,7 +230,7 @@ Valid answers:
 
             self.step_start(f"Asking question {index}/{len(questions_vector)}")
             prompt_text = """{self.config.start_header_id_template}chunk: {{chunk}}
-{self.config.start_header_id_template}instructions:
+{self.config.start_header_id_template}instructions{self.config.end_header_id_template}
 Interpret the textual data contained within the chunk thoroughly to answer the corresponding instruction/task presented alongside it.
 If the information stored in this chunk does not suffice to provide categorically accurate answers, please answer exactly __UNSUFFICIENT_INFORMATION__.
 All statements must be generated solely based on the available input data, discarding any assumptions beyond what has been explicitly stated.

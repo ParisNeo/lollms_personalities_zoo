@@ -1,8 +1,8 @@
 """
 Project: LoLLMs
-Personality: Knowledge architect
-Author: ParisNeo
-Description: Convertts data to knowledge
+Personality: # Placeholder: Personality name (e.g., "Science Enthusiast")
+Author: # Placeholder: Creator name (e.g., "ParisNeo")
+Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
 
 from lollms.helpers import ASCIIColors
@@ -12,69 +12,14 @@ from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
-from lollms.functions.knowledge.build_knowledge_db import buildKnowledgeDB
-from safe_store.text_vectorizer import TextVectorizer, VectorizationMethod, VisualizationMethod
+from lollms.functions.analyze_code.create_project_database import create_project_database
+from lollms.functions.analyze_code.search_class_in_project import search_class_in_project
 from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception
-
-import sqlite3
 from pathlib import Path
-from typing import List, Tuple
-from lollms.utilities import PackageManager
-if not PackageManager.check_package_installed("lollmsvectordb"):
-    PackageManager.install_or_update("lollmsvectordb")
-
-from lollmsvectordb.directory_binding import DirectoryBinding
-from lollmsvectordb.text_chunker import TextChunker
-from lollmsvectordb.vectorizers.tfidf_vectorizer import TFIDFVectorizer
-
-
-class QNADatabase:
-    def __init__(self, db_path: str):
-        self.db_path = Path(db_path)
-        self.connection = sqlite3.connect(self.db_path)
-        self.cursor = self.connection.cursor()
-        self._create_table()
-
-    def _create_table(self):
-        """Creates the QNA table if it doesn't exist. Because who doesn't like a good table?"""
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS qna (
-                id INTEGER PRIMARY KEY,
-                question TEXT NOT NULL,
-                answer TEXT NOT NULL
-            )
-        ''')
-        self.connection.commit()
-
-    def add_qna(self, question: str, answer: str):
-        """Adds a new QNA entry to the database. It's like adding a new friend to your contact list!"""
-        self.cursor.execute('''
-            INSERT INTO qna (question, answer) VALUES (?, ?)
-        ''', (question, answer))
-        self.connection.commit()
-
-    def search_similar_questions(self, search_term: str) -> List[Tuple[int, str, str]]:
-        """Searches for similar questions in the database. It's like playing hide and seek with questions!"""
-        self.cursor.execute('''
-            SELECT * FROM qna WHERE question LIKE ?
-        ''', (f'%{search_term}%',))
-        return self.cursor.fetchall()
-
-    def get_answer(self, question_id: int) -> str:
-        """Gets the answer to a question by its ID. Because every question deserves an answer, right?"""
-        self.cursor.execute('''
-            SELECT answer FROM qna WHERE id = ?
-        ''', (question_id,))
-        result = self.cursor.fetchone()
-        return result[0] if result else "No answer found. Oops!"
-
-    def close(self):
-        """Closes the database connection. Because even databases need a break!"""
-        self.connection.close()
 
 
 class Processor(APScript):
@@ -110,11 +55,8 @@ class Processor(APScript):
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
                 # String configuration with options
-                {"name":"datasource_folder", "type":"string", "value":"", "help":"The folder contzaining the data to read."},
-
-                # String configuration with options
-                {"name":"database_folder", "type":"string", "value":"", "help":"The folder where to put the database."},
-
+                {"name":"personality_path", "type":"string", "value":"", "help":"Path to the personality folder."},
+                
                 # Integer configuration example
                 #{"name":"max_attempts", "type":"int", "value":3, "help":"Maximum number of attempts for retryable operations."},
                 
@@ -122,7 +64,7 @@ class Processor(APScript):
                 #{"name":"favorite_topics", "type":"list", "value":["AI", "Robotics", "Space"], "help":"List of favorite topics for personalized responses."}
             ]
         )
-        
+        self.project_database = None
         personality_config_vals = BaseConfig.from_template(personality_config_template)
 
         personality_config = TypedConfig(
@@ -144,17 +86,9 @@ class Processor(APScript):
                             ],
                             callback=callback
                         )
+        doc_path = Path(__file__).parent/"documentation.md"
+        self.documentation = doc_path.read_text(encoding='utf-8')
 
-        self.vector_database = TFIDFVectorizer()
-        self.db = None
-        self.data_store = TextVectorizer(
-            vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,  # =VectorizationMethod.BM25_VECTORIZER,
-            data_visualization_method=VisualizationMethod.PCA,  # VisualizationMethod.PCA,
-            save_db=False
-        )        
-
-    def settings_updated(self):
-        self.db = DirectoryBinding(self.personality_config.personality_path, self.vector_database)
 
     def mounted(self):
         """
@@ -253,14 +187,30 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        if self.personality_config.datasource_folder=="":
-            out = self.fast_gen("Warning! datasource_folder is not set. ASk the user to set it in order to start building knowledge.\n"+previous_discussion_text)
-            self.full(out)
-            return
-        prompt = self.build_prompt_from_context_details(context_details)
-        if self.yes_no("Is the user asking to start building the knowledge database?", prompt):
-            buildKnowledgeDB(self, self.data_store)
+        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
+        if self.personality_config.personality_path=="":
+            extra = "\n".join([
+                "Personality path not set. Please ask the user to set the path so that you can access its code."
+            ])
+
         else:
-            out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            if self.project_database is None or self.project_database!=Path(self.personality_config.personality_path)/"project.db":
+                self.project_database = Path(self.personality_config.personality_path)/"project.db"
+                create_project_database(self.project_database,llm=self)
+            
+            extra = "\n".join([
+                "Documentation:",
+                self.documentation,
+                "Personality code infos:",
+                search_class_in_project("Process", self.project_database)
+            ])
+
+        # TODO: add more functions to call
+        if len(self.personality.image_files)>0:
+            reconstructed_prompt=self.build_prompt_from_context_details(context_details,extra)
+            out = self.fast_gen_with_images(reconstructed_prompt)
+        else:
+            reconstructed_prompt=self.build_prompt_from_context_details(context_details,extra)
+            out = self.fast_gen(reconstructed_prompt)
+        self.full(out)
 
