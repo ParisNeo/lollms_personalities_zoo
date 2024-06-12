@@ -116,7 +116,8 @@ class Processor(APScript):
                 {"name":"database_folder", "type":"string", "value":"", "help":"The folder where to put the database."},
 
                 # Integer configuration example
-                #{"name":"max_attempts", "type":"int", "value":3, "help":"Maximum number of attempts for retryable operations."},
+                {"name":"questions_gen_size", "type":"int", "value":128, "help":"Questions generation size."},
+                {"name":"answer_gen_size", "type":"int", "value":512, "help":"Answer generation size."},
                 
                 # List configuration example
                 #{"name":"favorite_topics", "type":"list", "value":["AI", "Robotics", "Space"], "help":"List of favorite topics for personalized responses."}
@@ -259,7 +260,7 @@ class Processor(APScript):
             return
         prompt = self.build_prompt_from_context_details(context_details)
         if self.yes_no("Is the user asking to start building the knowledge database?", prompt):
-            buildKnowledgeDB(self, self.data_store)
+            buildKnowledgeDB(self, self.data_store, self.personality_config.datasource_folder, self.personality_config.database_folder, self.personality_config.questions_gen_size)
         else:
             out = self.fast_gen(previous_discussion_text)
             self.full(out)
