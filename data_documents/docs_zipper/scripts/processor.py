@@ -143,28 +143,28 @@ class Processor(APScript):
                 else:
                     break
         if add_summary_formatting:
-            last_composition_prompt  = f"{start_header_id_template}Summerized document text{end_header_id_template}\n"
-            last_composition_prompt += f"{document_text}\n"
-            last_composition_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
+            formatting_prompt  = f"{start_header_id_template}Summerized document text{end_header_id_template}\n"
+            formatting_prompt += f"{document_text}\n"
+            formatting_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
             
-            last_composition_prompt += "Do not provide opinions nor extra information that is not in the document chunk\n"
-            last_composition_prompt += "Keep the same language.'}\n" if self.personality_config.keep_same_language else ''
-            last_composition_prompt += "Preserve the title of this document if provided.\n'}" if self.personality_config.preserve_document_title else ''
-            last_composition_prompt += "Preserve author names of this document if provided.\n'}" if self.personality_config.preserve_authors_name else ''
-            last_composition_prompt += "Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
-            last_composition_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-            last_composition_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-            last_composition_prompt += f"Important information:{summary_formatting_text}."+"\n" if summary_formatting_text!='' else ''
-            last_composition_prompt += "The summary should be written in "+translate_to +"\n" if translate_to!='' else ''
-            last_composition_prompt += "Answer directly with the new enhanced document text with no extra comments.\n"
-            last_composition_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
+            formatting_prompt += "Do not provide opinions nor extra information that is not in the document chunk\n"
+            formatting_prompt += "Keep the same language.'}\n" if self.personality_config.keep_same_language else ''
+            formatting_prompt += "Preserve the title of this document if provided.\n'}" if self.personality_config.preserve_document_title else ''
+            formatting_prompt += "Preserve author names of this document if provided.\n'}" if self.personality_config.preserve_authors_name else ''
+            formatting_prompt += "Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
+            formatting_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+            formatting_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+            formatting_prompt += f"Important information:{summary_formatting_text}."+"\n" if summary_formatting_text!='' else ''
+            formatting_prompt += "The summary should be written in "+translate_to +"\n" if translate_to!='' else ''
+            formatting_prompt += "Answer directly with the new enhanced document text with no extra comments.\n"
+            formatting_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             
-            self.step_start(f"Last composition")
-            document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
+            self.step_start(f"Formatting")
+            document_text = self.fast_gen(formatting_prompt, self.personality_config.zip_size,
                 callback=self.sink
             )
 
-            self.step_end(f"Last composition")
+            self.step_end(f"Formatting")
 
         return document_text
                     
