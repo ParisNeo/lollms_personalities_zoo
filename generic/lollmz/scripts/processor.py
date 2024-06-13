@@ -18,7 +18,7 @@ from lollms.functions.peripherals import move_mouse_to_position_function, press_
 from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.search import search_and_clean_content_function
 from lollms.functions.summary import summerize_discussion_function
-from lollms.functions.youtube.search_and_show import search_youtube_and_play_function
+from lollms.functions.youtube.search import search_youtube_function
 from lollms.functions.web.google_search import google_search_function
 from lollms.functions.tts.read_text import read_text_function
 
@@ -82,7 +82,7 @@ class Processor(APScript):
                 {"name": "enable_move_mouse_to_position_function", "type": "bool", "value": True, "help": "Enable or disable move_mouse_to_position_function"},
                 {"name": "enable_press_mouse_button_function", "type": "bool", "value": True, "help": "Enable or disable press_mouse_button_function"},
                 {"name": "enable_type_text_function", "type": "bool", "value": True, "help": "Enable or disable type_text_function"},
-                {"name": "enable_search_youtube_and_play_function", "type": "bool", "value": True, "help": "Enable or disable search_youtube_and_play_function"},
+                {"name": "enable_search_youtube_function", "type": "bool", "value": True, "help": "Enable or disable search_youtube_and_play_function"},
                 {"name": "enable_google_search_function", "type": "bool", "value": True, "help": "Enable or disable google_search_function"},
                 {"name": "enable_read_text_function", "type": "bool", "value": True, "help": "Enable or disable read_text_function"},
 
@@ -253,8 +253,8 @@ class Processor(APScript):
             self.function_definitions.append(press_mouse_button_function())
         if self.personality_config["enable_type_text_function"]:
             self.function_definitions.append(type_text_function())
-        if self.personality_config["enable_search_youtube_and_play_function"]:
-            self.function_definitions.append(search_youtube_and_play_function())
+        if self.personality_config["enable_search_youtube_function"]:
+            self.function_definitions.append(search_youtube_function())
         if self.personality_config["enable_google_search_function"]:
             self.function_definitions.append(google_search_function())
         if self.personality_config["enable_read_text_function"]:
