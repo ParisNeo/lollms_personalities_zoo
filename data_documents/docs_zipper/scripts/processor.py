@@ -89,7 +89,7 @@ class Processor(APScript):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
 
-    def zip_text(self, document_text:str,  output =""):
+    def zip_text(self, document_text:str, instruction=f"Summerize the document chunk in a detailed comprehensive manner.", do_last_composition=True,  output =""):
         start_header_id_template    = self.config.start_header_id_template
         end_header_id_template      = self.config.end_header_id_template
         system_message_template     = self.config.system_message_template
@@ -97,17 +97,18 @@ class Processor(APScript):
         start_ai_header_id_template     = self.config.start_ai_header_id_template
         end_ai_header_id_template       = self.config.end_ai_header_id_template
 
-        zip_prompt="\n".join([
-                        f"Summerize the document chunk in a detailed comprehensive manner.",
-                        "Do not provide opinions nor extra information that is not in the document chunk",
-                        f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                        f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                        f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                        f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                        f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                        f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                        f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
-                    ])
+        zip_prompt = f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
+        zip_prompt+= instruction + "\n"
+        zip_prompt+="Do not provide opinions nor extra information that is not in the document chunk\n"
+        zip_prompt+=f"{'Keep the same language.'}\n" if self.personality_config.keep_same_language else ''
+        zip_prompt+=f"{'Preserve the title of this document if provided.\n'}" if self.personality_config.preserve_document_title else ''
+        zip_prompt+=f"{'Preserve author names of this document if provided.\n'}" if self.personality_config.preserve_authors_name else ''
+        zip_prompt+=f"{'Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
+        zip_prompt+=f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+        zip_prompt+=f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+        zip_prompt+=f"'Important information:{self.personality_config.contextual_zipping_text}.\n'" if self.personality_config.contextual_zipping_text!='' else ''
+        zip_prompt+=f"'The summary should be written in '"+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''
+        
         tk = self.personality.model.tokenize(document_text)
         if len(tk)>int(self.personality_config.zip_size):
             depth=0
@@ -128,29 +129,31 @@ class Processor(APScript):
                     self.step_end(f"Comprerssing.. [depth {depth}]")
                 else:
                     break
-        self.step_start(f"Last composition")
-        last_composition_prompt="\n".join([
-                f"{start_header_id_template}Document text{end_header_id_template}",
-                f"{document_text}",
-                f"{start_header_id_template}{system_message_template}{end_header_id_template}",
-                f"Rewrite this document text in a more comprehensive way while respecting the following guidelines:",
-                "The new text should contain exclusively information from the document text, but it should be better structured and use an enhanced wording.",
-                f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
-                f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
-                f"{'Preserve author names of this document if provided.' if self.personality_config.preserve_authors_name else ''}",
-                f"{'Preserve results if presented in the chunk and provide the numerical values if present.' if self.personality_config.preserve_results else ''}",
-                f"{'Eliminate any useless information and make the summary as short as possible.' if self.personality_config.maximum_compression else ''}",
-                f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
-                f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}",
-                f"Answer directly with the new enhanced document text with no extra comments.",
-                f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
-            ])
-        document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
-            callback=self.sink
-        )
+        if do_last_composition:
+            last_composition_prompt  = f"{start_header_id_template}Summerized document text{end_header_id_template}\n"
+            last_composition_prompt += f"{document_text}\n"
+            last_composition_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
+            
+            last_composition_prompt += "Do not provide opinions nor extra information that is not in the document chunk\n"
+            last_composition_prompt += f"{'Keep the same language.'}\n" if self.personality_config.keep_same_language else ''
+            last_composition_prompt += f"{'Preserve the title of this document if provided.\n'}" if self.personality_config.preserve_document_title else ''
+            last_composition_prompt += f"{'Preserve author names of this document if provided.\n'}" if self.personality_config.preserve_authors_name else ''
+            last_composition_prompt += f"{'Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
+            last_composition_prompt += f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+            last_composition_prompt += f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
+            last_composition_prompt += f"'Important information:{self.personality_config.contextual_zipping_text}.\n'" if self.personality_config.contextual_zipping_text!='' else ''
+            last_composition_prompt += f"'The summary should be written in '"+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''
+            last_composition_prompt += f"Answer directly with the new enhanced document text with no extra comments.",
+            last_composition_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
+            
+            self.step_start(f"Last composition")
+            document_text = self.fast_gen(last_composition_prompt, self.personality_config.zip_size,
+                callback=self.sink
+            )
 
-        self.step_end(f"Last composition")
-        return document_text, output
+            self.step_end(f"Last composition")
+
+        return document_text
                     
         
 
@@ -178,7 +181,7 @@ class Processor(APScript):
                 document_path = Path(file)
                 self.step_start(f"summerizing {document_path.stem}")
                 document_text = GenericDataLoader.read_file(document_path)
-                summary, o = self.zip_text(document_text, "")
+                summary = self.zip_text(document_text)
                 self.step_end(f"summerizing {document_path.stem}")
                 if self.personality_config.output_path:
                     self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
@@ -186,7 +189,7 @@ class Processor(APScript):
                 self.full(all_summaries)
         self.new_message("")        
         ASCIIColors.yellow(all_summaries)
-        summary, o = self.zip_text(all_summaries, "")
+        summary = self.zip_text(all_summaries, f"Fuse the fllowing summaries into a single comprehensive document where you extract relevant information and stick to the context.")
         output =f"\n## Global summary\n{summary}"
         self.full(output)
         if self.personality_config.output_path:
