@@ -22,6 +22,7 @@ from lollms.functions.youtube.search import search_youtube_function
 from lollms.functions.web.google_search import google_search_function
 from lollms.functions.tts.read_text import read_text_function
 from lollms.functions.youtube.download_transcript import download_youtube_transcript_function
+from lollms.functions.youtube.download_transcript_by_channel import download_channel_transcripts_function
 
 from typing import Callable
 from functools import partial
@@ -87,6 +88,8 @@ class Processor(APScript):
                 {"name": "enable_google_search_function", "type": "bool", "value": True, "help": "Enable or disable google_search_function"},
                 {"name": "enable_read_text_function", "type": "bool", "value": True, "help": "Enable or disable read_text_function"},
                 {"name": "enable_download_youtube_transcript_function", "type": "bool", "value": True, "help": "Enable or disable download_youtube_transcript_function"},
+                {"name": "enable_download_channel_transcripts_function", "type": "bool", "value": True, "help": "Enable or disable enable_download_channel_transcripts_function"},
+                {"name": "transcriptions_folder", "type": "str", "value": "", "help": "The path to the folder where to put the transcriptions"},
 
 
                 # String configuration with options
@@ -263,6 +266,10 @@ class Processor(APScript):
             self.function_definitions.append(read_text_function(self.personality.app.tts))
         if self.personality_config["enable_download_youtube_transcript_function"]:
             self.function_definitions.append(download_youtube_transcript_function())
+        if self.personality_config["enable_download_channel_transcripts_function"]:
+            self.function_definitions.append(download_channel_transcripts_function(self.personality_config.transcriptions_folder))
+
+            
 
             
             
