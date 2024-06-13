@@ -35,7 +35,12 @@ class Processor(APScript):
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
                 {"name":"data_folder","type":"str","value":"", "help":"The path to a folder where to get the input files."},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
-                {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
+                {"name":"contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for for the summary of each document. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
+                {"name":"add_summary_formatting","type":"bool","value":True, "help":"After summarizing a document, you can reformat the final output in a certain way. For example, you can ask the AI to put the output in a certain templete, or to build a latex code etc."},
+                {"name":"summary_formatting_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for for the summary of each document. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
+                {"name":"global_contextual_zipping_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for the final fusion report. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
+                {"name":"add_global_summary_formatting","type":"bool","value":True, "help":"After summarizing a document, you can reformat the final output in a certain way. For example, you can ask the AI to put the output in a certain templete, or to build a latex code etc."},
+                {"name":"global_summary_formatting_text","type":"text","value":"", "help":"Here you can specify elements of the document that you want the AI to keep or to search for for the summary of each document. This garantees that if found, those elements will not be filtered out which results in a more intelligent contextual based summary."},
                 {"name":"keep_same_language","type":"bool","value":True, "help":"Force the algorithm to keep the same language and not translate the document to english"},
                 {"name":"translate_to","type":"str","value":"", "help":"Force the algorithm to summarize the document in a specific language. If none is provided then it won't do any translation"},
                 {"name":"preserve_document_title","type":"bool","value":False, "help":"Force the algorithm to preserve the document title as an important information"},
@@ -89,7 +94,15 @@ class Processor(APScript):
         with open(path,"w", encoding="utf8") as f:
             f.write(text)
 
-    def zip_text(self, document_text:str, instruction=f"Summerize the document chunk in a detailed comprehensive manner.", do_last_composition=True,  output =""):
+    def zip_text(
+                    self, 
+                    document_text:str, 
+                    instruction=f"Summerize the document chunk in a detailed comprehensive manner.", 
+                    add_summary_formatting=True,
+                    contextual_zipping_text="",
+                    summary_formatting_text="",
+                    translate_to=""
+                    ):
         start_header_id_template    = self.config.start_header_id_template
         end_header_id_template      = self.config.end_header_id_template
         system_message_template     = self.config.system_message_template
@@ -106,8 +119,8 @@ class Processor(APScript):
         zip_prompt+=f"{'Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
         zip_prompt+=f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
         zip_prompt+=f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-        zip_prompt+=f"'Important information:{self.personality_config.contextual_zipping_text}.\n'" if self.personality_config.contextual_zipping_text!='' else ''
-        zip_prompt+=f"'The summary should be written in '"+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''
+        zip_prompt+=f"'Important information:{contextual_zipping_text}.\n'" if contextual_zipping_text!='' else ''
+        zip_prompt+=f"'The summary should be written in '"+ translate_to if translate_to!='' else ''
         
         tk = self.personality.model.tokenize(document_text)
         if len(tk)>int(self.personality_config.zip_size):
@@ -129,7 +142,7 @@ class Processor(APScript):
                     self.step_end(f"Comprerssing.. [depth {depth}]")
                 else:
                     break
-        if do_last_composition:
+        if add_summary_formatting:
             last_composition_prompt  = f"{start_header_id_template}Summerized document text{end_header_id_template}\n"
             last_composition_prompt += f"{document_text}\n"
             last_composition_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
@@ -141,8 +154,8 @@ class Processor(APScript):
             last_composition_prompt += f"{'Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
             last_composition_prompt += f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
             last_composition_prompt += f"{'Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-            last_composition_prompt += f"'Important information:{self.personality_config.contextual_zipping_text}.\n'" if self.personality_config.contextual_zipping_text!='' else ''
-            last_composition_prompt += f"'The summary should be written in '"+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''
+            last_composition_prompt += f"'Important information:{summary_formatting_text}.\n'" if summary_formatting_text!='' else ''
+            last_composition_prompt += f"'The summary should be written in '"+translate_to if translate_to!='' else ''
             last_composition_prompt += f"Answer directly with the new enhanced document text with no extra comments.",
             last_composition_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             
@@ -181,7 +194,12 @@ class Processor(APScript):
                 document_path = Path(file)
                 self.step_start(f"summerizing {document_path.stem}")
                 document_text = GenericDataLoader.read_file(document_path)
-                summary = self.zip_text(document_text)
+                summary = self.zip_text(
+                                            document_text,
+                                            add_summary_formatting=self.personality_config.add_summary_formatting,
+                                            contextual_zipping_text=self.personality_config.contextual_zipping_text,
+                                            summary_formatting_text=self.personality_config.summary_formatting_text,
+                                        )
                 self.step_end(f"summerizing {document_path.stem}")
                 if self.personality_config.output_path:
                     self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
@@ -189,7 +207,14 @@ class Processor(APScript):
                 self.full(all_summaries)
         self.new_message("")        
         ASCIIColors.yellow(all_summaries)
-        summary = self.zip_text(all_summaries, f"Fuse the fllowing summaries into a single comprehensive document where you extract relevant information and stick to the context.")
+        summary = self.zip_text(
+                                    all_summaries, 
+                                    f"Fuse the fllowing summaries into a single comprehensive document where you extract relevant information and stick to the context."
+                                    add_summary_formatting=self.personality_config.add_global_summary_formatting,
+                                    contextual_zipping_text=self.personality_config.global_contextual_zipping_text,
+                                    summary_formatting_text=self.personality_config.global_summary_formatting_text,
+                                    
+                                    )
         output =f"\n## Global summary\n{summary}"
         self.full(output)
         if self.personality_config.output_path:
