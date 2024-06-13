@@ -156,7 +156,7 @@ class Processor(APScript):
             last_composition_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
             last_composition_prompt += f"Important information:{summary_formatting_text}."+"\n" if summary_formatting_text!='' else ''
             last_composition_prompt += "The summary should be written in "+translate_to +"\n" if translate_to!='' else ''
-            last_composition_prompt += "Answer directly with the new enhanced document text with no extra comments.\n",
+            last_composition_prompt += "Answer directly with the new enhanced document text with no extra comments.\n"
             last_composition_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
             
             self.step_start(f"Last composition")
