@@ -171,6 +171,13 @@ class Processor(APScript):
         
 
     def start_zipping(self, prompt="", full_context="", client:Client=None):
+        start_header_id_template    = self.config.start_header_id_template
+        end_header_id_template      = self.config.end_header_id_template
+        system_message_template     = self.config.system_message_template
+
+        start_ai_header_id_template     = self.config.start_ai_header_id_template
+        end_ai_header_id_template       = self.config.end_ai_header_id_template
+        
         self.new_message("")
         if self.personality_config.data_folder!="":
             files = [f for f in Path(self.personality_config.data_folder).iterdir()]
@@ -188,8 +195,9 @@ class Processor(APScript):
             return
             
         all_summaries=""
+        formatted_summaries = f"{start_header_id_template}Documents summaries{end_header_id_template}\n"
         self.step(f"summary mode : {self.personality_config.zip_mode}")
-        for file in files:
+        for i,file in enumerate(files):
             if file.suffix.lower() in [".pdf", ".docx", ".pptx"]:
                 document_path = Path(file)
                 self.step_start(f"summerizing {document_path.stem}")
@@ -204,12 +212,13 @@ class Processor(APScript):
                 if self.personality_config.output_path:
                     self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
                 all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
+                formatted_summaries +=f"{start_header_id_template}Document {i} {end_header_id_template}\nDocument file name: {document_path.stem}\nSummary:\n{summary}"
                 self.full(all_summaries)
         self.new_message("")        
         ASCIIColors.yellow(all_summaries)
         summary = self.zip_text(
-                                    all_summaries, 
-                                    f"Fuse the fllowing summaries into a single comprehensive document where you extract relevant information and stick to the context.",
+                                    formatted_summaries, 
+                                    f"Fuse the following summaries into a single comprehensive document where you extract relevant information and stick to the context.",
                                     add_summary_formatting=self.personality_config.add_global_summary_formatting,
                                     contextual_zipping_text=self.personality_config.global_contextual_zipping_text,
                                     summary_formatting_text=self.personality_config.global_summary_formatting_text,
