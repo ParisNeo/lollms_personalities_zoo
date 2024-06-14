@@ -347,6 +347,10 @@ class Processor(APScript):
 
     def search(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
 
+        separator_template          = self.personality.config.separator_template
+        start_header_id_template    = self.config.start_header_id_template
+        end_header_id_template    = self.config.end_header_id_template
+
         #Prepare full report
         report = []
 
@@ -365,21 +369,22 @@ class Processor(APScript):
         if self.personality_config.Formulate_search_query:
             self.step_start("Building query...")
             self.full("")
-            keywords = self.fast_gen("\n".join([
+            keywords = self.fast_gen("{self.config.start_header_id_template}".join([
                 f"{self.config.start_header_id_template}{self.config.system_message_template}:",
-                "Act as arxiv search specialist. Your job is to reformulate the user requestio into a search query.",
+                "Act as arxiv search specialist.",
+                "You are very fluent at crafting search queries related to the subject",
+                "you master search query formulas and can craft them efficiently to answer the user request",
+                "Your job is to reformulate the user requestion into a search query.",
                 "Answer with only the keywords and do not make any comments.",
-                "The keywords should be as few as possible and be separated by comma.",
-                "Do not use quotation marks",
-                f"{self.config.start_header_id_template}context discussion:",
+                f"{start_header_id_template}context discussion:",
                 f"{previous_discussion_text}",
-                f"{self.config.start_header_id_template}user prompt: {query}",
-                f"{self.config.start_header_id_template}keywords: "
+                f"{start_header_id_template}user prompt{end_header_id_template}{query}",
+                f"{start_header_id_template}keywords{end_header_id_template}"
             ]),
             self.personality_config.max_generation_prompt_size,
             debug=self.personality.config.debug,
             callback=self.sink)
-            self.step_end("Building Keywords...")
+            self.step_end("Building query...")
             self.full(keywords)
             if keywords=="":
                 ASCIIColors.error("The AI failed to build a keywords list. Using the prompt as keywords")
@@ -405,7 +410,7 @@ class Processor(APScript):
             # "pdf_url": pdf_url,
             # "local_url": local_url
             html_output, pdf_info = arxiv_pdf_search(
-                                query, 
+                                keywords, 
                                 self.personality_config.nb_arxiv_results, sort_by=self.personality_config.sort_by,
                                 start_date=self.personality_config.start_date if self.personality_config.start_date!="" else None,
                                 end_date=self.personality_config.end_date if self.personality_config.end_date!="" else None,
@@ -523,6 +528,8 @@ class Processor(APScript):
 
         else:
             self.personality.error("No article found about this subject!")
+            self.full("No article found about this subject!\nLet me try another query!")
+
 
     def search_organize_and_summerize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
         report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details, client=client)
@@ -562,7 +569,7 @@ class Processor(APScript):
         Returns:
             None
         """
-        
+        self.step_end("✍ warming up ...")
         self.callback = callback
         self.prepare()
 
