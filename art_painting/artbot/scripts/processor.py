@@ -492,7 +492,8 @@ class Processor(APScript):
                             f"{self.config.start_header_id_template}discussion:",
                             past if self.personality_config.continuous_discussion else '',
                             stl,
-                            f"{self.config.start_header_id_template}art_generation_prompt: Create {self.personality_config.production_type} ",
+                            f"{self.config.start_header_id_template}Production type: {self.personality_config.production_type}",
+                            f"{self.config.start_header_id_template}art_generation_prompt: ",
             ],2)
             
 

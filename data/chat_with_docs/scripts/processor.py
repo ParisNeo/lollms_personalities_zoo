@@ -125,7 +125,7 @@ class Processor(APScript):
                     preprocessed_prompt = question
                 if preprocessed_prompt=="":
                     preprocessed_prompt = prompt
-                docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
+                docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=int(self.personality_config.nb_chunks))
                 docs = '\n'.join([f"{self.config.start_header_id_template}document {s[0]}:\n{v}" for i,(v,s) in enumerate(zip(docs,sorted_similarities))])
                 full_text =f"""{docs}
 {full_context}"""
@@ -205,7 +205,7 @@ class Processor(APScript):
                 preprocessed_prompt = prompt
             self.full(f"Query : {preprocessed_prompt}")
 
-            docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=self.personality_config.nb_chunks)
+            docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=int(self.personality_config.nb_chunks))
             # for doc in docs:
             #     tk = self.personality.model.tokenize(doc)
             #     print(len(tk))
