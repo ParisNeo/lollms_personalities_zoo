@@ -174,7 +174,7 @@ class Processor(APScript):
                     raise Exception("No service available")
             if self.personality_config.generation_engine=="stable_diffusion":
                 from lollms.services.sd.lollms_sd import LollmsSD
-                if self.personality.app.tti and type(self.tti)==LollmsSD:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsSD:
                     self.step("Using system SD")
                     self.tti = self.personality.app.tti
                 else:
@@ -191,7 +191,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="dall-e-2":
                 from lollms.services.dalle.lollms_dalle import LollmsDalle
-                if self.personality.app.tti and type(self.tti)==LollmsDalle:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDalle:
                     self.step("Using system Dalle-2")
                     self.tti = self.personality.app.tti
                     self.tti.generation_engine = "dall-e-2"
@@ -200,7 +200,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="dall-e-3":
                 from lollms.services.dalle.lollms_dalle import LollmsDalle
-                if self.personality.app.tti and type(self.tti)==LollmsDalle:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDalle:
                     self.step("Using system Dalle-3")
                     self.tti = self.personality.app.tti
                     self.tti.generation_engine = "dall-e-3"
@@ -209,7 +209,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="midjourney":
                 from lollms.services.midjourney.lollms_midjourney import LollmsMidjourney
-                if self.personality.app.tti and type(self.tti)==LollmsMidjourney:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsMidjourney:
                     self.step("Using system midjourney")
                     self.tti = self.personality.app.tti
                 else:
@@ -218,7 +218,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="diffusers":
                 from lollms.services.diffusers.lollms_diffusers import LollmsDiffusers
-                if self.personality.app.tti and type(self.tti)==LollmsDiffusers:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDiffusers:
                     self.step("Using system Diffusers")
                     self.tti = self.personality.app.tti
                     self.tti.generation_engine = "diffusers"
@@ -227,7 +227,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="comfyui":
                 from lollms.services.comfyui.lollms_comfyui import LollmsComfyUI
-                if self.personality.app.tti and type(self.tti)==LollmsComfyUI:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsComfyUI:
                     self.step("Using system ComfyUI")
                     self.tti = self.personality.app.tti
                 else:
@@ -235,7 +235,7 @@ class Processor(APScript):
 
             if self.personality_config.generation_engine=="fooocus":
                 from lollms.services.fooocus.lollms_fooocus import LollmsFooocus
-                if self.personality.app.tti and type(self.tti)==LollmsFooocus:
+                if self.personality.app.tti and type(self.personality.app.tti)==LollmsFooocus:
                     self.step("Using system Fooocus")
                     self.tti = self.personality.app.tti
                 else:
