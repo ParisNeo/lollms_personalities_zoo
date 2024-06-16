@@ -106,22 +106,26 @@ class Processor(APScript):
         start_header_id_template    = self.config.start_header_id_template
         end_header_id_template      = self.config.end_header_id_template
         system_message_template     = self.config.system_message_template
+        separator_template          = self.config.separator_template
+
 
         start_ai_header_id_template     = self.config.start_ai_header_id_template
         end_ai_header_id_template       = self.config.end_ai_header_id_template
 
-        zip_prompt = f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
-        zip_prompt+= instruction + "\n"
-        zip_prompt+="Do not provide opinions nor extra information that is not in the document chunk\n"
-        zip_prompt+="Keep the same language.\n" if self.personality_config.keep_same_language else ''
-        zip_prompt+="Preserve the title of this document if provided.\n" if self.personality_config.preserve_document_title else ''
-        zip_prompt+="Preserve author names of this document if provided.\n" if self.personality_config.preserve_authors_name else ''
-        zip_prompt+="Preserve results if presented in the chunk and provide the numerical values if present.\n" if self.personality_config.preserve_results else ''
-        zip_prompt+="Eliminate any useless information and make the summary as short as possible.\n" if self.personality_config.maximum_compression else ''
-        zip_prompt+="Eliminate any useless information and make the summary as short as possible.\n" if self.personality_config.maximum_compression else ''
-        zip_prompt+=f"Important information:{contextual_zipping_text}."+"\n" if contextual_zipping_text!='' else ''
-        zip_prompt+=f"The summary should be written in "+ translate_to +"\n" if translate_to!='' else ''
+        zip_prompt = f"{start_header_id_template}{system_message_template}{end_header_id_template}{separator_template}"
+        zip_prompt+= instruction + f"{separator_template}"
+        zip_prompt+=f"Do not provide opinions nor extra information that is not in the document chunk{separator_template}"
+        zip_prompt+=f"Keep the same language.{separator_template}" if self.personality_config.keep_same_language else ''
+        zip_prompt+=f"Preserve the title of this document if provided.{separator_template}" if self.personality_config.preserve_document_title else ''
+        zip_prompt+=f"Preserve author names of this document if provided.{separator_template}" if self.personality_config.preserve_authors_name else ''
+        zip_prompt+=f"Preserve results if presented in the chunk and provide the numerical values if present.{separator_template}" if self.personality_config.preserve_results else ''
+        zip_prompt+=f"Eliminate any useless information and make the summary as short as possible.{separator_template}" if self.personality_config.maximum_compression else ''
+        zip_prompt+=f"Eliminate any useless information and make the summary as short as possible.{separator_template}" if self.personality_config.maximum_compression else ''
+        zip_prompt+=f"Important information:{contextual_zipping_text}."+"{separator_template}" if contextual_zipping_text!='' else ''
+        zip_prompt+=f"The summary should be written in "+ translate_to +"{separator_template}" if translate_to!='' else ''
         
+        if self.config.dubug:
+            self.print_prompt(zip_prompt,"zip_prompt")
         tk = self.personality.model.tokenize(document_text)
         if len(tk)>int(self.personality_config.zip_size):
             depth=0
@@ -143,22 +147,24 @@ class Processor(APScript):
                 else:
                     break
         if add_summary_formatting:
-            formatting_prompt  = f"{start_header_id_template}Summerized document text{end_header_id_template}\n"
-            formatting_prompt += f"{document_text}\n"
-            formatting_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}\n"
+            formatting_prompt  = f"{start_header_id_template}Text to format{end_header_id_template}{separator_template}"
+            formatting_prompt += f"{document_text}{separator_template}"
+            formatting_prompt += f"{start_header_id_template}{system_message_template}{end_header_id_template}{separator_template}"
             
-            formatting_prompt += "Do not provide opinions nor extra information that is not in the document chunk\n"
-            formatting_prompt += "Keep the same language.'}\n" if self.personality_config.keep_same_language else ''
-            formatting_prompt += "Preserve the title of this document if provided.\n'}" if self.personality_config.preserve_document_title else ''
-            formatting_prompt += "Preserve author names of this document if provided.\n'}" if self.personality_config.preserve_authors_name else ''
-            formatting_prompt += "Preserve results if presented in the chunk and provide the numerical values if present.\n'}" if self.personality_config.preserve_results else ''
-            formatting_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-            formatting_prompt += "Eliminate any useless information and make the summary as short as possible.\n'}" if self.personality_config.maximum_compression else ''
-            formatting_prompt += f"Important information:{summary_formatting_text}."+"\n" if summary_formatting_text!='' else ''
-            formatting_prompt += "The summary should be written in "+translate_to +"\n" if translate_to!='' else ''
-            formatting_prompt += "Answer directly with the new enhanced document text with no extra comments.\n"
+            formatting_prompt += f"Do not provide opinions nor extra information that is not in the document chunk{separator_template}"
+            formatting_prompt += f"Keep the same language." if self.personality_config.keep_same_language else ''
+            formatting_prompt += f"Preserve the title of this document if provided.{separator_template}" if self.personality_config.preserve_document_title else ''
+            formatting_prompt += f"Preserve author names of this document if provided.{separator_template}" if self.personality_config.preserve_authors_name else ''
+            formatting_prompt += f"Preserve results if presented in the chunk and provide the numerical values if present.{separator_template}" if self.personality_config.preserve_results else ''
+            formatting_prompt += f"Eliminate any useless information and make the summary as short as possible.{separator_template}" if self.personality_config.maximum_compression else ''
+            formatting_prompt += f"Eliminate any useless information and make the summary as short as possible.{separator_template}" if self.personality_config.maximum_compression else ''
+            formatting_prompt += f"Important information:{summary_formatting_text}.{separator_template}" if summary_formatting_text!='' else ''
+            formatting_prompt += "The output text should be written in "+translate_to +f"{separator_template}" if translate_to!='' else ''
+            formatting_prompt += "Answer directly with the new enhanced document text with no extra comments.{separator_template}"
             formatting_prompt += f"{start_ai_header_id_template}assistant{end_ai_header_id_template}"
-            
+            if self.config.dubug:
+                self.print_prompt(formatting_prompt,"formatting_prompt")
+
             self.step_start(f"Formatting")
             document_text = self.fast_gen(formatting_prompt, self.personality_config.zip_size,
                 callback=self.sink
@@ -174,6 +180,7 @@ class Processor(APScript):
         start_header_id_template    = self.config.start_header_id_template
         end_header_id_template      = self.config.end_header_id_template
         system_message_template     = self.config.system_message_template
+        separator_template          = self.config.separator_template
 
         start_ai_header_id_template     = self.config.start_ai_header_id_template
         end_ai_header_id_template       = self.config.end_ai_header_id_template
@@ -195,7 +202,7 @@ class Processor(APScript):
             return
             
         all_summaries=""
-        formatted_summaries = f"{start_header_id_template}Documents summaries{end_header_id_template}\n"
+        formatted_summaries = f"{start_header_id_template}Documents summaries{end_header_id_template}{separator_template}"
         self.step(f"summary mode : {self.personality_config.zip_mode}")
         for i,file in enumerate(files):
             if file.suffix.lower() in [".pdf", ".docx", ".pptx"]:
@@ -212,7 +219,7 @@ class Processor(APScript):
                 if self.personality_config.output_path:
                     self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
                 all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
-                formatted_summaries +=f"{start_header_id_template}Document {i} {end_header_id_template}\nDocument file name: {document_path.stem}\nSummary:\n{summary}"
+                formatted_summaries +=f"{start_header_id_template}Document {i} {end_header_id_template}{separator_template}Document file name: {document_path.stem}\nSummary:\n{summary}"
                 self.full(all_summaries)
         self.new_message("")        
         ASCIIColors.yellow(all_summaries)
