@@ -231,7 +231,7 @@ class Processor(APScript):
                     self.step("Using system ComfyUI")
                     self.tti = self.personality.app.tti
                 else:
-                    self.tti = LollmsComfyUI(self.personality.app)
+                    self.tti = LollmsComfyUI(self.personality.app, comfyui_base_url=self.config.comfyui_base_url)
 
             if self.personality_config.generation_engine=="fooocus":
                 from lollms.services.fooocus.lollms_fooocus import LollmsFooocus
