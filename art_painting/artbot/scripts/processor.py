@@ -500,7 +500,7 @@ class Processor(APScript):
 
             self.print_prompt("Positive prompt",prompt)
 
-            positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}") 
             self.full(f"{metadata_infos}")     
