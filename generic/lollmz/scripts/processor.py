@@ -23,6 +23,7 @@ from lollms.functions.web.google_search import google_search_function
 from lollms.functions.tts.read_text import read_text_function
 from lollms.functions.youtube.download_transcript import download_youtube_transcript_function
 from lollms.functions.youtube.download_transcript_by_channel import download_channel_transcripts_function
+from lollms.functions.luma_ai_dream_machine.build_video_using_luma_ai import luma_ai_dream_machine_video_creator_function
 
 from typing import Callable
 from functools import partial
@@ -88,8 +89,9 @@ class Processor(APScript):
                 {"name": "enable_google_search_function", "type": "bool", "value": True, "help": "Enable or disable google_search_function"},
                 {"name": "enable_read_text_function", "type": "bool", "value": True, "help": "Enable or disable read_text_function"},
                 {"name": "enable_download_youtube_transcript_function", "type": "bool", "value": True, "help": "Enable or disable download_youtube_transcript_function"},
-                {"name": "enable_download_channel_transcripts_function", "type": "bool", "value": True, "help": "Enable or disable enable_download_channel_transcripts_function"},
+                {"name": "enable_download_channel_transcripts_function", "type": "bool", "value": True, "help": "Enable or disable download_channel_transcripts_function"},
                 {"name": "transcriptions_folder", "type": "str", "value": "", "help": "The path to the folder where to put the transcriptions"},
+                {"name": "enable_luma_ai_dream_machine_video_creator", "type": "bool", "value": True, "help": "Enable or disable luma_ai_dream_machine_video_creator_function"},
 
 
                 # String configuration with options
@@ -269,10 +271,10 @@ class Processor(APScript):
         if self.personality_config["enable_download_channel_transcripts_function"]:
             self.function_definitions.append(download_channel_transcripts_function(self.personality_config.transcriptions_folder))
 
+        if self.personality_config["enable_luma_ai_dream_machine_video_creator"]:
+            self.function_definitions.append(luma_ai_dream_machine_video_creator_function())
             
 
-            
-            
         out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
 
         self.full(out)
