@@ -159,9 +159,13 @@ class Processor(APScript):
             code = self.extract_code_blocks(answer)
             if len(code)>0:
                 plan = json.loads(code[0]["content"])
-            for member in plan:
-                output += "<h2>"+members[member["member_id"]].name+"</h2>"
-                output += "<p>"+member["task"]+"</p>"
+                for member in plan:
+                    output += "<h2>"+members[member["member_id"]].name+"</h2>"
+                    output += "<p>"+member["task"]+"</p>"
+            else:
+                out = self.fast_gen(f"{self.system_full_header}Say the following text in a more entertaining way. Only answer with the enhanced funny text without comments:\nThe model you are using is very dumb. Oh please Remove that model from my head!!\nIt was not capable of building a plan for your prompt as specified by my code.\nPlease try to mount a better model worthy of my skills.\nYou can also try using a different prompt template or changing the temperature and trying again.\nHint: I was tested using gpt4-o which at my last update is the best model out there.\n{self.ai_custom_header('assistant')}")
+                self.full(out)
+                return
             q_prompt = prompt
             self.full(output)
             self.step_end("Making plan")
