@@ -259,7 +259,7 @@ class Processor(APScript):
         if len(self.vector_store.chunks)>0:
             self.ready = True
 
-        ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
+        ASCIIColors.info("-> Vectorizing the database")
         for file in self.personality.text_files:
             try:
                 text =  GenericDataLoader.read_file(file)

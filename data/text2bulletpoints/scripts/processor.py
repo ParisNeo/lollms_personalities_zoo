@@ -152,7 +152,7 @@ class Processor(APScript):
         return content
     
     def build_db(self):
-        ASCIIColors.info("-> Vectorizing the database"+ASCIIColors.color_orange)
+        ASCIIColors.info("-> Vectorizing the database")
         for file in self.personality.text_files:
             try:
                 if Path(file).suffix==".pdf":
@@ -176,6 +176,7 @@ class Processor(APScript):
                 ASCIIColors.success(f"File {file} vectorized successfully")
             except Exception as ex:
                 ASCIIColors.error(f"Couldn't vectorize {file}: The vectorizer threw this exception:{ex}")
+        ASCIIColors.info("-> Done Vectorizing the database")
 
     def add_file(self, path, client, callback=None):
         if callback is None and self.callback is not None:
