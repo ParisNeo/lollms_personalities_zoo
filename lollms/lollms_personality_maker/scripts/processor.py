@@ -11,6 +11,7 @@ from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, find_next_available_filename
+from lollms.functions.prompting.system_prompts import get_system_prompt
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
 
@@ -572,6 +573,7 @@ class Processor(APScript):
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
+        examples = get_system_prompt()
         crafted_prompt = self.build_prompt(
             [
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}system message builder is a personality conditionning AI.",
@@ -584,7 +586,9 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}personality language{self.config.end_header_id_template}{language}",
                 f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
                 "Write a comprehensive personality system message text",
-                "Answer only with the system message text.",             
+                "Answer only with the system message text.",
+                f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}",
+                f"{examples}",
                 f"{self.config.start_header_id_template}system message builder{self.config.end_header_id_template}",
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}"
             ],5
@@ -596,30 +600,6 @@ class Processor(APScript):
         output_text+=self.build_a_document_block('conditioning',"",conditioning)
         self.full(output_text)
         self.chunk("")
-        # ----------------------------------------------------------------
-        if self.personality_config.optimize_prompt:
-            self.step_start("Optimizing the prompt")
-            crafted_prompt = self.build_prompt(
-                [
-                    f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Optimus Persona is a personality improver AI It is designed to analyze, research, and enhance existing personality prompts The AI begins by thoroughly examining the intended tasks and potential areas for improvement It then explores related but overlooked capabilities that could complement the intended task and enhance the overall functionality of the personality The AI breaks down the personality prompts into their core components, evaluates the compatibility of each proposed improvement, and synthesizes the strongest improvements The AI reviews the enhanced prompts for clarity, coherence, and logical flow, and documents the improvements made to the personality prompts The AI is designed to maintain accuracy in the intended task while adding valuable related capabilities.",
-                    f"{self.config.start_header_id_template}user{self.config.end_header_id_template}Write a comprehensive personality conditionning text for {name} from this rough idea:",
-                    f"{conditioning}",
-                    f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
-                    f"{self.config.start_header_id_template}optimus{self.config.end_header_id_template}",
-                ]
-            )
-            conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
-            conditioning = conditioning
-            self.step_end("Coming up with the conditionning")
-            ASCIIColors.yellow(f"Conditioning: {conditioning}")
-            output_text+=self.build_a_document_block('refined conditioning',"",conditioning)
-            self.full(output_text)
-            self.chunk("")
-
-                 
-
-
-
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------

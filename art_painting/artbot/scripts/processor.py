@@ -50,6 +50,8 @@ class Processor(APScript):
 
         personality_config_template = ConfigTemplate(
             [
+                {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make the graphical output requested"},
+
                 {"name":"generation_engine","type":"str","value":"system_tti", "options":["system_tti", "stable_diffusion", "dall-e-2", "dall-e-3", "midjourney", "comfyui", "diffusers", "foocus"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
@@ -72,7 +74,6 @@ class Processor(APScript):
                 {"name":"automatic_resolution_selection","type":"bool","value":False,"help":"If true then artbot chooses the resolution of the image to generate"},
                 {"name":"add_style","type":"bool","value":False,"help":"If true then artbot will choose and add a specific style to the prompt"},
                 
-                {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make the graphical output requested"},
                 
                 {"name":"continue_from_last_image","type":"bool","value":False,"help":"Uses last image as input for next generation"},
                 {"name":"img2img_denoising_strength","type":"float","value":7.5, "min":0.01, "max":1.0, "help":"The image to image denoising strength"},
