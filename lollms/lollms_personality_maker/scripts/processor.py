@@ -11,7 +11,7 @@ from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, find_next_available_filename
-from lollms.functions.prompting.system_prompts import get_system_prompt
+from lollms.functions.prompting.system_prompts import get_system_prompt, get_random_system_prompt
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
 
@@ -579,8 +579,12 @@ class Processor(APScript):
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
-        if self.personality_config.examples_extraction_mathod=="random"
-        examples = get_system_prompt(name,3)
+        if self.personality_config.examples_extraction_mathod=="random":
+            examples = get_random_system_prompt(name,3)
+        elif self.personality_config.examples_extraction_mathod=="rag_based":
+            examples = get_system_prompt(name,3)
+        else:
+            examples = ""
         crafted_prompt = self.build_prompt(
             [
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}system message builder is a personality conditionning AI.",
@@ -594,7 +598,7 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}instruction{self.config.end_header_id_template}",
                 "Write a comprehensive personality system message text",
                 "Answer only with the system message text.",
-                f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}",
+                f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}" if examples!="" else "",
                 f"{examples}",
                 f"{self.config.start_header_id_template}system message builder{self.config.end_header_id_template}",
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}"
