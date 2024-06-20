@@ -116,10 +116,10 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
 
-    def regenerate_icons(self, prompt="", full_context=""):
+    def regenerate_icons(self, prompt="", full_context="", client=None):
         try:
             index = full_context.index("name:")
-            self.build_icon(full_context,full_context[index:].split("\n")[0].strip())
+            self.build_icon(full_context,full_context[index:].split("\n")[0].strip(),client=client)
         except:
             self.warning("Couldn't find name")
 
@@ -272,7 +272,7 @@ class Processor(APScript):
         return str_data
 
 
-    def build_icon(self, discussion_messages, name, output_text=""):
+    def build_icon(self, discussion_messages, name, output_text="", client:Client = None):
         self.prepare()
         # ----------------------------------------------------------------
         
@@ -326,6 +326,7 @@ class Processor(APScript):
                                     width = 512,
                                     height = 512,
                                     restore_faces = True,
+                                    output_path=
                                 )
                     if file is None:
                         self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
@@ -580,7 +581,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
         if self.personality_config.examples_extraction_mathod=="random":
-            examples = get_random_system_prompt(name,3)
+            examples = get_random_system_prompt()
         elif self.personality_config.examples_extraction_mathod=="rag_based":
             examples = get_system_prompt(name,3)
         else:
@@ -712,7 +713,7 @@ class Processor(APScript):
         if self.personality_config.generate_icon:
             self.step_start("Building icon")
             try:
-                self.build_icon(previous_discussion_text, name, output_text)
+                self.build_icon(previous_discussion_text, name, output_text, client)
             except Exception as ex:
                 trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")
