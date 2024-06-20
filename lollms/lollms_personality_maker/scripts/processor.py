@@ -68,6 +68,7 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
+                {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
@@ -316,27 +317,32 @@ class Processor(APScript):
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
-                self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file, infos = self.personality.app.tti.paint(
-                                sd_prompt, 
-                                sd_negative_prompt,
-                                [],
-                                width = 512,
-                                height = 512,
-                                restore_faces = True,
-                            )
-                if file is None:
-                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
-                    continue
-                self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
-                file = str(file)
+                try:
+                    self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
+                    file, infos = self.personality.app.tti.paint(
+                                    sd_prompt, 
+                                    sd_negative_prompt,
+                                    [],
+                                    width = 512,
+                                    height = 512,
+                                    restore_faces = True,
+                                )
+                    if file is None:
+                        self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
+                        continue
+                    self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
+                    file = str(file)
 
-                files.append(file)
-                escaped_url =  file_path_to_url(file)
-                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
-                ui += file_html
-                self.full(f'\n![]({escaped_url})')
-
+                    files.append(file)
+                    escaped_url =  file_path_to_url(file)
+                    file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
+                    ui += file_html
+                    self.full(f'\n![]({escaped_url})')
+                except Exception as ex:
+                    ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
+                    shutil.copy("assets/logo.png",self.assets_path)
+                    files.append(self.assets_path/"logo.png")
+                    trace_exception(ex)
 
         except Exception as ex:
             try:
@@ -573,7 +579,8 @@ class Processor(APScript):
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
-        examples = get_system_prompt()
+        if self.personality_config.examples_extraction_mathod=="random"
+        examples = get_system_prompt(name,3)
         crafted_prompt = self.build_prompt(
             [
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}system message builder is a personality conditionning AI.",
