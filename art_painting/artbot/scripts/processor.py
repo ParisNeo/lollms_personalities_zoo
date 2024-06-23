@@ -5,7 +5,8 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, PackageManager, find_next_available_filename, discussion_path_to_url
+from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, PackageManager, find_next_available_filename, discussion_path_to_url
+from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
 from lollms.services.sd.lollms_sd import LollmsSD
 import re
 import importlib
@@ -51,7 +52,9 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"activate_discussion_mode","type":"bool","value":True,"help":f"If active, the AI will not generate an image until you ask it to, it will just talk to you until you ask it to make the graphical output requested"},
-
+                {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
+                {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
+                
                 {"name":"generation_engine","type":"str","value":"system_tti", "options":["system_tti", "stable_diffusion", "dall-e-2", "dall-e-3", "midjourney", "comfyui", "diffusers", "foocus"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
@@ -488,13 +491,26 @@ class Processor(APScript):
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = self.remove_image_links(full_context)
+
+            examples = ""
+            expmls = []
+            if self.personality_config.examples_extraction_mathod=="random":
+                expmls = get_random_image_gen_prompt(self.personality_config.number_of_examples_to_recover)
+            elif self.personality_config.examples_extraction_mathod=="rag_based":
+                expmls = get_image_gen_prompt(prompt, self.personality_config.number_of_examples_to_recover)
+                
+            for i,expml in enumerate(expmls):
+                examples += f"example {i}:"+expml+"\n"
+
             prompt = self.build_prompt([
                             f"@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                             f"{self.config.start_header_id_template}discussion:",
                             past if self.personality_config.continuous_discussion else '',
                             stl,
                             f"{self.config.start_header_id_template}Production type: {self.personality_config.production_type}",
-                            f"{self.config.start_header_id_template}art_generation_prompt: ",
+                            f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}" if examples!="" else "",
+                            f"{examples}",
+                            f"{self.config.start_header_id_template}art_generation_prompt{self.config.end_header_id_template}",
             ],2)
             
 

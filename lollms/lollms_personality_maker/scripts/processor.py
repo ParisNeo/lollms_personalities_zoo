@@ -10,8 +10,11 @@ from lollms.services.sd.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, find_next_available_filename
+from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename, discussion_path_to_url
 from lollms.functions.prompting.system_prompts import get_system_prompt, get_random_system_prompt
+from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
+from lollms.client_session import Client
+
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
 
@@ -69,6 +72,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
+                {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
+                
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
@@ -244,9 +249,6 @@ class Processor(APScript):
 
     
     def make_selectable_photo(self, image_id, image_source, assets_path=None):
-        pth = image_source.split('/')
-        idx = pth.index("outputs")
-        pth = "/".join(pth[idx:])
 
         with(open(Path(__file__).parent.parent/"assets/photo.html","r") as f):
             str_data = f.read()
@@ -256,7 +258,7 @@ class Processor(APScript):
             "{image_id}":f"{image_id}",
             "{thumbneil_width}":f"256",
             "{thumbneil_height}":f"256",
-            "{image_source}":pth,
+            "{image_source}":image_source,
             "{assets_path}":str(assets_path).replace("\\","/") if assets_path else str(self.assets_path).replace("\\","/")
         })
         return str_data
@@ -279,6 +281,16 @@ class Processor(APScript):
         # Now we generate icon        
         # ----------------------------------------------------------------
         self.step_start("Imagining Icon")
+        examples = ""
+        expmls = []
+        if self.personality_config.examples_extraction_mathod=="random":
+            expmls = get_random_image_gen_prompt(self.personality_config.number_of_examples_to_recover)
+        elif self.personality_config.examples_extraction_mathod=="rag_based":
+            expmls = get_image_gen_prompt(name, self.personality_config.number_of_examples_to_recover)
+            
+        for i,expml in enumerate(expmls):
+            examples += f"example {i}:"+expml+"\n"
+
         crafted_prompt = self.build_prompt(
             [
 
@@ -293,10 +305,12 @@ class Processor(APScript):
                 discussion_messages,
                 f"{self.config.start_header_id_template}name{self.config.end_header_id_template}{name}",
                 f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
-                f"{self.config.start_header_id_template}icon imaginer{self.config.end_header_id_template}An (((icon))) of a "
+                f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}" if examples!="" else "",
+                f"{examples}",
+                f"{self.config.start_header_id_template}icon imaginer{self.config.end_header_id_template}"
             ],5
         )
-        sd_prompt = "An (((icon))) of a "+self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
+        sd_prompt = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
@@ -310,8 +324,6 @@ class Processor(APScript):
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.full(output_text)
         self.chunk("")
-
-        self.new_message("")
         self.step_start("Painting Icon")
         try:
             files = []
@@ -326,7 +338,7 @@ class Processor(APScript):
                                     width = 512,
                                     height = 512,
                                     restore_faces = True,
-                                    output_path=
+                                    output_path=client.discussion.discussion_folder
                                 )
                     if file is None:
                         self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}", False)
@@ -335,9 +347,10 @@ class Processor(APScript):
                     file = str(file)
 
                     files.append(file)
-                    escaped_url =  file_path_to_url(file)
+                    escaped_url =  discussion_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
+                    self.ui(ui)
                     self.full(f'\n![]({escaped_url})')
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
@@ -361,9 +374,9 @@ class Processor(APScript):
         ui = ""
         for i in range(len(files)):
             files[i] = str(files[i]).replace("\\","/")
-            file_id = files[i].split(".")[0].split('_')[1]
+            file_id = files[i].split(".")[0].split('_')[-1]
             shutil.copy(files[i],str(self.assets_path))
-            file_path = self.make_selectable_photo(f"Artbot_{file_id}", files[i])
+            file_path = self.make_selectable_photo(f"{file_id}", files[i])
             ui += str(file_path)
             print(f"Generated file in here : {str(files[i])}")
 
@@ -373,15 +386,12 @@ class Processor(APScript):
 
             <a href="#" onclick="const secretMessage2 = {'folder_path': {self.scripts_path}}; fetch('/open_discussion_folder_in_vs_code', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage2)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona in vscode</a>
             """
-
-
-        server_path = "/outputs/"+str(self.personality_path)
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
         output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
         self.full(output_text)
-        self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
+        self.ui('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -398,7 +408,6 @@ class Processor(APScript):
         self.new_message(form,MSG_TYPE.MSG_TYPE_UI)
         pass
 
-    from lollms.client_session import Client
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.

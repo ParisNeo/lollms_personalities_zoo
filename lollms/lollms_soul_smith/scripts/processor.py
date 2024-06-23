@@ -10,7 +10,7 @@ from lollms.services.sd.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, file_path_to_url, find_next_available_filename
+from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename
 from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
 
@@ -362,7 +362,7 @@ class Processor(APScript):
                     file = str(file)
 
                     files.append(file)
-                    escaped_url =  file_path_to_url(file)
+                    escaped_url =  output_file_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
                     self.full(f'\n![]({escaped_url})')
@@ -424,7 +424,7 @@ class Processor(APScript):
                             ASCIIColors.red("Failed to download the image")
                         file = str(file_name)
                         files.append(file)
-                        escaped_url =  file_path_to_url(file)
+                        escaped_url =  output_file_path_to_url(file)
                         file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                         ui += file_html
                         self.full(f'\n![]({escaped_url})')
