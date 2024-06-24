@@ -344,12 +344,34 @@ class Processor(APScript):
             self.full(text)
 
         return text
-
+    def build_query(self, prompt,  context_details, previous_keywords=""):
+            self.step_start("Building query...")
+            self.full("")
+            keywords = self.fast_gen("{self.config.start_header_id_template}".join([
+                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
+                "Act as arxiv search specialist.",
+                "You are very fluent at crafting search queries related to the subject",
+                "you master search query formulas and can craft them efficiently to answer the user request",
+                "Your job is to reformulate the user requestion into a search query.",
+                "Answer with only the keywords (do not use multiple keywords, just three at maximum)",
+                "We will do multiple passes of search so be very specific and do consize",
+                self.system_custom_header('context discussion'),
+                context_details["discussion_messages"],
+                self.system_custom_header("user prompt") + prompt,
+                previous_keywords,
+                self.ai_custom_header("keywords")
+            ]),
+            self.personality_config.max_generation_prompt_size,
+            debug=self.personality.config.debug,
+            callback=self.sink)
+            self.step_end("Building query...")
+            self.full(keywords)
+            if keywords=="":
+                ASCIIColors.error("The AI failed to build a keywords list. Using the prompt as keywords")
+                keywords=prompt 
+            return keywords       
     def search(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
 
-        separator_template          = self.personality.config.separator_template
-        start_header_id_template    = self.config.start_header_id_template
-        end_header_id_template    = self.config.end_header_id_template
 
         #Prepare full report
         report = []
@@ -366,40 +388,22 @@ class Processor(APScript):
 
         # Create the download folder if it doesn't exist
         download_folder.mkdir(parents=True, exist_ok=True)
-        if self.personality_config.Formulate_search_query:
-            self.step_start("Building query...")
-            self.full("")
-            keywords = self.fast_gen("{self.config.start_header_id_template}".join([
-                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
-                "Act as arxiv search specialist.",
-                "You are very fluent at crafting search queries related to the subject",
-                "you master search query formulas and can craft them efficiently to answer the user request",
-                "Your job is to reformulate the user requestion into a search query.",
-                "Answer with only the keywords and do not make any comments.",
-                f"{start_header_id_template}context discussion:",
-                f"{previous_discussion_text}",
-                f"{start_header_id_template}user prompt{end_header_id_template}{query}",
-                f"{start_header_id_template}keywords{end_header_id_template}"
-            ]),
-            self.personality_config.max_generation_prompt_size,
-            debug=self.personality.config.debug,
-            callback=self.sink)
-            self.step_end("Building query...")
-            self.full(keywords)
-            if keywords=="":
-                ASCIIColors.error("The AI failed to build a keywords list. Using the prompt as keywords")
+        nb_found=0
+        previous_keywords = ""
+        query = ""
+        while nb_found<self.personality_config.nb_arxiv_results:
+            if self.personality_config.Formulate_search_query:
+                previous_keywords += self.system_custom_header("previous keywords") + query +"\n"+ self.system_custom_header("found articles") + nb_found if query else ""
+                keywords = self.build_query(prompt, context_details, previous_keywords)
+            else:
                 keywords=query
-        else:
-            keywords=query
-        articles_checking_text.append(self.build_a_document_block("Keywords","",keywords))
-        self.full("\n".join(articles_checking_text))
-        
-        self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
-        
-        # Search for articles
+            articles_checking_text.append(self.build_a_document_block("Keywords","",keywords))
+            self.full("\n".join(articles_checking_text))
+            
+            self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
+            
+            # Search for articles
        
-        # ----------------------------------- ARXIV ----------------------------------
-        if self.personality_config.nb_arxiv_results>0:
             self.step_start(f"Searching articles on arxiv")
             # "title": title,
             # "authors": authors,
@@ -418,8 +422,10 @@ class Processor(APScript):
                                 client=client)
             # search_results_ = self.arxiv.Search(query=query, max_results=self.personality_config.nb_arxiv_results).results()
             self.step_end(f"Searching articles on arxiv")
+            nb_found += self.personality_config.nb_arxiv_results
             articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(pdf_info)} articles on the subject"))
             self.full("\n".join(articles_checking_text))
+            
             # Download and save articles
             for i,(key, val)  in enumerate(pdf_info.items()):
                 pdf_url = val["pdf_url"]
@@ -573,5 +579,4 @@ class Processor(APScript):
         self.callback = callback
         self.prepare()
 
-        conditionning = self.personality.personality_conditioning
         self.search_organize_and_summerize(previous_discussion_text, prompt, context_details, client)
