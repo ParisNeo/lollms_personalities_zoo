@@ -195,7 +195,6 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        self.step_end("✍ warming up ...")
         if len(self.personality.text_files)>0:
             if self.personality_config.analysis_type=="Always read and summerize":
                 index = 1

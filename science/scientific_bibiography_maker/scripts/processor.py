@@ -575,7 +575,6 @@ class Processor(APScript):
         Returns:
             None
         """
-        self.step_end("✍ warming up ...")
         self.callback = callback
         self.prepare()
 
