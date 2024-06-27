@@ -182,8 +182,8 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-
-        out = self.fast_gen(previous_discussion_text)
+        full_prompt = self.build_prompt_from_context_details(context_details)
+        out = self.fast_gen(full_prompt)
 
         self.full(out)
 

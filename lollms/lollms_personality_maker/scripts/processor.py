@@ -351,7 +351,7 @@ class Processor(APScript):
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
                     self.ui(ui)
-                    self.full(f'\n![]({escaped_url})')
+                    self.full(output_text+f'\n![]({escaped_url})')
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
                     shutil.copy("assets/logo.png",self.assets_path)
