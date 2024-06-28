@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 import json
+from lollms.client_session import Client
 
 if not PackageManager.check_package_installed("feedparser"):
     PackageManager.install_package("feedparser")
@@ -376,7 +377,6 @@ Article classified as : {cats[answer]}
         self.fuse_articles()
         self.categorize_news()
 
-    from lollms.client_session import Client
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
