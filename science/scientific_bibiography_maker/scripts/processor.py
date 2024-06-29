@@ -139,7 +139,7 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
 
-    def search_analyze_organize_summerize(self, prompt="", full_context="", client = None):
+    def search_analyze_organize_summerize(self, prompt="", full_context="", callback=None, context_state=None, client:Client=None):
         self.prepare()
 
         download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
@@ -148,7 +148,7 @@ class Processor(APScript):
             self.personality.InfoMessage("Please set the research subject entry in the personality settings")
             return
         self.new_message("")
-        self.search_organize_and_summerize(full_context, self.personality_config.research_subject, None, client)
+        self.search_organize_and_summerize(full_context, self.personality_config.research_subject, context_state, client)
 
 
     def analyze_articles(self, prompt="", full_context="", client = None):
@@ -169,12 +169,12 @@ class Processor(APScript):
             text = GenericDataLoader.read_file(pdf)
             tk = self.personality.model.tokenize(text)
             cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])
-            title = self.fast_gen(f"{self.config.start_header_id_template}request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}document title:", callback=self.sink)
-            authors = self.fast_gen(f"{self.config.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the list of authors without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}authors list:", callback=self.sink)
+            title = self.fast_gen(f"{self.start_header_id_template}request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}document title:", callback=self.sink)
+            authors = self.fast_gen(f"{self.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the list of authors without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}authors list:", callback=self.sink)
             if self.personality_config.read_only_first_chunk:
-                abstract = self.fast_gen(f"{self.config.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}abstract:", callback=self.sink)
+                abstract = self.fast_gen(f"{self.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}abstract:", callback=self.sink)
             else:
-                abstract = self.summerize_text(text,f"{self.config.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}sumary:", callback=self.sink)
+                abstract = self.summerize_text(text,f"{self.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
             self.analyze_pdf(
                 self.personality_config.research_subject,
                 "",
@@ -221,20 +221,20 @@ class Processor(APScript):
             tk = self.personality.model.tokenize(text)
             cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])            
             if self.personality_config.read_only_first_chunk:
-                abstract = self.fast_gen(f"{self.config.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}abstract:")
+                abstract = self.fast_gen(f"{self.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}abstract:")
             else:
-                abstract = self.summerize_text(text,f"{self.config.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.config.separator_template}{self.config.start_header_id_template} Document chunk:\n{cropped}{self.config.separator_template}{self.config.start_header_id_template}sumary:", callback=self.sink)
+                abstract = self.summerize_text(text,f"{self.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
 
         relevance_score = self.fast_gen("\n".join([
-            f"{self.config.start_header_id_template}{self.config.system_message_template}:",
+            f"{self.start_header_id_template}{self.system_message_template}:",
             "Assess the relevance of a document in relation to a user's subject proposal. Provide a relevance score out of 10, with a score of 10 indicating that the document is a precise match with the proposed subject. Carefully examine the document's content and ensure it directly addresses the subject requested, without straying off-topic or loosely linking unrelated concepts through the use of similar terms. Thoroughly understand the user's prompt to accurately determine if the document is indeed pertinent to the requested subject.",
             "Answer with an integer from 0 to 10 that reflects the relevance of the document for the subject.",
             "Do not answer with text, just a single integer value without explanation.",
-            f"{self.config.start_header_id_template}document:",
+            f"{self.start_header_id_template}document:",
             f"title: {title}",
             f"content: {abstract}",
-            f"{self.config.start_header_id_template}subject:{research_subject}",
-            f"{self.config.start_header_id_template}relevance_value:"]), 10,
+            f"{self.start_header_id_template}subject:{research_subject}",
+            f"{self.start_header_id_template}relevance_value:"]), 10,
             debug=self.personality.config.debug, 
             callback=self.sink)
         relevance_score = self.find_numeric_value(relevance_score)
@@ -261,14 +261,14 @@ class Processor(APScript):
             self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
             relevance = f"relevance score {relevance_score}/10"
             relevance_explanation = self.fast_gen("\n".join([
-                    f"{self.config.start_header_id_template}{self.config.system_message_template}:",
+                    f"{self.start_header_id_template}{self.system_message_template}:",
                     "Explain why you think this document is relevant to the subject by summerizing the abstract and hilighting interesting information that can serve the subject."
-                    f"{self.config.start_header_id_template}document:",
+                    f"{self.start_header_id_template}document:",
                     f"title: {title}",
                     f"authors: {authors}",
                     f"content: {abstract}",
-                    f"{self.config.start_header_id_template}subject: {research_subject}",
-                    f"{self.config.start_header_id_template}Explanation: "                    
+                    f"{self.start_header_id_template}subject: {research_subject}",
+                    f"{self.start_header_id_template}Explanation: "                    
                     ]), self.personality_config.max_generation_prompt_size,
                 debug=self.personality.config.debug,
                 callback=self.sink)
@@ -347,8 +347,8 @@ class Processor(APScript):
     def build_query(self, prompt,  context_details, previous_keywords=""):
             self.step_start("Building query...")
             self.full("")
-            keywords = self.fast_gen("{self.config.start_header_id_template}".join([
-                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
+            keywords = self.fast_gen(f"{self.start_header_id_template}".join([
+                f"{self.start_header_id_template}{self.system_message_template}:",
                 "Act as arxiv search specialist.",
                 "You are very fluent at crafting search queries related to the subject",
                 "you master search query formulas and can craft them efficiently to answer the user request",
@@ -498,13 +498,13 @@ class Processor(APScript):
             if self.personality_config.make_survey:
                 summary_latex = "```latex\n"+self.fast_gen(
                     self.build_prompt([
-                    f"{self.config.start_header_id_template}instruction: Write a survey article out of the summary.",
+                    f"{self.start_header_id_template}instruction: Write a survey article out of the summary.",
                     f"Use academic style and cite the contributions.",
                     f"The author of this survey is Scientific Bibliography Maker AI",
                     f"summary:",
                     f"{summary}",
                     "Output format : a complete latex document that should compile without errors and should contain inline bibliography.",
-                    f"{self.config.start_header_id_template}Output:",
+                    f"{self.start_header_id_template}Output:",
                     "```latex\n"]), 
                     callback=self.sink
                     )
