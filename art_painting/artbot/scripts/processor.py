@@ -503,21 +503,22 @@ class Processor(APScript):
                 examples += f"example {i}:"+expml+"\n"
 
             prompt = self.build_prompt([
-                            f"@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                            f"@>instructions:Act as artbot, the art prompt generation AI. Use the discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
                             f"{self.config.start_header_id_template}discussion:",
                             past if self.personality_config.continuous_discussion else '',
-                            stl,
-                            f"{self.config.start_header_id_template}Production type: {self.personality_config.production_type}",
-                            f"{self.config.start_header_id_template}examples{self.config.end_header_id_template}" if examples!="" else "",
+                            stl.strip(),
+                            f"{self.config.start_header_id_template}Production type{self.config.end_header_id_template}{self.personality_config.production_type}",
+                            f"{self.config.start_header_id_template}Instruction{self.config.end_header_id_template}Use the following as examples and follow their format to build the special prompt.",
+                            f"{self.config.start_header_id_template}Prompt examples{self.config.end_header_id_template}" if examples!="" else "",
                             f"{examples}",
-                            f"{self.config.start_header_id_template}art_generation_prompt{self.config.end_header_id_template}",
+                            f"{self.config.start_header_id_template}artbot{self.config.end_header_id_template}",
             ],2)
             
 
 
             self.print_prompt("Positive prompt",prompt)
 
-            positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+            positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}") 
             self.full(f"{metadata_infos}")     
