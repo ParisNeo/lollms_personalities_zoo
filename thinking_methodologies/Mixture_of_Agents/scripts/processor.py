@@ -191,8 +191,8 @@ class Processor(APScript):
         for depth in range(self.personality_config.depth):
             self.step_start(f"Processing at depth {depth}")
             formatted_models_outputs=""
-            for i, output in enumerate(model_outputs):
-                formatted_models_outputs += f"model {i} response:\n"+output
+            for output in model_outputs:
+                formatted_models_outputs += f"{output['model_name']} response:\n"+output['text']
             formatted_models_outputs += self.system_full_header+ f"Based on the models response enhance the answer in a single response."
             prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs)
             model_outputs = []
@@ -203,7 +203,7 @@ class Processor(APScript):
                 binding_name, model_name = model_infos.split("/")
                 self.select_model(binding_name, model_name)
                 out = self.fast_gen(prompt)
-                model_outputs.append(out)
+                model_outputs.append({"model_name":model_name, "text":out})
                 self.step_end(f"using model {model_infos}")
             self.step_end(f"Processing at depth {depth}")
 
@@ -213,8 +213,8 @@ class Processor(APScript):
         binding_name, model_name = self.personality_config.master_model.split("/")
         self.select_model(binding_name, model_name)
         formatted_models_outputs=""
-        for i, output in enumerate(model_outputs):
-            formatted_models_outputs += f"model {i} response:\n"+output
+        for output in model_outputs:
+            formatted_models_outputs += f"{output['model_name']} response:\n"+output['text']
         formatted_models_outputs += self.system_full_header+"Formulate the final answer to the user based on the models answer. Do not rate the models, just recover the correct answer using the models answers"
         prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs)
         out = self.fast_gen(prompt)
