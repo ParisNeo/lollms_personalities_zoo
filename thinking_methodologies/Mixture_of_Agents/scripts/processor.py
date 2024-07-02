@@ -217,7 +217,7 @@ class Processor(APScript):
         formatted_models_outputs=""
         for output in model_outputs:
             formatted_models_outputs += f"{output['model_name']} response:\n"+output['text']
-        formatted_models_outputs += self.system_full_header+"Formulate the final answer to the user based on the models answer. Do not rate the models, just recover the correct answer using the models answers"
+        formatted_models_outputs += self.system_full_header+"Formulate the final answer to the user based on the models answer. Do not rate the models, just recover the correct answer using the models answers. Elaborate and explain the final reasoning."
         prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs, ["conditionning"])
         if self.config.debug:
             self.print_prompt("Final prompt",prompt)
