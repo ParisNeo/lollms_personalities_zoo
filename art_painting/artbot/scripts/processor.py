@@ -507,11 +507,12 @@ class Processor(APScript):
                             f"{self.config.start_header_id_template}discussion:",
                             past if self.personality_config.continuous_discussion else '',
                             stl.strip(),
-                            f"{self.config.start_header_id_template}Production type{self.config.end_header_id_template}{self.personality_config.production_type}",
-                            f"{self.config.start_header_id_template}Instruction{self.config.end_header_id_template}Use the following as examples and follow their format to build the special prompt.",
-                            f"{self.config.start_header_id_template}Prompt examples{self.config.end_header_id_template}" if examples!="" else "",
-                            f"{examples}",
-                            f"{self.config.start_header_id_template}artbot{self.config.end_header_id_template}",
+                            self.system_custom_header("Production type") + f"{self.personality_config.production_type}",
+                            self.system_custom_header("Instruction") + f"Use the following as examples and follow their format to build the special prompt.",
+                            self.system_custom_header("Prompt examples") if examples!="" else "",
+                            self.system_custom_header("Examples") + f"{examples}",
+                            self.ai_full_header,
+                            "Here is a generated prompt tha t respects the examples style of prompting:",
             ],2)
             
 
@@ -550,24 +551,16 @@ class Processor(APScript):
             # ====================================================================================            
             if self.personality_config.build_title:
                 self.step_start("Making up a title")
-                # 1 first ask the model to formulate a query
-                pr  = PromptReshaper("""{self.config.start_header_id_template}instructions:
-Given this image description prompt and negative prompt, make a consize title
-{self.config.start_header_id_template}positive_prompt:
-{{positive_prompt}}
-{self.config.start_header_id_template}negative_prompt:
-{{negative_prompt}}
-{self.config.start_header_id_template}title:
-""")
-                prompt = pr.build({
-                        "positive_prompt":positive_prompt,
-                        "negative_prompt":negative_prompt,
-                        }, 
-                        self.personality.model.tokenize, 
-                        self.personality.model.detokenize, 
-                        self.personality.model.config.ctx_size,
-                        ["negative_prompt"]
-                        )
+                prompt = self.build_prompt([
+                    self.system_full_header,
+                    "Given this image description prompt and negative prompt, make a consize title",
+                    self.system_custom_header("positive_prompt"),
+                    positive_prompt,
+                    self.system_custom_header("negative_prompt"),
+                    negative_prompt,
+                    self.system_custom_header("title")
+                ])
+
                 self.print_prompt("Make up a title", prompt)
                 sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")

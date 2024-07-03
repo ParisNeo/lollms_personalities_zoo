@@ -289,7 +289,7 @@ class Processor(APScript):
             expmls = get_image_gen_prompt(name, self.personality_config.number_of_examples_to_recover)
             
         for i,expml in enumerate(expmls):
-            examples += f"example {i}:"+expml+"\n"
+            examples += f"example {i}: "+expml+"\n"
 
         crafted_prompt = self.build_prompt(
             [
