@@ -45,10 +45,6 @@ dependencies: []
 anti_prompts: ['!@>','assistant']
 
 commands:
-  - name: Start Testing
-    value: start_testing
-    icon: 'feather:file'
-    help: start 
   - name: Help
     value: help
     icon: 'feather:help-circle'
