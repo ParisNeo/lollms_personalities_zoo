@@ -217,7 +217,7 @@ class Processor(APScript):
                     self.step("Using system midjourney")
                     self.tti = self.personality.app.tti
                 else:
-                    self.tti = LollmsMidjourney(self.personality.app, self.personality_config.openai_key)
+                    self.tti = LollmsMidjourney(self.personality.app, self.personality_config.openai_key, self.config.midjourney_timeout, self.config.midjourney_retries)
 
 
             if self.personality_config.generation_engine=="diffusers":
@@ -429,13 +429,14 @@ class Processor(APScript):
                                     
                                 )
             file = str(file)
-            escaped_url =  discussion_path_to_url(file)
-            metadata_infos += f'\n![]({escaped_url})'
-            file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
-            ui += file_html
-            self.full(metadata_infos) 
+            if file!="":
+                escaped_url =  discussion_path_to_url(file)
+                metadata_infos += f'\n![]({escaped_url})'
+                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
+                ui += file_html
+                self.full(metadata_infos) 
 
-        self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)        
+        self.ui(self.make_selectable_photos(ui))        
         return infos
 
     def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
@@ -503,16 +504,19 @@ class Processor(APScript):
                 examples += f"example {i}:"+expml+"\n"
 
             prompt = self.build_prompt([
-                            f"@>instructions:Act as artbot, the art prompt generation AI. Use the discussion information to come up with an image generation prompt without referring to it. Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
-                            f"{self.config.start_header_id_template}discussion:",
+                            self.system_full_header,
+                            f"Act as artbot, the art prompt generation AI.",
+                            "Use the discussion information to come up with an image generation prompt without referring to it.",
+                            f"Be precise and describe the style as well as the {self.personality_config.production_type.split()[-1]} description details.", #conditionning
+                            "Do not explain the prompt, just answer with the prompt in the right prompting style.",
+                            self.system_custom_header("discussion"),
                             past if self.personality_config.continuous_discussion else '',
                             stl.strip(),
                             self.system_custom_header("Production type") + f"{self.personality_config.production_type}",
-                            self.system_custom_header("Instruction") + f"Use the following as examples and follow their format to build the special prompt.",
+                            self.system_custom_header("Instruction") + f"Use the following as examples and follow their format to build the special prompt." if examples!="" else "",
                             self.system_custom_header("Prompt examples") if examples!="" else "",
                             self.system_custom_header("Examples") + f"{examples}",
-                            self.ai_full_header,
-                            "Here is a generated prompt tha t respects the examples style of prompting:",
+                            self.system_custom_header("Prompt"),
             ],2)
             
 
@@ -529,16 +533,16 @@ class Processor(APScript):
                 self.step_start("Imagining negative prompt")
                 # 1 first ask the model to formulate a query
                 prompt = self.build_prompt([
-                                "@>instructions:Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with a negative generation prompt.", #conditionning
+                                self.system_full_header +"Act as artbot, the art prompt generation AI. Use the previous discussion information to come up with a negative generation prompt.", #conditionning
                                 "The negative prompt is a list of keywords that should not be present in our image.",
                                 "Try to force the generator not to generate text or extra fingers or deformed faces.",
                                 "Use as many words as you need depending on the context.",
                                 "To give more importance to a term put it ibti multiple brackets ().",
-                                f"{self.config.start_header_id_template}discussion:",
+                                self.system_custom_header("discussion"),
                                 past if self.personality_config.continuous_discussion else '',
                                 stl,
-                                f"{self.config.start_header_id_template}positive prompt: {positive_prompt}",
-                                f"{self.config.start_header_id_template}negative prompt: ((morbid)),",
+                                self.system_custom_header("positive prompt") + f"{positive_prompt}",
+                                self.system_custom_header("negative prompt")
                 ],6)
 
                 self.print_prompt("Generate negative prompt", prompt)

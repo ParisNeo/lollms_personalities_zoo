@@ -113,7 +113,8 @@ class Processor(APScript):
         self.callback = callback
         models_to_use = self.personality_config.models_to_use
         model_outputs = []
-        context_details["conditionning"]=self.personality_config.agents_system_message
+        
+        context_details["conditionning"]="As a sophisticated AI, aim to break down complex user requests into sub-questions. Utilize multiple expert perspectives to generate intermediate thoughts, assessing their relevance and logical flow. Enhance other model's ideas by providing explanatory details, correcting any false or misleading information, and adding new insights. Synthesize key findings into a coherent final answer written at the doctoral level by an experienced tech writer.", "help":"System message to use for agents."
         rounds = []
         for round in range(self.personality_config.n_rounds):
             self.step_start(f"Processing round {round+1}")
@@ -136,7 +137,7 @@ class Processor(APScript):
                 self.step_end(f"using model {model_infos}")
             self.step_end(f"Processing round {round+1}")
             rounds.append(model_outputs)
-        context_details["conditionning"]=self.personality_config.master_system_message
+        context_details["conditionning"]="Act as a sophisticated AI, breaking down complex user inquiries into sub-questions. Leverage multiple expert perspectives to generate intermediate thoughts, evaluating their relevance and logical flow. Construct a chain of reasoning by stitching together the strongest thoughts while providing explanatory details. Synthesize key insights into a comprehensive final answer written in markdown format with important information highlighted as if authored by an experienced tech writer at the doctoral level."
         #Now move to master model
         binding_name, model_name = self.personality_config.master_model.split("::")
         self.select_model(binding_name, model_name)

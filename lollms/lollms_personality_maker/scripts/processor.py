@@ -8,7 +8,6 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.sd.lollms_sd import LollmsSD
 from lollms.types import MSG_TYPE
-from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename, discussion_path_to_url
 from lollms.functions.prompting.system_prompts import get_system_prompt, get_random_system_prompt
@@ -258,7 +257,7 @@ class Processor(APScript):
             "{image_id}":f"{image_id}",
             "{thumbneil_width}":f"256",
             "{thumbneil_height}":f"256",
-            "{image_source}":image_source,
+            "{image_source}": image_source,
             "{assets_path}":str(assets_path).replace("\\","/") if assets_path else str(self.assets_path).replace("\\","/")
         })
         return str_data
@@ -373,13 +372,16 @@ class Processor(APScript):
 
         ui = ""
         for i in range(len(files)):
-            files[i] = str(files[i]).replace("\\","/")
-            file_id = files[i].split(".")[0].split('_')[-1]
-            shutil.copy(files[i],str(self.assets_path))
-            file_path = self.make_selectable_photo(f"{file_id}", files[i])
-            ui += str(file_path)
-            print(f"Generated file in here : {str(files[i])}")
-
+            try:
+                files[i] = str(files[i]).replace("\\","/")
+                file_id = files[i].split(".")[0].split('_')[-1]
+                shutil.copy(files[i],str(self.assets_path))
+                f=discussion_path_to_url(files[i])
+                file_path = self.make_selectable_photo(f"{file_id}", f)
+                ui +=  str(file_path)
+                print(f"Generated file in here : {str(files[i])}")
+            except Exception as ex:
+                trace_exception(ex)
         if self.personality_config.make_scripted:
             ui += """
             <a href="#" onclick="const secretMessage1 = {'folder_path': {self.scripts_path}}; fetch('/open_folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage1)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona</a>
