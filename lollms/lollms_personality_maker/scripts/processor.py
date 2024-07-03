@@ -384,9 +384,10 @@ class Processor(APScript):
                 trace_exception(ex)
         if self.personality_config.make_scripted:
             ui += """
+            <div class="flex flex-col">
             <a href="#" onclick="const secretMessage1 = {'folder_path': {self.scripts_path}}; fetch('/open_folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage1)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona</a>
-
             <a href="#" onclick="const secretMessage2 = {'folder_path': {self.scripts_path}}; fetch('/open_discussion_folder_in_vs_code', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage2)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona in vscode</a>
+            </div>
             """
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
