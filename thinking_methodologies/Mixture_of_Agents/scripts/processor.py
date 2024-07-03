@@ -188,13 +188,14 @@ class Processor(APScript):
         self.callback = callback
         models_to_use = self.personality_config.models_to_use
         model_outputs = []
+        context_details["conditionning"]=self.personality_config.system_message
         for depth in range(self.personality_config.depth):
             self.step_start(f"Processing at depth {depth}")
             formatted_models_outputs=self.system_custom_header("Previous models outputs")
             for output in model_outputs:
-                formatted_models_outputs += f"{output['model_name']} response:\n"+output['text']
+                formatted_models_outputs += self.ai_custom_header(f"{output['model_name']} response")+output['text']
             formatted_models_outputs += self.system_full_header+ f"Based on the models response enhance the answer in a single response."
-            prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs, ["conditionning"])
+            prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs)
             if self.config.debug:
                 self.print_prompt("Intermediate prompt",prompt)
             model_outputs = []
@@ -216,9 +217,9 @@ class Processor(APScript):
         self.select_model(binding_name, model_name)
         formatted_models_outputs=""
         for output in model_outputs:
-            formatted_models_outputs += f"{output['model_name']} response:\n"+output['text']
+            formatted_models_outputs += self.ai_custom_header(f"{output['model_name']} response")+output['text']
         formatted_models_outputs += self.system_full_header+"Formulate the final answer to the user based on the models answer. Do not rate the models, just recover the correct answer using the models answers. Elaborate and explain the final reasoning."
-        prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs, ["conditionning"])
+        prompt = self.build_prompt_from_context_details(context_details, formatted_models_outputs)
         if self.config.debug:
             self.print_prompt("Final prompt",prompt)
         out = self.fast_gen(prompt)
