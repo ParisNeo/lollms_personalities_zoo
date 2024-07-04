@@ -148,7 +148,7 @@ class Processor(APScript):
             self.print_prompt("Final prompt",prompt)
         out = self.fast_gen(prompt, callback=self.sink)
         self.full("## Final answer:\n"+out)
-        self.json(rounds)
+        self.json("Rounds",rounds)
         model_outputs.append(out)
 
         return out
