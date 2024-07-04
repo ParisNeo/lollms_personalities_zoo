@@ -274,8 +274,8 @@ class Processor(APScript):
         if self.personality_config["enable_luma_ai_dream_machine_video_creator"]:
             self.function_definitions.append(luma_ai_dream_machine_video_creator_function())
             
-
-        out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
+        
+        out = self.interact_with_function_call(context_details, self.function_definitions, hide_function_call=self.personality_config.hide_function_call)
 
         self.full(out)
 
