@@ -209,6 +209,9 @@ class Processor(APScript):
                 # TODO: add more functions to call
                 out = self.interact_with_function_call(context_details, self.function_definitions, callback = self.sink)
                 prompt_data, content, tokens, context_details, internet_search_infos = self.personality.app.prepare_query(client.client_id)
+                ASCIIColors.info(f"prompt has {self.config.ctx_size-context_details['available_space']} tokens")
+                ASCIIColors.info(f"warmup for generating up to {min(context_details['available_space'],self.config.max_n_predict)} tokens")
+
         else:
             prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
             out = self.interact_with_function_call(context_details, minimal_function_definitions, callback = self.sink)
