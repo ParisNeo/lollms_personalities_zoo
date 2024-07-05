@@ -114,7 +114,7 @@ class Processor(APScript):
         models_to_use = self.personality_config.models_to_use
         model_outputs = []
         
-        context_details["conditionning"]="As a sophisticated AI, aim to break down complex user requests into sub-questions. Utilize multiple expert perspectives to generate intermediate thoughts, assessing their relevance and logical flow. Enhance other model's ideas by providing explanatory details, correcting any false or misleading information, and adding new insights. Synthesize key findings into a coherent final answer written at the doctoral level by an experienced tech writer.", "help":"System message to use for agents."
+        context_details["conditionning"]="As a sophisticated AI, aim to break down complex user requests into sub-questions. Utilize multiple expert perspectives to generate intermediate thoughts, assessing their relevance and logical flow. Enhance other model's ideas by providing explanatory details, correcting any false or misleading information, and adding new insights. Synthesize key findings into a coherent final answer written at the doctoral level by an experienced tech writer."
         rounds = []
         for round in range(self.personality_config.n_rounds):
             self.step_start(f"Processing round {round+1}")
