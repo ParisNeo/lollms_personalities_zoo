@@ -319,7 +319,7 @@ class Processor(APScript):
         
         # ----------------------------------------------------------------
 
-        sd_negative_prompt = self.personality_config.default_negative_prompt
+        sd_negative_prompt = self.config.default_negative_prompt
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.full(output_text)
         self.chunk("")
