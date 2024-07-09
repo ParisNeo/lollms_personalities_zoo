@@ -370,7 +370,42 @@ class Processor(APScript):
             files=[]
         self.step_end("Painting Icon")
 
-        ui = ""
+        header = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Magic Code Folder</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+            }
+            .flex {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .button-row {
+                margin-bottom: 20px;
+            }
+            .button-link {
+                background-color: #4CAF50;
+                color: #ffffff;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .button-link:hover {
+                background-color: #3e8e41;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Magic Code Folder</h1>
+        <h2>Please select a photo to be used as the logo</h2>
+        """
+        ui=""
         for i in range(len(files)):
             try:
                 files[i] = str(files[i]).replace("\\","/")
@@ -384,17 +419,59 @@ class Processor(APScript):
                 trace_exception(ex)
         if self.personality_config.make_scripted:
             ui += """
-            <div class="flex flex-col">
-            <a href="#" onclick="const secretMessage1 = {'folder_path': {self.scripts_path}}; fetch('/open_folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage1)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona</a>
-            <a href="#" onclick="const secretMessage2 = {'folder_path': {self.scripts_path}}; fetch('/open_discussion_folder_in_vs_code', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(secretMessage2)}).then(() => {console.log('🎉 The secret message has been sent and the magic code folder has been opened! 🎉');}).catch((error) => {console.error('😱 Oh no! Something went wrong:', error);});"> Click here to open the script folder of the persona in vscode</a>
+            <div class='flex'>
+                <div class='button-row'>
+                    <button onclick='open_script_folder(); return false;' class='button-link'>Click here to open the script folder of the persona</button>
+                </div>
+                <div class='button-row'>
+                    <button onclick='open_script_in_vscode(); return false;' class='button-link'>Click here to open the script folder of the persona in vscode</button>
+                </div>
             </div>
             """
+        footer ="""
+
+            <script>
+                function open_script_folder(){
+                    const secretMessage1 = {'folder_path': """+self.scripts_path+"""};
+                    const requestOptions = {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(secretMessage1)
+                    };
+                    fetch('/open_folder', requestOptions)
+                        .then(() => {
+                            console.log('The secret message has been sent and the magic code folder has been opened!');
+                        })
+                        .catch((error) => {
+                            console.error('Oh no! Something went wrong:', error);
+                        });
+                }
+
+                function open_script_in_vscode(){
+                    const secretMessage2 = {'folder_path': """+self.scripts_path+"""};
+                    const requestOptions = {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(secretMessage2)
+                    };
+                    fetch('/open_discussion_folder_in_vs_code', requestOptions)
+                        .then(() => {
+                            console.log('The secret message has been sent and the magic code folder has been opened!');
+                        })
+                        .catch((error) => {
+                            console.error('Oh no! Something went wrong:', error);
+                        });
+                }
+            </script>
+            </body>
+            </html>
+        """
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
         output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
         self.full(output_text)
-        self.ui('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
+        self.ui_in_iframe(header+'\n'+self.make_selectable_photos(ui)+"\n"+footer)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
