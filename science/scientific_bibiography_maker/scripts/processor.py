@@ -61,7 +61,7 @@ class Processor(APScript):
                 {"name":"output_file_name","type":"str","value":"summary_latex", "min":1, "help":"Name of the pdf file to generate"},
                 {"name":"Formulate_search_query","type":"bool","value":True, "help":"Before doing the search the AI creates a keywords list that gets sent to the arxiv search engine."},
                 {"name":"make_survey","type":"bool","value":True, "min":1, "help":"build a survey report"},
-                {"name":"read_the_whole_article","type":"bool","value":False, "help":"With this, the AI readsthe whole article, summerizes it before doing the classification. This is resource intensive as it requires the AI to dive deep into the article and if you have multiple articles with multiple pages, this may slow down the generation."},
+                {"name":"read_the_whole_article","type":"bool","value":False, "help":"With this, the AI readsthe whole article, summarizes it before doing the classification. This is resource intensive as it requires the AI to dive deep into the article and if you have multiple articles with multiple pages, this may slow down the generation."},
                 {"name":"read_content","type":"bool","value":True, "help":"With this, the AI reads the whole document and judges if it is related to the work or not and filter out unrelated papers"},
                 {"name":"read_only_first_chunk","type":"bool","value":True, "help":"To reduce processing time, you can just read the first chunks which in general contains the title, the authors and the abstracts"},
                 {"name":"max_generation_prompt_size","type":"int","value":2048, "min":10, "max":personality.config["ctx_size"], "help":"Crop the maximum generation prompt size"},
@@ -84,7 +84,7 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                         "analyze_articles":self.analyze_articles,
-                                        "search_analyze_organize_summerize":self.search_analyze_organize_summerize
+                                        "search_analyze_organize_summarize":self.search_analyze_organize_summarize
                                     },
                                     "default": None
                                 },                           
@@ -139,7 +139,7 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
 
-    def search_analyze_organize_summerize(self, prompt="", full_context="", callback=None, context_state=None, client:Client=None):
+    def search_analyze_organize_summarize(self, prompt="", full_context="", callback=None, context_state=None, client:Client=None):
         self.prepare()
 
         download_folder = self.personality.lollms_paths.personal_outputs_path/"research_articles"
@@ -148,7 +148,7 @@ class Processor(APScript):
             self.personality.InfoMessage("Please set the research subject entry in the personality settings")
             return
         self.new_message("")
-        self.search_organize_and_summerize(full_context, self.personality_config.research_subject, context_state, client)
+        self.search_organize_and_summarize(full_context, self.personality_config.research_subject, context_state, client)
 
 
     def analyze_articles(self, prompt="", full_context="", client = None):
@@ -174,7 +174,7 @@ class Processor(APScript):
             if self.personality_config.read_only_first_chunk:
                 abstract = self.fast_gen(f"{self.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}abstract:", callback=self.sink)
             else:
-                abstract = self.summerize_text(text,f"{self.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
+                abstract = self.summarize_text(text,f"{self.start_header_id_template}request: summarize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
             self.analyze_pdf(
                 self.personality_config.research_subject,
                 "",
@@ -197,7 +197,7 @@ class Processor(APScript):
         except Exception as ex:
             ASCIIColors.error(ex)
 
-        self.summerize_report(report, download_folder, client)
+        self.summarize_report(report, download_folder, client)
 
 
     def analyze_pdf(
@@ -223,7 +223,7 @@ class Processor(APScript):
             if self.personality_config.read_only_first_chunk:
                 abstract = self.fast_gen(f"{self.start_header_id_template}request: Extract the abstract of this document from the chunk.\nAnswer directly by the abstract without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}abstract:")
             else:
-                abstract = self.summerize_text(text,f"{self.start_header_id_template}request: Summerize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
+                abstract = self.summarize_text(text,f"{self.start_header_id_template}request: summarize this document chunk.\nAnswer directly by the summary without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}sumary:", callback=self.sink)
 
         relevance_score = self.fast_gen("\n".join([
             f"{self.start_header_id_template}{self.system_message_template}:",
@@ -472,16 +472,16 @@ class Processor(APScript):
         
         return report, articles_checking_text, download_folder
 
-    def summerize_report(self, report, download_folder, client:Client=None):
+    def summarize_report(self, report, download_folder, client:Client=None):
         self.new_message("")
         if len(report)>0:
-            text_to_summerize = ""
+            text_to_summarize = ""
             for entry in report:
                 if entry["relevance"]!="irrelevant" and entry["relevance"]!="unchecked":
-                    text_to_summerize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n"
+                    text_to_summarize +=f"{entry['title']}\nauthors: {entry['authors']}\nAbstract: {entry['abstract']}\n"
 
             self.step_start(f"Summerizing content")
-            summary = self.summerize_text(text_to_summerize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.", callback=self.sink)
+            summary = self.summarize_text(text_to_summarize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.", callback=self.sink)
             self.full(summary)
             self.step_end(f"Summerizing content")           
 
@@ -537,7 +537,7 @@ class Processor(APScript):
             self.full("No article found about this subject!\nLet me try another query!")
 
 
-    def search_organize_and_summerize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
+    def search_organize_and_summarize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
         report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details, client=client)
         report = classify_reports(report)
         self.json("Report",report)
@@ -546,7 +546,7 @@ class Processor(APScript):
         except Exception as ex:
             ASCIIColors.error(ex)
 
-        self.summerize_report(report, download_folder, client)
+        self.summarize_report(report, download_folder, client)
 
 
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
@@ -578,4 +578,4 @@ class Processor(APScript):
         self.callback = callback
         self.prepare()
 
-        self.search_organize_and_summerize(previous_discussion_text, prompt, context_details, client)
+        self.search_organize_and_summarize(previous_discussion_text, prompt, context_details, client)

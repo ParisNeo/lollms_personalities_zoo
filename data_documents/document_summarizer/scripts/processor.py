@@ -36,9 +36,9 @@ class Processor(APScript):
             [
                 {"name":"global_context","type":"str","value":"", "help":"The context information that will be used all over the discussion. Provide useful information about the document that can help enhance the quality of the analysis"},
                 {"name":"use_whole_conversation","type":"bool","value":True, "help":"If true, the personality will use the whole previous discussion messages to answer you.\nSome times it is better to activate this to avoid task contamination between questions."},
-                {"name":"analysis_type","type":"str","value":"automatic", "options":["automatic","Always read and summerize","RAG","Just Answer"], "help":"sets the algorithm used to solve the task"},
+                {"name":"analysis_type","type":"str","value":"automatic", "options":["automatic","Always read and summarize","RAG","Just Answer"], "help":"sets the algorithm used to solve the task"},
                 {"name":"zip_size","type":"int","value":512, "help":"the maximum size of the summary in tokens"},
-                {"name":"chunk_size","type":"int","value":0, "help":"the size of each chunk to summerize in tokens. If 0, then the context size will be used as reference."},
+                {"name":"chunk_size","type":"int","value":0, "help":"the size of each chunk to summarize in tokens. If 0, then the context size will be used as reference."},
                 {"name":"output_path","type":"str","value":"", "help":"The path to a folder where to put the summary file."},
             ]
             )
@@ -108,7 +108,7 @@ class Processor(APScript):
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
         if len(tk)<int(self.personality_config.zip_size):
-                document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+                document_text = self.summarize_text(document_text,"summarize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         else:
             depth=0
             while len(tk)>int(self.personality_config.zip_size):
@@ -153,7 +153,7 @@ class Processor(APScript):
         document_text = GenericDataLoader.read_file(document_path)
         tk = self.personality.model.tokenize(document_text)
         self.step_start(f"summerizing {document_path.stem}")
-        document_text = self.summerize_text(document_text,"Summerize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
+        document_text = self.summarize_text(document_text,"summarize this document chunk and do not add any comments after the summary.\nOnly extract the information from the provided chunk.\nDo not invent anything outside the provided text.","document chunk")
         self.step_end(f"summerizing {document_path.stem}")
         self.step_start(f"Last composition")
         document_text = self.fast_gen("\n".join([
@@ -196,7 +196,7 @@ class Processor(APScript):
         """
         self.callback = callback
         if len(self.personality.text_files)>0:
-            if self.personality_config.analysis_type=="Always read and summerize":
+            if self.personality_config.analysis_type=="Always read and summarize":
                 index = 1
             elif self.personality_config.analysis_type=="RAG":
                 index = 2

@@ -120,7 +120,7 @@ class Processor(APScript):
             tk = self.personality.model.tokenize(page_text)
             self.step_start(f"summerizing {page['title']}")
             if len(tk)<int(self.personality_config.zip_size) or self.personality_config.summary_mode!="RAG":
-                page_text = self.summerize_text(page_text,"\n".join([
+                page_text = self.summarize_text(page_text,"\n".join([
                                 f"Extract from the document any information related to the query. Write the output as a short article.",
                                 "The summary should contain exclusively information from the document chunk.",
                                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -140,7 +140,7 @@ class Processor(APScript):
                 chunks, sim = self.vectorize_and_query(page['content'], query)
                 content = "\n".join(chunks)
                 page_text = f"page_title:\n{page['title']}\npage_content:\n{content}"
-                page_text = self.summerize_text(page_text,"\n".join([
+                page_text = self.summarize_text(page_text,"\n".join([
                         f"Extract from the document any information related to the query. Write the output as a short article.",
                         "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
@@ -162,7 +162,7 @@ class Processor(APScript):
             self.step_end(f"summerizing {page['title']}")
             processed_pages += f"{page['title']}\n{page_text}"
 
-        page_text = self.summerize_text(processed_pages,"\n".join([
+        page_text = self.summarize_text(processed_pages,"\n".join([
                 f"Extract from the document any information related to the query. Write the output as a short article.",
                 "The summary should contain exclusively information from the document chunk.",
                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -181,7 +181,7 @@ class Processor(APScript):
         self.full(page_text)
 
         self.step_start(f"Last composition")
-        page_text = self.summerize_text(page_text,"\n".join([
+        page_text = self.summarize_text(page_text,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",

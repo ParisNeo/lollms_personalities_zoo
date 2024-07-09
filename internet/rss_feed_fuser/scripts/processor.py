@@ -289,7 +289,7 @@ class Processor(APScript):
                 else:
                     content = scrape_and_save(feed['link'])
 
-                    content = self.summerize_text(content,"summerize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
+                    content = self.summarize_text(content,"summarize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
             prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.{self.config.separator_template}{self.config.start_header_id_template}Today date:{datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}summary:\n"

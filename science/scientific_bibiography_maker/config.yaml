@@ -44,8 +44,8 @@ welcome_message: |
   research paper making.
 
 commands:
-  - name: Search Analyze, organize and summerize 
-    value: search_analyze_organize_summerize
+  - name: Search Analyze, organize and summarize 
+    value: search_analyze_organize_summarize
     help: Starts searching analizing organizing and summerizing
   - name: Analyze Articles
     value: analyze_articles

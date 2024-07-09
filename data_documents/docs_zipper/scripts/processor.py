@@ -97,7 +97,7 @@ class Processor(APScript):
     def zip_text(
                     self, 
                     document_text:str, 
-                    instruction=f"Summerize the document chunk in a detailed comprehensive manner.", 
+                    instruction=f"summarize the document chunk in a detailed comprehensive manner.", 
                     add_summary_formatting=True,
                     contextual_zipping_text="",
                     summary_formatting_text="",
@@ -134,7 +134,7 @@ class Processor(APScript):
                     self.step_start(f"Comprerssing.. [depth {depth}]")
                 chunk_size = int(self.personality.config.ctx_size*0.6)
                 document_chunks = DocumentDecomposer.decompose_document(document_text, chunk_size, 0, self.personality.model.tokenize, self.personality.model.detokenize, True)
-                document_text = self.summerize_chunks(document_chunks, 
+                document_text = self.summarize_chunks(document_chunks, 
                     zip_prompt,
                     "Document chunk",
                     summary_mode=SUMMARY_MODE.SUMMARY_MODE_SEQUENCIAL if self.personality_config.zip_mode=="sequencial" else SUMMARY_MODE.SUMMARY_MODE_HIERARCHICAL,
