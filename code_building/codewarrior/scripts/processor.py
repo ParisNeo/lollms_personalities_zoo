@@ -189,7 +189,7 @@ class Processor(APScript):
         full_prompt = self.build_prompt_from_context_details(context_details)
         if len(self.personality_config.models_to_use)>0:
             out = self.mix_it_up(full_prompt,self.personality_config.models_to_use.split(","), self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink)
-            self.json(out)
+            self.json("Rounds details",out)
             out = out["final_output"]
         else:
             out = self.fast_gen(full_prompt)
