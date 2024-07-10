@@ -103,6 +103,10 @@ class Processor(APScript, FileSystemEventHandler):
                 n_chunks = len(chunks)
                 for i, chunk in enumerate(chunks):
                     self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}")
+
+
+
+
                     str_json = "[" + self.mix_it_up(
                         f"""{self.config.start_header_id_template}log chunk:
 {chunk}
@@ -125,13 +129,13 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 [
     A list of entries.
     Each entry represents a suspicious breach that should only be reported if you understand the problem and can qualify it with arguments
-    {
+    {{
         "severity": "high","medium" or "low",
         "breach_timestamp": the timestamp of the suspicious entry if exists in the log chunk else leave blank,
         "breach_description": a detailed and argued description of the breach,
         "breach_detection_arguments": explain why do you think the breach exists using arguments from the log,
         "proposed_fix": If you know a counter measure to avoid this, report it here or just say, I have no idea.
-    }
+    }}
 ]
 {self.ai_custom_header("cyber_sentinel_AI")}
 Here is my report as a valid json:

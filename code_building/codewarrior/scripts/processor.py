@@ -48,6 +48,9 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"models_to_use","type":"str","value":"", "help":"This is only if you need to use multi models for this personality. List of coma separated models to test in format binding_name::model_name"},
+                {"name":"master_model","type":"str","value":"", "help":"This is only if you need to use multi models for this personality. A single powerful model in format binding_name::model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
+
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -183,7 +186,10 @@ class Processor(APScript):
         """
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details)
-        out = self.fast_gen(full_prompt)
+        if len(self.personality_config.models_to_use)>0:
+            out = self.mix_it_up(full_prompt,self.personality_config.models_to_use, self.personality_config.master_model)
+        else:
+            out = self.fast_gen(full_prompt)
 
         self.full(out)
 
