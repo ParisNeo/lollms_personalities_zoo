@@ -141,6 +141,7 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 Here is my report as a valid json:
 [""",self.personality_config.models_to_use.split(","),self.personality_config.master_model,
                     )
+                    self.json("Rounds details",out)
                     str_json = "[" + out["final_output"]
                     try:
                         str_json = str_json.replace('\n', '').replace('\r', '').strip()
