@@ -38,6 +38,7 @@ class Processor(APScript, FileSystemEventHandler):
                 {"name":"file_types","type":"str","value":"nips,xml,pcap,json", "help":"The extensions of files to read"},
                 {"name":"models_to_use","type":"str","value":"", "help":"List of coma separated models to test in format binding_name::model_name"},
                 {"name":"master_model","type":"str","value":"", "help":"A single powerful model in format binding_name::model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
+                {"name":"nb_rounds","type":"int","value":2, "help":"This is only if you need to use multi models for this personality. The number of rounds in the generation process."},
                 {"name":"chunk_size","type":"int","value":3072, "help":"The size of the chunk to read each time"},
                 {"name":"chunk_overlap","type":"int","value":256, "help":"The overlap between blocs"},
                 {"name":"save_each_n_chunks","type":"int","value":0, "help":"The number of chunks to process before saving the file. If 0, then the report is built at the end and a soingle report will be built for all logs."},
@@ -139,7 +140,7 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 ]
 {self.ai_custom_header("cyber_sentinel_AI")}
 Here is my report as a valid json:
-[""",self.personality_config.models_to_use.split(","),self.personality_config.master_model,
+[""",self.personality_config.models_to_use.split(","),self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink
                     )
                     self.json("Rounds details",out)
                     str_json = "[" + out["final_output"]

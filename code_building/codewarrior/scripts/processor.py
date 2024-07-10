@@ -50,6 +50,7 @@ class Processor(APScript):
             [
                 {"name":"models_to_use","type":"str","value":"", "help":"This is only if you need to use multi models for this personality. List of coma separated models to test in format binding_name::model_name"},
                 {"name":"master_model","type":"str","value":"", "help":"This is only if you need to use multi models for this personality. A single powerful model in format binding_name::model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
+                {"name":"nb_rounds","type":"int","value":2, "help":"This is only if you need to use multi models for this personality. The number of rounds in the generation process."},
 
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
@@ -187,7 +188,7 @@ class Processor(APScript):
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details)
         if len(self.personality_config.models_to_use)>0:
-            out = self.mix_it_up(full_prompt,self.personality_config.models_to_use, self.personality_config.master_model)
+            out = self.mix_it_up(full_prompt,self.personality_config.models_to_use.split(","), self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink)
             self.json(out)
             out = out["final_output"]
         else:
