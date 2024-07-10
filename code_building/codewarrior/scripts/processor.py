@@ -188,6 +188,8 @@ class Processor(APScript):
         full_prompt = self.build_prompt_from_context_details(context_details)
         if len(self.personality_config.models_to_use)>0:
             out = self.mix_it_up(full_prompt,self.personality_config.models_to_use, self.personality_config.master_model)
+            self.json(out)
+            out = out["final_output"]
         else:
             out = self.fast_gen(full_prompt)
 
