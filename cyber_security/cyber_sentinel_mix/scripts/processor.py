@@ -107,7 +107,7 @@ class Processor(APScript, FileSystemEventHandler):
 
 
 
-                    str_json = "[" + self.mix_it_up(
+                    out = self.mix_it_up(
                         f"""{self.config.start_header_id_template}log chunk:
 {chunk}
 """+f"""
@@ -141,6 +141,7 @@ Act as cyber_sentinel_AI an AI that analyzes logs and detect security breaches f
 Here is my report as a valid json:
 [""",self.personality_config.models_to_use.split(","),self.personality_config.master_model,
                     )
+                    str_json = "[" + out["final_output"]
                     try:
                         str_json = str_json.replace('\n', '').replace('\r', '').strip()
                         if not str_json.endswith(']'):
