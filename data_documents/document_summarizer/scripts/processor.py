@@ -9,8 +9,8 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 import subprocess
 from typing import Callable
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.text_chunker import TextChunker
 from pathlib import Path
 # Helper functions
 class Processor(APScript):

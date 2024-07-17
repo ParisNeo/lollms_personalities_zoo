@@ -8,10 +8,10 @@ from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.bibliography import arxiv_pdf_search
 
-from safe_store.generic_data_loader import GenericDataLoader
+from lollmsvectordb import TextDocumentsLoader
 import requests
 import json
-from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
+from lollmsvectordb import VectorDatabase
 import requests 
 from typing import Callable
 if not PackageManager.check_package_installed("arxiv"):
@@ -93,16 +93,21 @@ class Processor(APScript):
                         )
         self.previous_versions = []
         self.code=[]
-        self.abstract_vectorizer = TextVectorizer(
-                        vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,#=VectorizationMethod.BM25_VECTORIZER,
-                        data_visualization_method=VisualizationMethod.PCA,#VisualizationMethod.PCA,
-                        save_db=False
-                    )
-        self.full_documents_vectorizer = TextVectorizer(
-                        vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,#=VectorizationMethod.BM25_VECTORIZER,
-                        data_visualization_method=VisualizationMethod.PCA,#VisualizationMethod.PCA,
-                        save_db=False
-                    )
+        
+        from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
+        vectorizer = self.config.rag_vectorizer
+        if vectorizer == "bert":
+            from lollmsvectordb.lollms_vectorizers.bert_vectorizer import BERTVectorizer
+            v = BERTVectorizer()
+        elif vectorizer == "tfidf":
+            from lollmsvectordb.lollms_vectorizers.tfidf_vectorizer import TFIDFVectorizer
+            v = TFIDFVectorizer()
+        elif vectorizer == "word2vec":
+            from lollmsvectordb.lollms_vectorizers.word2vec_vectorizer import Word2VecVectorizer
+            v = Word2VecVectorizer()
+
+        self.persona_data_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
+        self.full_documents_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
 
     def settings_updated(self):
         """
@@ -166,7 +171,7 @@ class Processor(APScript):
         articles_checking_text=[]
         self.new_message("")
         for pdf in self.personality.text_files:
-            text = GenericDataLoader.read_file(pdf)
+            text = TextDocumentsLoader.read_file(pdf)
             tk = self.personality.model.tokenize(text)
             cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])
             title = self.fast_gen(f"{self.start_header_id_template}request: Extract the title of this document from the chunk.\nAnswer directly by the title without any extra comments.{self.separator_template}{self.start_header_id_template} Document chunk:\n{cropped}{self.separator_template}{self.start_header_id_template}document title:", callback=self.sink)
@@ -217,7 +222,7 @@ class Processor(APScript):
                         report):
         fn = str(file_name).replace('\\','/')
         if self.personality_config.read_the_whole_article:
-            text = GenericDataLoader.read_file(file_name)
+            text = TextDocumentsLoader.read_file(file_name)
             tk = self.personality.model.tokenize(text)
             cropped = self.personality.model.detokenize(tk[:self.personality_config.chunk_size])            
             if self.personality_config.read_only_first_chunk:
@@ -258,7 +263,7 @@ class Processor(APScript):
             self.warning("The AI agent didn't respond to the relevance question correctly")
             return False
         if relevance_score>=float(self.personality_config.relevance_check_severity):
-            self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.data_vectorization_chunk_size, overlap_size=self.personality.config.data_vectorization_overlap_size, force_vectorize=False, add_as_a_bloc=False)
+            self.abstract_vectorizer.add_document(pdf_url.split('/')[-1], f"title:{title}\nauthors:{authors}\nabstract:{abstract}", chunk_size=self.personality.config.rag_chunk_size, overlap_size=self.personality.config.rag_overlap, force_vectorize=False, add_as_a_bloc=False)
             relevance = f"relevance score {relevance_score}/10"
             relevance_explanation = self.fast_gen("\n".join([
                     f"{self.start_header_id_template}{self.system_message_template}:",

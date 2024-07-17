@@ -4,8 +4,8 @@ from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
 from typing import Callable
 
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 import json

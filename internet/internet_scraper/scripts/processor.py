@@ -6,8 +6,8 @@ from lollms.types import MSG_TYPE
 from lollms.internet import internet_search, scrape_and_save
 from typing import Callable
 
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -137,8 +137,8 @@ class Processor(APScript):
                             )
                 self.full(page_text)
             else:
-                chunks, sim = self.vectorize_and_query(page['content'], query)
-                content = "\n".join(chunks)
+                chunks = self.vectorize_and_query(page['content'], page['title'], page['url'], query)
+                content = "\n".join([c.text for c in chunks])
                 page_text = f"page_title:\n{page['title']}\npage_content:\n{content}"
                 page_text = self.summarize_text(page_text,"\n".join([
                         f"Extract from the document any information related to the query. Write the output as a short article.",

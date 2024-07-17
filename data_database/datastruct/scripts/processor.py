@@ -8,7 +8,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, MSG_TYPE
 from lollms.utilities import PackageManager
-from safe_store.generic_data_loader import GenericDataLoader
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
 import subprocess
 from typing import Callable
 from lollms.client_session import Client

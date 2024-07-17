@@ -4,8 +4,8 @@ from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
 from typing import Callable
 
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 
@@ -80,8 +80,9 @@ class Processor(APScript):
             f.write(text)
             
     def translate_document(self, document_path:Path,  output_path:Path=None, output =""):
-        document_text = GenericDataLoader.read_file(document_path)
-        document_chunks = DocumentDecomposer.decompose_document(document_text, self.personality_config.translation_chunk_size,0)
+        document_text = TextDocumentsLoader.read_file(document_path)
+        tc = TextChunker(self.personality_config.translation_chunk_size, 0, tokenizer=self.personality.model)
+        document_chunks = DocumentDecomposer.decompose_document(document_text, )
         translated = ""
         nb_chunks = len(document_chunks)
         for i,document_chunk in enumerate(document_chunks):

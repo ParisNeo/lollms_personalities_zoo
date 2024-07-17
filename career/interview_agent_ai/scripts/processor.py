@@ -2,8 +2,8 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_TYPE
-from safe_store.generic_data_loader import GenericDataLoader
-from safe_store.document_decomposer import DocumentDecomposer
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 from typing import Callable
