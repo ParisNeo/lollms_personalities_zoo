@@ -264,7 +264,7 @@ class Processor(APScript):
             self.warning("The AI agent didn't respond to the relevance question correctly")
             return False
         if relevance_score>=float(self.personality_config.relevance_check_severity):
-            self.abstract_vectorizer.add_document(f"title:{title}\nauthors:{authors}\nabstract:{abstract}",pdf_url.split('/')[-1], chunk_size=self.personality.config.rag_chunk_size, overlap_size=self.personality.config.rag_overlap, force_vectorize=False, add_as_a_bloc=False)
+            self.abstract_vectorizer.add_document(f"title:{title}\nauthors:{authors}\nabstract:{abstract}",pdf_url.split('/')[-1])
             relevance = f"relevance score {relevance_score}/10"
             relevance_explanation = self.fast_gen("\n".join([
                     f"{self.start_header_id_template}{self.system_message_template}:",
