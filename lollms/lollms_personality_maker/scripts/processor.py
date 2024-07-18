@@ -304,6 +304,7 @@ class Processor(APScript):
                 discussion_messages,
                 self.system_custom_header("name")+f"{name}",
                 f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
+                "Only build short descriptions (less than 77 tokens)",
                 self.system_custom_header("examples") if examples!="" else "",
                 f"{examples}",
                 self.system_custom_header("icon imaginer")
@@ -349,8 +350,8 @@ class Processor(APScript):
                     escaped_url =  discussion_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
-                    self.ui(ui)
-                    self.full(output_text+f'\n![]({escaped_url})')
+                    self.ui(self.make_selectable_photos(ui))
+                    self.full(output_text)
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
                     shutil.copy("assets/logo.png",self.assets_path)
@@ -624,6 +625,7 @@ class Processor(APScript):
                 "description builder pays attention to the user description and infer any more details that need to be added while keeping a relatively short description text."
                 "description builder makes sure that no information provided by the user is overseen.",
                 "description builder only answers with the personality description without any explanation.",
+                "discriptions should be short and precise.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
                 self.system_custom_header("personality name")+f"{name}",
@@ -651,6 +653,7 @@ class Processor(APScript):
                 "disclaimer builder makes sure that harms that can be caused by the ai personality is clearely stated.",
                 "if the personality is harmless or can't be used to cause harm, then disclaimer builder just builds a soft very short assuring disclaimer.",
                 "disclaimer builder only answers with the personality disclaimer without any explanation.",
+                "disclaimers need to be short and precise or if no disclaimer is required return empty text.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
                 self.system_custom_header("personality name")+f"{name}",
@@ -691,8 +694,7 @@ class Processor(APScript):
                 "Answer only with the system message text.",
                 self.system_custom_header("examples") if examples!="" else "",
                 f"{examples}",
-                self.system_custom_header("system message builder"),
-                self.system_full_header
+                self.system_custom_header("system message builder")
             ],5
         )
         conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
@@ -712,6 +714,7 @@ class Processor(APScript):
                 "The user describes a personality and the ai should build a short AI welcome message.",
                 "welcome message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short welcome message."
                 "welcome message builder only answers with the personality conditionning without any explanation.",
+                "the welcome message needs to be precise yet consize",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
                 self.system_custom_header("personality name")+f"{name}",
@@ -727,6 +730,35 @@ class Processor(APScript):
         output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
         self.full(output_text)
         self.chunk("")
+
+        self.step_start("Coming up with prompt examples")
+        crafted_prompt = self.build_prompt(
+            [
+                self.system_full_header+f"prompt examples builder is a personality welcome message building AI.",
+                "The user describes a personality and the ai should build a list of prompt examples that can be sent to this ai.",
+                "prompt examples builder pays attention to the user description and infer any more details that enables him to craft example prompts that a user can give to the AI in depending on its capabilities."
+                "each prompt example is a text inside a markdown code tag",
+                "each prompt needs to be acheivable by the AI and it should be short and precise",
+                self.system_custom_header("context"),
+                context_details["discussion_messages"],
+                self.system_custom_header("personality name")+f"{name}",
+                self.system_custom_header("instruction"),
+                "Write a comprehensive welcome message for the personality",
+                "Answer only with the welcome message text without any explanation or comments.",             
+                self.system_custom_header(f"A list of prompt messages in separate markdow code tags using the language {language}")
+            ],5
+        )
+        prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        prompts_list_codes = self.extract_code_blocks(prompts_list)
+        if len(prompts_list_codes)>0:
+            prompts_list = []
+            for code in prompts_list_codes:
+                prompts_list.append(code["content"])
+        self.step_end("Coming up with prompt examples")
+        output_text+=self.build_a_document_block('promppts_list', "", prompts_list)
+        self.full(output_text)
+        self.chunk("")
+
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------
@@ -736,6 +768,7 @@ class Processor(APScript):
         disclaimer = "\n    ".join(disclaimer.split("\n"))
         conditioning =  "\n    ".join(conditioning.split("\n"))
         welcome_message =  "\n    ".join(welcome_message.split("\n"))
+
         yaml_data="\n".join([
             f"## {name} Chatbot conditionning file",
             f"## Author: {author}",
@@ -780,7 +813,8 @@ class Processor(APScript):
             "dependencies: []",
             "",
             "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-            f"anti_prompts: []"
+            f"anti_prompts: []",
+            "prompts_list: "+prompts_list
         ])
 
         self.step_end("Building the yaml file")
