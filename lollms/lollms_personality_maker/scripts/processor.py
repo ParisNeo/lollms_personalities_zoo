@@ -754,6 +754,8 @@ class Processor(APScript):
             prompts_list = []
             for code in prompts_list_codes:
                 prompts_list.append(code["content"])
+        else:
+            prompts_list = []
         self.step_end("Coming up with prompt examples")
         output_text+=self.build_a_document_block('promppts_list', "", prompts_list)
         self.full(output_text)
