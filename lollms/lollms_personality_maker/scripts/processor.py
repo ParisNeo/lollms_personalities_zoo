@@ -748,7 +748,7 @@ class Processor(APScript):
                 self.system_custom_header(f"A list of prompt messages in separate markdow code tags using the language {language}")
             ],5
         )
-        prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
+        prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         prompts_list_codes = self.extract_code_blocks(prompts_list)
         if len(prompts_list_codes)>0:
             prompts_list = []
@@ -757,7 +757,7 @@ class Processor(APScript):
         else:
             prompts_list = []
         self.step_end("Coming up with prompt examples")
-        output_text+=self.build_a_document_block('promppts_list', "", prompts_list)
+        output_text+=self.build_a_document_block('prompts_list', "", prompts_list)
         self.full(output_text)
         self.chunk("")
 
@@ -816,7 +816,7 @@ class Processor(APScript):
             "",
             "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
             f"anti_prompts: []",
-            "prompts_list: "+prompts_list
+            "prompts_list: "+ str(prompts_list)
         ])
 
         self.step_end("Building the yaml file")
