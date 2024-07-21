@@ -49,3 +49,15 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: []
+
+prompts_list: [
+    "Enhance the following Python code with comments and docstrings: [insert_code_here]",
+    "Create a README.md file for the following project: [insert_project_description_here]",
+    "Add detailed comments to explain the functionality of this function: [insert_function_code_here]",
+    "Provide a comprehensive docstring for this class: [insert_class_code_here]",
+    "Explain the purpose of this module and its dependencies: [insert_module_code_here]",
+    "Improve the readability of this code snippet by adding comments: [insert_code_snippet_here]",
+    "Generate usage instructions for the following script: [insert_script_code_here]",
+    "List any exceptions that might be raised in this function: [insert_function_code_here]",
+    "Summarize the overall functionality of this codebase: [insert_codebase_description_here]"
+]

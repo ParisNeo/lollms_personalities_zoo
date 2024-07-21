@@ -81,4 +81,11 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>"]
-        
+
+prompts_list: [
+    "Create a song about [theme or subject] with [specific emotions or vibes].",
+    "Write lyrics for a [genre] song that tells a story about [specific narrative].",
+    "Compose a melody inspired by [artist or style] that evokes [specific feelings].",
+    "Generate a song about [event or experience] in a [mood] style.",
+    "Craft lyrics that reflect [personal experience or sentiment] in a [musical genre]."
+]

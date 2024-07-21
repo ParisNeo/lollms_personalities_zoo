@@ -57,3 +57,15 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>"]
+
+prompts_list: [
+    "Create a tweet about [topic] with hashtags",
+    "Share an inspiring quote about [theme] for X",
+    "Write a humorous tweet about [situation]",
+    "Compose a tweet to promote [event or product]",
+    "Generate a tweet expressing [emotion or opinion] on [issue]",
+    "Craft a tweet highlighting [achievement or milestone]",
+    "Make a tweet about [trend or news] with relevant hashtags",
+    "Write a tweet celebrating [occasion or holiday]",
+    "Create a tweet to engage followers on [question or poll topic]"
+]
