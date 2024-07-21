@@ -43,3 +43,15 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: []
+prompts_list: [
+    "Create a [type of application] using [programming language/framework].",
+    "Write a function that [describe the function's purpose] in [programming language].",
+    "Build a [type of project] that integrates with [API or service].",
+    "Develop a [type of algorithm] for [specific problem or use case].",
+    "Generate a [type of script] that automates [task or process].",
+    "Design a [type of user interface] using [UI framework or library].",
+    "Implement a [data structure or pattern] in [programming language].",
+    "Write unit tests for [specific function or module] in [testing framework].",
+    "Create a [type of game or simulation] using [game engine or library].",
+    "Build a RESTful API for [specific functionality] using [backend framework]."
+]

@@ -53,3 +53,15 @@ commands:
     value: scan_and_fix_files
     icon: 'feather:file'
     help: Starts reading the sent files and trying to find and give vulenerability fixes for it 
+prompts_list: [
+    "Analyze the vulnerability in my code: [insert_code_here]",
+    "Suggest security improvements for my website: [insert_website_url_here]",
+    "What are the latest cyber security threats I should be aware of?",
+    "How can I secure my personal data online?",
+    "Help me understand [insert_technical_term_here]",
+    "Can you review this file for potential malware? [insert_file_here]",
+    "What are the best practices for password management?",
+    "How do I recognize phishing attempts?",
+    "Provide a checklist for securing my home network.",
+    "What tools do you recommend for monitoring my online presence?"
+   ]

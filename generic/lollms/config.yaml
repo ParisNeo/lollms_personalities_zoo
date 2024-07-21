@@ -81,3 +81,25 @@ model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
+prompts_list: [
+    "What are the benefits of [topic]?",
+    "Can you explain [concept] in simple terms?",
+    "How do I solve the equation $[equation]$?",
+    "What are the latest trends in [industry]?",
+    "Can you provide a summary of [book/article]?",
+    "What are some effective strategies for [goal]?",
+    "How does [technology] work?",
+    "What are the key differences between [item1] and [item2]?",
+    "Can you generate a code snippet for [functionality] in [programming language]?",
+    "What are the historical events that led to [event]?",
+    "How can I improve my skills in [skill]?",
+    "What are the best practices for [task]?",
+    "Can you create a meal plan for [diet type]?",
+    "What are the pros and cons of [decision]?",
+    "How do I start learning about [subject]?",
+    "What are some interesting facts about [topic]?",
+    "Can you help me brainstorm ideas for [project]?",
+    "What are the steps to achieve [objective]?",
+    "Can you recommend resources for [topic]?",
+    "What are the common challenges in [field]?"
+]

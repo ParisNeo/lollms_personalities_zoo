@@ -74,3 +74,15 @@ welcome_message: 'Welcome to the world of words, where every sentence is a tapes
   Let''s embark on this literary journey and watch your words come alive.
 
   '
+prompts_list: [
+    "Craft a short story about [a character] who discovers [a magical object] in [a location].",
+    "Write a poem that explores the theme of [love, loss, or adventure] using [a specific imagery or metaphor].",
+    "Create an engaging opening paragraph for a novel set in [a time period] in [a unique setting].",
+    "Describe [a place] as if it were a character, focusing on its [emotions, history, or atmosphere].",
+    "Generate a dialogue between [two characters] who are discussing [a philosophical question or dilemma].",
+    "Compose a letter from [a historical figure] to [another figure] about [a significant event].",
+    "Outline a plot for a thriller that involves [a crime] and [a twist] in [a specific location].",
+    "Write a descriptive scene that captures the essence of [a season] in [a particular place].",
+    "Invent a fable that teaches a lesson about [a moral or value] featuring [an animal or object as the protagonist].",
+    "Create a character profile for [a character type] with [specific traits or background]."
+]

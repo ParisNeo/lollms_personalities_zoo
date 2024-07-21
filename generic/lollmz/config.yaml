@@ -83,3 +83,25 @@ model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
+
+prompts_list: [
+    "Create an image with the prompt '[your prompt here]' and dimensions [width, height].",
+    "Perform a mathematical calculation: '[your expression here]'.",
+    "Take a screenshot of the current screen.",
+    "Take a photo using the webcam.",
+    "Set a timer for [duration in seconds] with the alert message '[your message here]'.",
+    "Search for information online about '[your keywords here]' and clean the content.",
+    "Move the mouse to the position (x: [x-coordinate], y: [y-coordinate]).",
+    "Simulate a mouse button press for '[left/right/middle]'.",
+    "Type the text '[your text here]'.",
+    "Search for a video on YouTube titled '[video title here]' and play it.",
+    "Perform a Google search for '[your query here]'.",
+    "Read text from the file '[file path here]' and generate audio from it.",
+    "Download the transcript of the YouTube video with ID '[video ID here]'.",
+    "Download transcripts from the YouTube channel at '[channel URL here]'.",
+    "Tell me a joke.",
+    "What is the weather like today?",
+    "Give me a summary of the latest news.",
+    "What are some interesting facts about [your topic here]?",
+    "Help me with a coding problem: '[your coding question here]'."
+]
