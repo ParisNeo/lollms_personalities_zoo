@@ -433,7 +433,7 @@ class Processor(APScript):
 
             <script>
                 function open_script_folder(){
-                    const secretMessage1 = {'folder_path': """+self.scripts_path+"""};
+                    const secretMessage1 = {'folder_path': """+str(self.scripts_path)+"""};
                     const requestOptions = {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -449,7 +449,7 @@ class Processor(APScript):
                 }
 
                 function open_script_in_vscode(){
-                    const secretMessage2 = {'folder_path': """+self.scripts_path+"""};
+                    const secretMessage2 = {'folder_path': """+str(self.scripts_path)+"""};
                     const requestOptions = {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -477,7 +477,11 @@ class Processor(APScript):
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
         if len(files)>0:
-            shutil.copy(files[-1], self.assets_path/"logo.png")
+            if str(files[-1])!=str(self.assets_path/"logo.png"):
+                try:
+                    shutil.copy(files[-1], self.assets_path/"logo.png")
+                except:
+                    pass
         else:
             shutil.copy(Path(__file__).parent.parent/"assets"/"lollms_logo.png", self.assets_path/"logo.png")
 

@@ -89,4 +89,26 @@ commands:
   - name: Manual building
     value: manual_building
     help: Manually build an AI 
+prompts_list: [
+    "Create a professional persona for a [Job Title] who specializes in [Field/Industry] and possesses [Key Skills].",
+    "Develop a character who is a [Occupation] with [Personality Trait] traits and a strong professional background in [Industry].",
+    "Generate a backstory for a character who [Backstory Detail] and has [Personality Trait] traits, focusing on their career journey.",
+    "Design a unique personality for a [Fantasy Creature/Character Type] that works in [Professional Setting].",
+    "What would a person with [Personality Trait] and [Professional Experience] be like in a corporate environment?",
+    "Create a dialogue between [Character Name 1], a [Job Title], and [Character Name 2], a [Job Title], who have opposing views on [Work-Related Topic].",
+    "Describe the daily life of a character who is [Occupation] and has a secret passion for [Hobby/Interest].",
+    "Invent a character who is [Age] and has [Unique Trait], and explain how this affects their relationships.",
+    "Outline the motivations and goals of a character who [Motivation Detail].",
+    "What would be the personality of a [Mythical Creature] who is [Personality Trait] and [Another Trait]?",
+    "Create a character named [Character Name] who is a [Occupation] with [Personality Trait] traits.",
+    "Develop a persona for me that is [Age] years old, [Gender], and has a passion for [Hobby/Interest].",
+    "Generate a backstory for a character who [Backstory Detail] and has [Personality Trait] traits.",
+    "Design a unique personality for a [Fantasy Creature/Character Type] that lives in [Setting].",
+    "What would a person with [Personality Trait] and [Life Experience] be like?",
+    "Create a dialogue between [Character Name 1] and [Character Name 2] who have opposing views on [Topic].",
+    "Describe the daily life of a character who is [Occupation] and has a secret passion for [Hobby/Interest].",
+    "Invent a character who is [Age] and has [Unique Trait], and explain how this affects their relationships.",
+    "Outline the motivations and goals of a character who [Motivation Detail].",
+    "What would be the personality of a [Mythical Creature] who is [Personality Trait] and [Another Trait]?"
+]
 
