@@ -139,7 +139,7 @@ class Processor(APScript):
         return selected_style
 
 
-    def main_process(self, initial_prompt, full_context):    
+    def main_process(self, initial_prompt, full_context, callback, context_state, client):    
         self.prepare()
         full_context = full_context[:full_context.index(initial_prompt)]
         
