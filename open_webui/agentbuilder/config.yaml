@@ -148,6 +148,7 @@ personality_conditioning: |
     ```
     Use this information to generate the json of the agent requested by the user. Make sure you give at least 10 prompts in the prompts section.
     As of the profile_image_url, use this image by default https://lollms.com/wp-content/uploads/2023/11/image-1.png
+    params/system is a text for contitioning the AI. This text should start by you are [name if the AI] then you tell the AI what it should do.
 user_message_prefix: 'user:'
 ai_message_prefix: 'agentbuilder'
 # A text to put between user and chatbot messages
