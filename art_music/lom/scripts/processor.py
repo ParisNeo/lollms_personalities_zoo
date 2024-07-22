@@ -5,11 +5,8 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, File_Path_Generator
-import re
-import importlib
-import requests
-from tqdm import tqdm
-import webbrowser
+from lollms.client_session import Client
+
 try:
     import torchaudio
 except:
@@ -256,7 +253,7 @@ The generation ai has no access to the previous text so do not do references and
         ASCIIColors.success("Generation succeeded")
 
 
-    from lollms.client_session import Client
+        
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
