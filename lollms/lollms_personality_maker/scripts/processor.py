@@ -375,7 +375,7 @@ class Processor(APScript):
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Magic Code Folder</title>
+        <title>Personality photos</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -403,7 +403,7 @@ class Processor(APScript):
         </style>
     </head>
     <body>
-        <h1>Magic Code Folder</h1>
+        <h1>Personality icons</h1>
         <h2>Please select a photo to be used as the logo</h2>
         """
         ui=""
@@ -430,7 +430,6 @@ class Processor(APScript):
             </div>
             """
         footer ="""
-
             <script>
                 function open_script_folder(){
                     const secretMessage1 = {'folder_path': """+str(self.scripts_path)+"""};
@@ -472,7 +471,9 @@ class Processor(APScript):
         
         output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
         self.full(output_text)
-        self.ui_in_iframe(header+'\n'+self.make_selectable_photos(ui)+"\n"+footer)
+        full_page = header+'\n'+ui+"\n"+footer
+        print(full_page)
+        self.ui_in_iframe(full_page)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
