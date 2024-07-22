@@ -35,7 +35,7 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"device","type":"str","value":"cuda:0","options":["cuda","cpu","xpu","ipu","hpu","xla","Vulkan"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
-                {"name":"model_name","type":"str","value":"facebook/musicgen-melody","options":["facebook/musicgen-small","facebook/musicgen-medium","facebook/musicgen-melody","facebook/musicgen-large"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
+                {"name":"model_name","type":"str","value":"facebook/audiogen-medium","options":["facebook/audiogen-small","facebook/audiogen-medium","facebook/audiogen-large"],"help":"Select the model to be used to generate the music. Bigger models provide higher quality but consumes more computing power"},
                 {"name":"number_of_samples","type":"int","value":1,"help":"The number of samples to generate"},
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"generate","type":"bool","value":True,"help":"Paint the images"},
@@ -94,10 +94,10 @@ class Processor(APScript):
 
     def prepare(self):
         if self.music_model is None:
-            from audiocraft.models import musicgen
+            from audiocraft.models import audiogen
             import torch
             self.step_start("Loading Meta's musicgen")
-            self.music_model = musicgen.MusicGen.get_pretrained(self.personality_config.model_name, device=self.personality_config.device)
+            self.music_model = audiogen.AudioGen.get_pretrained(self.personality_config.model_name, device=self.personality_config.device)
             self.step_end("Loading Meta's musicgen")
         
 
