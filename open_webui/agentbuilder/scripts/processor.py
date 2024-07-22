@@ -17,7 +17,7 @@ from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
 from functools import partial
-from ascii_colors import trace_exception, ASCII_Colors
+from ascii_colors import trace_exception, ASCIIColors
 
 class Processor(APScript):
     """
@@ -184,7 +184,7 @@ class Processor(APScript):
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details)
         if self.personality.config.debug:
-            ASCII_Colors.yellow(full_prompt)        
+            ASCIIColors.yellow(full_prompt)        
         out = self.fast_gen(full_prompt)
         self.full(out)
         codes = self.extract_code_blocks(out)
