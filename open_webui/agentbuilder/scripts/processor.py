@@ -197,7 +197,7 @@ class Processor(APScript):
                 f.write(code)
             self.step_start("Building_image ...")
             prompt = self.generate(self.system_full_header+"you are artbot. You generate prompts for text to image generative tools.\nGenerate an icon for the agent with the description :"+json_code[0]["info"]["params"]["system"]+"\n"+self.ai_custom_header("artbot"))
-            out += "\n" + build_image(prompt,"",1024,1024, self, client).split["\n"][-1]
+            out += "\n" + build_image(prompt,"",1024,1024, self, client).split("\n")[-1]
             self.full(out)
             self.step_end("Building_image ...")
 
