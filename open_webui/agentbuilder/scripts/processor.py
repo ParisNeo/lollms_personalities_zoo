@@ -183,6 +183,8 @@ class Processor(APScript):
         """
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details)
+        if self.personality.config.debug:
+            ASCII_Colors.yellow(full_prompt)
         out = self.fast_gen(full_prompt)
 
         self.full(out)
