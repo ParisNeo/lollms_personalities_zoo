@@ -193,7 +193,7 @@ class Processor(APScript):
         if len(codes)>0:
             code = codes[0]['content']
             json_code = json.loads(code)
-            with open(client.discussion_path/"personality.json", 'w') as f:
+            with open(client.discussion_path/"personality.json", 'w', encoding="utf-8") as f:
                 f.write(code)
             self.step_start("Building_image ...")
             prompt = self.generate(self.system_full_header+"you are artbot. You generate prompts for text to image generative tools.\nGenerate an icon for the agent with the description :"+json_code[0]["info"]["params"]["system"]+"\n"+self.ai_custom_header("artbot"))
