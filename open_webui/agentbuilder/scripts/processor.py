@@ -17,7 +17,7 @@ from lollms.utilities import discussion_path_to_url
 import subprocess
 from typing import Callable
 from functools import partial
-from ascii_colors import trace_exception
+from ascii_colors import trace_exception, ASCII_Colors
 
 class Processor(APScript):
     """
