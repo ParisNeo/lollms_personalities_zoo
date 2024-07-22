@@ -18,6 +18,8 @@ import subprocess
 from typing import Callable
 from functools import partial
 from ascii_colors import trace_exception, ASCIIColors
+from lollms.functions.generate_image import build_image
+import json
 
 class Processor(APScript):
     """
@@ -190,7 +192,11 @@ class Processor(APScript):
         codes = self.extract_code_blocks(out)
         if len(codes)>0:
             code = codes[0]['content']
+            json_code = json.loads(code)
             with open(client.discussion_path/"personality.json", 'w') as f:
                 f.write(code)
-
+            self.step_start("Building_image ...")
+            prompt = self.generate(self.system_full_header+"you are artbot. You generate prompts for text to image generative tools.\nGenerate an icon for the agent with the description :"+json_code[0]["info"]["params"]["system"]+"\n"+self.ai_custom_header("artbot"))
+            build_image(prompt,"",1024,1024, self, client)
+            self.step_end("Building_image ...")
 
