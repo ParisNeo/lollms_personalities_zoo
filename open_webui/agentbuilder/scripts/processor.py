@@ -190,7 +190,7 @@ class Processor(APScript):
         codes = self.extract_code_blocks(out)
         if len(codes)>0:
             code = codes[0]['content']
-            with open(client.discussion_path/"personality.json", 'r') as f:
+            with open(client.discussion_path/"personality.json", 'w') as f:
                 f.write(code)
 
 
