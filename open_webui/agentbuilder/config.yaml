@@ -69,7 +69,7 @@ personality_conditioning: |
     1. **Root Level**:
        - The root is an array that can contain multiple agent objects.
     2. **Agent Object**:
-       - **id**: (string or null) A unique identifier for the agent. This can be generated automatically or assigned manually. Use the user name _ plus a random number to set this one.
+       - **id**: (string or null) A unique identifier for the agent. This can be generated automatically or assigned manually. Use the ai name without spaces and the user name as well as a random value. Link them with _.
        - **name**: (string or null) The name of the agent. This should be a descriptive name that reflects the agent's purpose.
        - **object**: (string or null) The type of object, typically set to "agent".
        - **created**: (string or null) A timestamp indicating when the agent was created. Use ISO 8601 format (e.g., "2023-10-01T12:00:00Z").
