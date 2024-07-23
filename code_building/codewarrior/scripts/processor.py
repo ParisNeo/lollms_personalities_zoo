@@ -187,12 +187,15 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        if self.personality_config.mode=="discussion_long":
-            full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Always rewrite the full code")
-        elif self.personality_config.mode=="discussion_medium":
-            full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Write the full code only if this is the first message inside the discussion or if the user asked for a new code. If this is not the first time you write the code, only answer with updates. specify the position of changes")
-        elif self.personality_config.mode=="discussion_short":
-            full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Only answer with code snippets. The user needs to write the code, you are just his coach and you help him update his code.")
+        if context_details["is_continue"]:
+            full_prompt = self.build_prompt_from_context_details(context_details)
+        else:
+            if self.personality_config.mode=="discussion_long":
+                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Always rewrite the full code")
+            elif self.personality_config.mode=="discussion_medium":
+                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Write the full code only if this is the first message inside the discussion or if the user asked for a new code. If this is not the first time you write the code, only answer with updates. specify the position of changes")
+            elif self.personality_config.mode=="discussion_short":
+                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Only answer with code snippets. The user needs to write the code, you are just his coach and you help him update his code.")
         if len(self.personality_config.models_to_use)>0:
             out = self.mix_it_up(full_prompt,self.personality_config.models_to_use.split(","), self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink)
             self.json("Rounds details",out)
