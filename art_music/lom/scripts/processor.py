@@ -6,11 +6,18 @@ from lollms.types import MSG_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, File_Path_Generator
 from lollms.client_session import Client
+import pipmaster as pm
 
-try:
-    import torchaudio
-except:
-    ASCIIColors.warning("No torch audio found")
+# import pipmaster as pm
+# if not pm.is_installed("torch"):
+#     ASCIIColors.yellow("Lord of music: Torch not found. Installing it")
+#     pm.install_multiple(["torch","torchvision","torchaudio"], "https://download.pytorch.org/whl/cu121")
+
+# import torch
+# if not torch.cuda.is_available():
+#     ASCIIColors.yellow("Lord of music: Torch not using cuda. Reinstalling it")
+#     pm.install_multiple(["torch","torchvision","torchaudio"], "https://download.pytorch.org/whl/cu121")
+
 
 from typing import Callable
 class Processor(APScript):

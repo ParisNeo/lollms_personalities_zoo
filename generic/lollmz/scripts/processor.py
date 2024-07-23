@@ -24,6 +24,9 @@ from lollms.functions.tts.read_text import read_text_function
 from lollms.functions.youtube.download_transcript import download_youtube_transcript_function
 from lollms.functions.youtube.download_transcript_by_channel import download_channel_transcripts_function
 from lollms.functions.luma_ai_dream_machine.build_video_using_luma_ai import luma_ai_dream_machine_video_creator_function
+from lollms.functions.generate_music import generate_music_function
+
+
 
 from typing import Callable
 from functools import partial
@@ -75,8 +78,9 @@ class Processor(APScript):
                 
                 {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
                 {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
-
+                
                 {"name": "enable_build_image_function", "type": "bool", "value": True, "help": "Enable or disable build_image_function"},
+                {"name": "enable_generate_music_function", "type": "bool", "value": True, "help": "Enable or disable generate_music_function"},
                 {"name": "enable_calculate_function", "type": "bool", "value": True, "help": "Enable or disable calculate_function"},
                 {"name": "enable_take_screenshot_function", "type": "bool", "value": True, "help": "Enable or disable take_screenshot_function"},
                 {"name": "enable_take_a_photo_function", "type": "bool", "value": True, "help": "Enable or disable take_a_photo_function"},
@@ -244,6 +248,9 @@ class Processor(APScript):
 
         if self.personality_config["enable_build_image_function"]:
             self.function_definitions.append(build_image_function(self, client))
+        if self.personality_config["enable_generate_music_function"]:
+            self.function_definitions.append(generate_music_function(self, client))
+            
         if self.personality_config["enable_calculate_function"]:
             self.function_definitions.append(calculate_function(self, client))
         if self.personality_config["enable_take_screenshot_function"]:
