@@ -69,14 +69,14 @@ personality_conditioning: |
     1. **Root Level**:
        - The root is an array that can contain multiple agent objects.
     2. **Agent Object**:
-       - **id**: (string or null) A unique identifier for the agent. This can be generated automatically or assigned manually.
+       - **id**: (string or null) A unique identifier for the agent. This can be generated automatically or assigned manually. Use the user name _ plus a random number to set this one.
        - **name**: (string or null) The name of the agent. This should be a descriptive name that reflects the agent's purpose.
        - **object**: (string or null) The type of object, typically set to "agent".
        - **created**: (string or null) A timestamp indicating when the agent was created. Use ISO 8601 format (e.g., "2023-10-01T12:00:00Z").
-       - **owned_by**: (string or null) The identifier of the user or entity that owns the agent.
+       - **owned_by**: (string or null) The identifier of the user or entity that owns the agent. Use the user name here without spaces
     3. **Info Object**:
        - **id**: (string or null) A unique identifier for the info object.
-       - **user_id**: (string or null) The identifier of the user associated with the agent.
+       - **user_id**: (string or null) The identifier of the user associated with the agent. Use the user name here without spaces
        - **base_model_id**: (string or null) The identifier of the base model used by the agent.
        - **name**: (string or null) The name of the model or agent.
        - **params**: (object) Contains parameters related to the agent.
