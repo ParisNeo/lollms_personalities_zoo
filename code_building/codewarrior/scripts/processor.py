@@ -188,7 +188,7 @@ class Processor(APScript):
         """
         self.callback = callback
         if context_details["is_continue"]:
-            full_prompt = self.build_prompt_from_context_details(context_details)
+            full_prompt = self.build_prompt_from_context_details(context_details, suppress= ["ai_prefix"])
         else:
             if self.personality_config.mode=="discussion_long":
                 full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Always rewrite the full code")
@@ -206,6 +206,6 @@ class Processor(APScript):
             if nb_tokens >= self.config.max_n_predict-1:
                 out = out+self.fast_gen(full_prompt+out)
 
-
-        self.full(out)
+        if not context_details["is_continue"]:
+            self.full(out)
 
