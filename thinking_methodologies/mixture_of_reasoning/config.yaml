@@ -60,4 +60,25 @@ dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: ["!@>"]
-        
+prompts_list: [
+    "What are some lesser-known benefits of meditation for mental well-being?",
+    "Can you provide an analogy to explain the concept of artificial intelligence in simple terms?",
+    "How would you approach solving the equation $2x^2+5x-3=0$ step by step?",
+    "What are the emerging trends in sustainable fashion that could potentially disrupt the industry?",
+    "Can you summarize the key findings of the latest IPCC report on climate change and its implications?",
+    "What are some effective strategies for overcoming imposter syndrome as a beginner in a new field?",
+    "How does blockchain technology enable secure and transparent data sharing?",
+    "What are the main differences between a fixed-rate and variable-rate mortgage, and which one is more suitable for a first-time homebuyer?",
+    "Can you generate a Python code snippet for implementing a simple neural network using TensorFlow?",
+    "What were the key events leading up to the French Revolution, and how did they contribute to its outbreak?",
+    "What are some actionable tips for improving one's public speaking skills, and how can I apply them in a real-world setting?",
+    "What are the best practices for conducting a SWOT analysis for a small business or startup?",
+    "Can you create a 7-day meal plan for a vegan diet, taking into account nutritional balance and flavor variety?",
+    "What are the pros and cons of adopting a remote work policy for a team, and how can we mitigate potential drawbacks?",
+    "How would you approach learning about data science as a beginner, and what resources would you recommend?",
+    "What are some fascinating facts about black holes that can be used to explain complex astrophysics concepts in simple terms?",
+    "Can you help me brainstorm ideas for a social impact project, and how can I validate my assumptions about the target audience?",
+    "What are the essential steps for creating a successful social media marketing campaign, and how can I measure its effectiveness?",
+    "Can you recommend relevant resources (books, articles, courses) for learning about UX design principles and human-centered design?",
+    "What are the most common challenges faced by entrepreneurs when scaling a business, and how can I overcome them?"
+]
