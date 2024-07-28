@@ -249,10 +249,44 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                 with open(app_path/"index.html","w", encoding="utf8") as f:
                     f.write(code)
                 out += f"index file:\n```html\n{code}"+"\n```\n"
+                self.step_end("Building index.html")
+                shutil.copy(Path(__file__).parent.parent/"assets"/"icon.png", app_path/"icon.png")
+                self.full_invisible_to_ai(out)
+                self.personality_config.app_path = app_path
+                self.personality_config.save()
+            else:
+                self.step_end("Building index.html", False)
+        elif choices ==2:
+            out = ""
+            self.step_start("Updating index.html")
+            with open(Path(self.personality_config.app_path)/"index.html","r", encoding="utf8") as f:
+                code = f.read()
+            crafted_prompt = self.build_prompt(
+                [
+                    self.system_full_header,
+                    "you are web application maker. Your objective is to build the index.html file for a specific lollms application.",
+                    "The user describes a web application and the ai should build a single index.html file for the application",
+                    "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
+                    "The output must be in a html markdown code tag",
+                    "Update the code from the user suggestion",
+                    self.system_custom_header("context"),
+                    context_details["discussion_messages"],
+                    self.system_custom_header("Code"),
+                    "```html",
+                    code,
+                    "```",
+                    self.system_custom_header("application description file maker")
+                ],6
+            )
+            name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            codes = self.extract_code_blocks(name)
+            if len(codes)>0:
+                code = codes[0]["content"]
+                with open(Path(self.personality_config.app_path)/"index.html","w", encoding="utf8") as f:
+                    f.write(code)
+                out += f"index file:\n```html\n{code}"+"\n```\n"
 
-            self.step_end("Building index.html")
-            shutil.copy(Path(__file__).parent.parent/"assets"/"icon.png", app_path/"icon.png")
-            self.full_invisible_to_ai(out)
-        else:
-            self.answer("Info: Editing is not yet possible. It will be possible in next versions"+context_details)
+            self.step_end("Updating index.html")
+            shutil.copy(Path(__file__).parent.parent/"assets"/"icon.png", Path(self.personality_config.app_path)/"icon.png")
+            self.full_invisible_to_ai(out)            
             

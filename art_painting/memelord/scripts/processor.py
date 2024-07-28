@@ -12,7 +12,7 @@ from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
-from lollms.functions.memes.memes_builder import drake_meme_generator_function, two_paths_meme_generator_function
+from lollms.functions.memes.memes_builder import drake_meme_generator_function, two_paths_meme_generator_function, build_meme_image_with_text_overlay_function
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -190,7 +190,8 @@ class Processor(APScript):
             build_image_function(self, client),
             select_image_file_function(self, client),
             drake_meme_generator_function(client),
-            two_paths_meme_generator_function(client)
+            two_paths_meme_generator_function(client),
+            build_meme_image_with_text_overlay_function(self, client)
         ]
 
         out = self.interact_with_function_call(context_details, self.function_definitions, separate_output=True)
