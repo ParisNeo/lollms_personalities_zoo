@@ -213,7 +213,8 @@ model: {self.personality.model.model_name}
 disclaimer: If needed, write a disclaimer. else return an empty text
 ```
 """,
-                    "If the user explicitely proposed a name, respond with that name",
+                    "If the user explicitely proposed a name, use that name",
+                    "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
                     self.system_custom_header("Lollms Apps Maker")
@@ -243,6 +244,7 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                         "The user describes a web application and the ai should build a single html code to fullfill the application requirements.",
                         "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                         "The output must be in a html markdown code tag",
+                        "Your sole objective is to build the index.yaml file. Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
                         self.system_custom_header("context"),
                         context_details["discussion_messages"],
                         self.system_custom_header("Lollms Apps Maker")
