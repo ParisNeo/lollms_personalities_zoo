@@ -226,7 +226,7 @@ version: 1.0
 author: make the user the author
 category: give a suitable category name from {self.application_categories}
 model: {self.personality.model.model_name}
-disclaimer: If needed, write a disclaimer. else return an empty text
+disclaimer: If needed, write a disclaimer. else null
 ```
 """,
                     "If the user explicitely proposed a name, use that name",
