@@ -224,6 +224,9 @@ disclaimer: If needed, write a disclaimer. else return an empty text
             codes = self.extract_code_blocks(description_file_name)
             if len(codes)>0:
                 infos = yaml.safe_load(codes[0]["content"])
+                if self.config.debug:
+                    ASCIIColors.yellow("--- Description file ---")
+                    ASCIIColors.yellow(infos)
                 app_path:Path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_")
                 app_path.mkdir(parents=True, exist_ok=True)
                 with open(app_path/"description.yaml","w") as f:
@@ -245,8 +248,11 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                         self.system_custom_header("Lollms Apps Maker")
                     ],6
                 )
-                name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-                codes = self.extract_code_blocks(name)
+                code_content = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+                if self.config.debug:
+                    ASCIIColors.yellow("--- Code file ---")
+                    ASCIIColors.yellow(code_content)
+                codes = self.extract_code_blocks(code_content)
                 if len(codes)>0:
                     code = codes[0]["content"]
                     with open(app_path/"index.html","w", encoding="utf8") as f:
