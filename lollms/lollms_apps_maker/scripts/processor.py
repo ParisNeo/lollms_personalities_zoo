@@ -52,6 +52,9 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"app_path", "type":"string", "value":"", "help":"The current app folder. Please make sure this is the same as the one you are editing if you want to edit text"},
+                {"name":"use_lollms_library", "type":"bool", "value":False, "help":"Activate this if the application requires interaction with lollms."},
+                {"name":"generate_icon", "type":"bool", "value":False, "help":"Generate an icon for the application (requires tti to be active)."},
+
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -65,7 +68,19 @@ class Processor(APScript):
                 #{"name":"favorite_topics", "type":"list", "value":["AI", "Robotics", "Space"], "help":"List of favorite topics for personalized responses."}
             ]
         )
-        
+        self.application_categories = [
+            "Productivity",
+            "Games",
+            "Communication",
+            "Entertainment",
+            "Finance",
+            "Health & Fitness",
+            "Education",
+            "Travel & Navigation",
+            "Utilities",
+            "Creative",
+            "E-commerce"
+        ]
         personality_config_vals = BaseConfig.from_template(personality_config_template)
 
         personality_config = TypedConfig(
@@ -209,6 +224,7 @@ name: Give a name to the application using the user provided information
 description: Here you can make a detailed description of the application
 version: 1.0
 author: make the user the author
+category: give a suitable category name from {self.application_categories}
 model: {self.personality.model.model_name}
 disclaimer: If needed, write a disclaimer. else return an empty text
 ```
@@ -237,6 +253,11 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                 self.step_end("Building description.yaml")
 
                 self.step_start("Building index.html")
+                if self.personality_config.use_lollms_library:
+                    with open(Path(__file__).parent/"lollms_client_js_info.md","r", errors="ignore") as f:
+                        lollms_infos = f.read()
+                else:
+                    lollms_infos = ""
                 crafted_prompt = self.build_prompt(
                     [
                         self.system_full_header,
@@ -247,6 +268,10 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                         "Your sole objective is to build the index.yaml file. Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
                         self.system_custom_header("context"),
                         context_details["discussion_messages"],
+                        "```yaml",
+                        str(infos),
+                        "```",
+                        lollms_infos,
                         self.system_custom_header("Lollms Apps Maker")
                     ],6
                 )
@@ -274,6 +299,12 @@ disclaimer: If needed, write a disclaimer. else return an empty text
         elif choices ==2:
             out = ""
             self.step_start("Updating index.html")
+            if self.personality_config.use_lollms_library:
+                with open(Path(__file__).parent/"lollms_client_js_info.md","r", errors="ignore") as f:
+                    lollms_infos = f.read
+            else:
+                lollms_infos = ""
+
             with open(Path(self.personality_config.app_path)/"index.html","r", encoding="utf8") as f:
                 code = f.read()
             crafted_prompt = self.build_prompt(
@@ -286,6 +317,7 @@ disclaimer: If needed, write a disclaimer. else return an empty text
                     "Update the code from the user suggestion",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
+                    lollms_infos,
                     self.system_custom_header("Code"),
                     "```html",
                     code,
