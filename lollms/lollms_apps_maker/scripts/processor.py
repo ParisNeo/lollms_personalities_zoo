@@ -201,20 +201,22 @@ class Processor(APScript):
             crafted_prompt = self.build_prompt(
                 [
                     self.system_full_header,
-                    "you are application description file maker. Your objective is to build the description.yaml file for a specific lollms application.",
+                    "you are Lollms Apps Maker. Your objective is to build the description.yaml file for a specific lollms application.",
                     "The user describes a web application and the ai should build the yaml file and return it inside a yaml markdown tag",
                     f"""
+```yaml
 name: Give a name to the application using the user provided information
 description: Here you can make a detailed description of the application
 version: 1.0
 author: make the user the author
 model: {self.personality.model.model_name}
 disclaimer: If needed, write a disclaimer. else return an empty text
+```
 """,
                     "If the user explicitely proposed a name, respond with that name",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
-                    self.system_custom_header("description file")
+                    self.system_custom_header("Lollms Apps Maker")
                 ],6
             )
             description_file_name = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
@@ -233,13 +235,13 @@ disclaimer: If needed, write a disclaimer. else return an empty text
             crafted_prompt = self.build_prompt(
                 [
                     self.system_full_header,
-                    "you are web application maker. Your objective is to build the index.html file for a specific lollms application.",
-                    "The user describes a web application and the ai should build a single index.html file for the application",
+                    "you are Lollms Apps Maker. Your objective is to build the index.html file for a specific lollms application.",
+                    "The user describes a web application and the ai should build a single html code to fullfill the application requirements.",
                     "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                     "The output must be in a html markdown code tag",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
-                    self.system_custom_header("application description file maker")
+                    self.system_custom_header("Lollms Apps Maker")
                 ],6
             )
             name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
