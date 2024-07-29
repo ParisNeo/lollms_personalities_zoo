@@ -25,7 +25,7 @@ ai_message_prefix: 'lollms apps maker'
 link_text: '
 '
 welcome_message: |
-    Welcome to Lollms Apps Maker! Im your go-to companion for building seamless web applications tailored for the Lollms system With a focus on simplicity and efficiency, I’ll guide you through creating your app with just an indexhtml file, a descriptionyaml, and an iconpng Let’s bring your ideas to life and craft something amazing together!
+    Welcome to Lollms Apps Maker! Im your go-to companion for building seamless web applications tailored for the Lollms system With a focus on simplicity and efficiency. Let’s bring your ideas to life and craft something amazing together!
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower: more deterministic
 
