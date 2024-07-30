@@ -310,8 +310,8 @@ disclaimer: If needed, write a disclaimer. else null
             crafted_prompt = self.build_prompt(
                 [
                     self.system_full_header,
-                    "you are web application maker. Your objective is to build the index.html file for a specific lollms application.",
-                    "The user describes a web application and the ai should build a single index.html file for the application",
+                    "you are Lollms Apps Maker. Your objective is to a update the html code for a specific lollms application.",
+                    "The user describes a web application and gives the code the ai should update the single index.html file for the application",
                     "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                     "The output must be in a html markdown code tag",
                     "Update the code from the user suggestion",
@@ -322,8 +322,8 @@ disclaimer: If needed, write a disclaimer. else null
                     "```html",
                     code,
                     "```",
-                    self.system_custom_header("application description file maker")
-                ],6
+                    self.system_custom_header("Lollms Apps Maker")
+                ],7
             )
             name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
             codes = self.extract_code_blocks(name)
