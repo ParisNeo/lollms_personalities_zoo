@@ -50,5 +50,38 @@ Now we can use one of these methods:
 
 ```javascript
 async summarizeText(textChunk, summaryLength = "short", host_address = null, model_name = null, temperature = 0.1, maxGenerationSize = 1000)// Don't use host_address as it will use the lc one, the same goes for model_name
-```
 
+extractCodeBlocks(text)
+    /**
+     * This function extracts code blocks from a given text.
+     *
+     * @param {string} text - The text from which to extract code blocks. Code blocks are identified by triple backticks (```).
+     * @returns {Array<Object>} - A list of objects where each object represents a code block and contains the following keys:
+     *     - 'index' (number): The index of the code block in the text.
+     *     - 'file_name' (string): An empty string. This field is not used in the current implementation.
+     *     - 'content' (string): The content of the code block.
+     *     - 'type' (string): The type of the code block. If the code block starts with a language specifier (like 'python' or 'java'), this field will contain that specifier. Otherwise, it will be set to 'language-specific'.
+     *
+     * Note: The function assumes that the number of triple backticks in the text is even.
+     * If the number of triple backticks is odd, it will consider the rest of the text as the last code block.
+     */
+
+yesNo(question, context = "", maxAnswerLength = 50, conditioning = "") {
+        /**
+         * Analyzes the user prompt and answers whether it is asking to generate an image.
+         *
+         * @param {string} question - The user's message.
+         * @param {string} context - The context for the question.
+         * @param {number} maxAnswerLength - The maximum length of the generated answer.
+         * @param {string} conditioning - An optional system message to put at the beginning of the prompt.
+         * @returns {boolean} True if the user prompt is asking to generate an image, False otherwise.
+         */
+```
+to use extractCodeBlocks, just do:
+codes = tl.extractCodeBlocks(text to parse)
+then test the length of codes and extract the content if required.
+To use yesNo, just do:
+if(tl.yesNo("question","context about which the question is asked"))
+
+
+lollms can only process text, so if you need to do any operation that is not text generation, use the text output then parse it and perform the operation. if the user asks to access internet or recover the content of a page then do it manually and send the extracted text to lollms. use a context sie of 128000 and if possible make it configurable just as the host path.

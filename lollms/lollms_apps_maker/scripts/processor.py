@@ -301,7 +301,7 @@ disclaimer: If needed, write a disclaimer. else null
             self.step_start("Updating index.html")
             if self.personality_config.use_lollms_library:
                 with open(Path(__file__).parent/"lollms_client_js_info.md","r", errors="ignore") as f:
-                    lollms_infos = f.read
+                    lollms_infos = f.read()
             else:
                 lollms_infos = ""
 
