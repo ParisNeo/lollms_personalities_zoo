@@ -240,7 +240,7 @@ disclaimer: If needed, write a disclaimer. else null
             description_file_name = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
             codes = self.extract_code_blocks(description_file_name)
             if len(codes)>0:
-                infos = yaml.safe_load(codes[0]["content"])
+                infos = yaml.safe_load(codes[0]["content"].encode('utf-8').decode('ascii', 'ignore'))
                 if self.config.debug:
                     ASCIIColors.yellow("--- Description file ---")
                     ASCIIColors.yellow(infos)
@@ -265,12 +265,16 @@ disclaimer: If needed, write a disclaimer. else null
                         "The user describes a web application and the ai should build a single html code to fullfill the application requirements.",
                         "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                         "The output must be in a html markdown code tag",
-                        "Your sole objective is to build the index.yaml file. Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
+                        "Try to write the app with sections so that updating it can be easier",
+                        "in html use a html comment tag at start and end of each section",
+                        "in javascript use a //section_start: and //section_end: comment tags at start and end of each section",
+                        "Your sole objective is to build the index.yaml file that does what the user is asking for.",
+                        "Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
                         self.system_custom_header("context"),
                         context_details["discussion_messages"],
                         "```yaml",
                         str(infos),
-                        "```",
+                        "```",                        
                         lollms_infos,
                         self.system_custom_header("Lollms Apps Maker")
                     ],6
@@ -315,6 +319,13 @@ disclaimer: If needed, write a disclaimer. else null
                     "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                     "The output must be in a html markdown code tag",
                     "Update the code from the user suggestion",
+                    "The code uses sections to help you do updates",
+                    "in html a html comment tag is used at start and end of each section",
+                    "in javascript a //section_start: and //section_end: comment tags are used at start and end of each section",
+                    "in your update, you need to use the following syntax:",
+                    "First write the section name to be changed inside a <update_section></update_section> tag, then in a code tag write the replacement code",
+                    "To add a new section, rewrite the section that preceids it and then add the new section as a code",
+                    "Do not rewrite the whole code. Just the needed updates",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
                     lollms_infos,
@@ -326,6 +337,7 @@ disclaimer: If needed, write a disclaimer. else null
                 ],7
             )
             name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            
             codes = self.extract_code_blocks(name)
             if len(codes)>0:
                 code = codes[0]["content"]
