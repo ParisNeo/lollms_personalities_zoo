@@ -64,6 +64,13 @@ if (user_prompt) {
 // Generate text
 const generated_text = await lc.generate(prompt);
 ```
+if you want to send one or multiple images to the AI then use lc.generate_with_images instead of generate:
+```javascript
+// Generate text from a prompt and a list of images encoded in base64
+const generated_text = await lc.generate(prompt, images);
+```
+
+
 #### Tokenization Functions
 
 The `LollmsClient` also provides functions for tokenization and detokenization, enabling you to convert prompts to tokens and vice versa.
