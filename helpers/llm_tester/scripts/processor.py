@@ -89,11 +89,11 @@ class Processor(APScript):
         if len(msg)>0:
             return
         master_model={
-                        "binding":self.personality_config.master_model.split('/')[0].strip(),
-                        "model": self.personality_config.master_model.split('/')[1].strip()
+                        "binding":self.personality_config.master_model.split('::')[0].strip(),
+                        "model": self.personality_config.master_model.split('::')[1].strip()
                       }
         raw_models_list = self.personality_config.models_to_test.split(",")
-        models_list = [{"binding": entry.split('/')[0].strip(), "model": entry.split('/')[1].strip()} for entry in raw_models_list]
+        models_list = [{"binding": entry.split('::')[0].strip(), "model": entry.split('::')[1].strip()} for entry in raw_models_list]
         with open(self.personality_config.test_file_path,"r",encoding="utf-8", errors="ignore") as f:
             prompts = json.load(f)
 

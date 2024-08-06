@@ -309,43 +309,96 @@ disclaimer: If needed, write a disclaimer. else null
             else:
                 lollms_infos = ""
 
-            with open(Path(self.personality_config.app_path)/"index.html","r", encoding="utf8") as f:
-                code = f.read()
+            index_file_path = Path(self.personality_config.app_path) / "index.html"
+
+            with open(index_file_path, "r", encoding="utf8") as f:
+                original_content = f.read()
+
             crafted_prompt = self.build_prompt(
                 [
                     self.system_full_header,
-                    "you are Lollms Apps Maker. Your objective is to a update the html code for a specific lollms application.",
-                    "The user describes a web application and gives the code the ai should update the single index.html file for the application",
+                    "You are Lollms Apps Maker. Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
+                    "The user gives the code the AI should update sections or add sections",
                     "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
-                    "The output must be in a html markdown code tag",
                     "Update the code from the user suggestion",
                     "The code uses sections to help you do updates",
-                    "in html a html comment tag is used at start and end of each section",
-                    "in javascript a //section_start: and //section_end: comment tags are used at start and end of each section",
-                    "in your update, you need to use the following syntax:",
-                    "First write the section name to be changed inside a <update_section></update_section> tag, then in a code tag write the replacement code",
-                    "To add a new section, rewrite the section that preceids it and then add the new section as a code",
-                    "Do not rewrite the whole code. Just the needed updates",
+                    "In HTML, a HTML comment tag is used at start and end of each section",
+                    "In JavaScript and CSS, //section_start: and //section_end: comment tags are used at start and end of each section",
+                    "In your update, you need to use the following syntax:",
+                    "First write the section name to be changed inside a <section></section> tag, then in a code tag write the replacement code",
+                    "To add a new section, rewrite the section that precedes it and then add the new section as a code",
+                    "Section names shouldn't contain spaces",
+                    "For each section to update, use the following syntax",
+                    "<section>section_name</section>",
+                    "```html",
+                    "<!-- section_start: section_name -->",
+                    "New section code",
+                    "<!-- section_end: section_name -->",
+                    "```",
+                    "or",
+                    "<section>section_name</section>",
+                    "```javascript",
+                    "// section_start: section_name",
+                    "New section code",
+                    "// section_end: section_name",
+                    "```",
+                    "Stick to the section formatting as this will be interpreted by a parser and any change will result in failure",
+                    "It is mandatory to put the section to be modified before opening the code tag",
+                    "You can update multiple sections in the same answer",
+                    "Always rewrite the full code for each section",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
                     lollms_infos,
                     self.system_custom_header("Code"),
+                    "<file_name>index.html</file_name>",
                     "```html",
-                    code,
+                    original_content,
                     "```",
                     self.system_custom_header("Lollms Apps Maker")
-                ],7
+                ],32
             )
-            name = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-            
-            codes = self.extract_code_blocks(name)
-            if len(codes)>0:
-                code = codes[0]["content"]
-                with open(Path(self.personality_config.app_path)/"index.html","w", encoding="utf8") as f:
-                    f.write(code)
-                out += f"index file:\n```html\n{code}"+"\n```\n"
+
+            updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+
+            # Extract code blocks
+            codes = self.extract_code_blocks(updated_sections)
+            if len(codes) > 0:
+                # Backup the existing index.html file
+                if index_file_path.exists():
+                    version = 1
+                    while True:
+                        backup_file_path = index_file_path.with_name(f"index_v{version}.html")
+                        if not backup_file_path.exists():
+                            shutil.copy2(index_file_path, backup_file_path)
+                            break
+                        version += 1
+
+                updated_content = original_content
+
+                for code_block in codes:
+                    new_code = code_block["content"]
+                    section = code_block["section"]
+                    
+                    if not section:
+                        ASCIIColors.red("Warning: The section is empty.")
+                        self.info("Warning: The AI didn't specify which section should be modified.")
+                        continue
+                    
+                    updated_content, success = self.update_section(updated_content, section, new_code)
+                    
+                    if success:
+                        out += f"Updated index file with new code in section '{section}':\n```\n{new_code}```\n"
+                    else:
+                        print(f"Warning: Section '{section}' not found in the original code.")
+                
+                # Write the updated content back to index.html
+                index_file_path.write_text(updated_content, encoding='utf8')
+                
+                out += f"Updated index file:\n```html\n{updated_content}```\n"
+            else:
+                out += "No sections were updated."
 
             self.step_end("Updating index.html")
             shutil.copy(Path(__file__).parent.parent/"assets"/"icon.png", Path(self.personality_config.app_path)/"icon.png")
-            self.full_invisible_to_ai(out)            
+            self.full_invisible_to_ai(out)          
             
