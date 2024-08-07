@@ -171,7 +171,7 @@ class Processor(APScript):
             
             if self.personality_config.generation_engine=="system_tti":
                 if self.personality.app.tti:
-                    self.step(f"Using system tti system: {self.personality.app.tti.name}")
+                    self.step(f"Using tti system: {self.personality.app.tti.name}")
                     self.tti = self.personality.app.tti
                 else:
                     self.InfoMessage("You have selected system TTI but you have no system TTI selected. Please make sure you install a TTI service and select it ni your services settings or select another service in artbot settings.")              
