@@ -112,9 +112,11 @@ async detokenize(tokensList) {
 ```
 
 - The `detokenize` function takes a list of token IDs and sends it to the Lollms API, which returns the corresponding text string.
+Sure, here's the updated documentation with the `updateCode()` function added:
+
 #### Advanced Usage with TasksLibrary
 
-The `TasksLibrary` provides advanced functionalities such as summarization, yes/no questions, and multi-choice questions.
+The `TasksLibrary` provides advanced functionalities such as summarization, yes/no questions, multi-choice questions, and code updating.
 
 1. **Initialize TasksLibrary:**
 
@@ -153,6 +155,44 @@ if (isYes) {
 } else {
     console.log("The answer is no.");
 }
+```
+
+5. **Update Code:**
+
+```javascript
+  updateCode(originalCode, queryString)
+```
+
+You can use the `updateCode()` function in your `TasksLibrary` class like this:
+
+```javascript
+const tl = new TasksLibrary();
+const originalCode = `
+def my_function(a, b):
+    return a + b
+my_function(2,5)
+`;
+
+const queryString = `
+# REPLACE
+# ORIGINAL
+def my_function(a, b):
+    return a + b
+# SET
+def my_function(x, y):
+    return x * y
+`;
+
+const updatedCode = tl.updateCode(originalCode, queryString);
+console.log(updatedCode);
+```
+
+This will output:
+
+```python
+def my_function(x, y):
+    return x * y
+my_function(2,5)
 ```
 
 #### Important Considerations

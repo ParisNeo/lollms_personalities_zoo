@@ -72,7 +72,9 @@ class Processor(APScript):
             [
                 {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
                 {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
-                
+
+                {"name":"generate_prompt_examples","type":"bool","value":True, "help":"Generates prompt examples for the personality"},
+
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
@@ -736,36 +738,38 @@ class Processor(APScript):
         self.full(output_text)
         self.chunk("")
 
-        self.step_start("Coming up with prompt examples")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"prompt examples builder is a personality welcome message building AI.",
-                "The user describes a personality and the ai should build a list of prompt examples that can be sent to this ai.",
-                "prompt examples builder pays attention to the user description and infer any more details that enables him to craft example prompts that a user can give to the AI in depending on its capabilities."
-                "each prompt example is a text inside a markdown code tag",
-                "each prompt needs to be acheivable by the AI and it should be short and precise",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("personality name")+f"{name}",
-                self.system_custom_header("instruction"),
-                "Write a comprehensive welcome message for the personality",
-                "Answer only with the welcome message text without any explanation or comments.",             
-                self.system_custom_header(f"A list of prompt messages in separate markdow code tags using the language {language}")
-            ],5
-        )
-        prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
-        prompts_list_codes = self.extract_code_blocks(prompts_list)
-        if len(prompts_list_codes)>0:
-            prompts_list = []
-            for code in prompts_list_codes:
-                prompts_list.append(code["content"])
+        if self.personality_config.generate_prompt_examples:
+            self.step_start("Coming up with prompt examples")
+            crafted_prompt = self.build_prompt(
+                [
+                    self.system_full_header+f"prompt examples builder is a personality welcome message building AI.",
+                    "The user describes a personality and the ai should build a list of prompt examples that can be sent to this ai.",
+                    "prompt examples builder pays attention to the user description and infer any more details that enables him to craft example prompts that a user can give to the AI in depending on its capabilities."
+                    "each prompt example is a text inside a markdown code tag",
+                    "each prompt needs to be acheivable by the AI and it should be short and precise",
+                    self.system_custom_header("context"),
+                    context_details["discussion_messages"],
+                    self.system_custom_header("personality name")+f"{name}",
+                    self.system_custom_header("instruction"),
+                    "Write a comprehensive welcome message for the personality",
+                    "Answer only with the welcome message text without any explanation or comments.",             
+                    self.system_custom_header(f"A list of prompt messages in separate markdow code tags using the language {language}")
+                ],5
+            )
+            prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
+            prompts_list_codes = self.extract_code_blocks(prompts_list)
+            if len(prompts_list_codes)>0:
+                prompts_list = []
+                for code in prompts_list_codes:
+                    prompts_list.append(code["content"])
+            else:
+                prompts_list = []
+            self.step_end("Coming up with prompt examples")
+            output_text+=self.build_a_document_block('prompts_list', "", prompts_list)
+            self.full(output_text)
+            self.chunk("")
         else:
-            prompts_list = []
-        self.step_end("Coming up with prompt examples")
-        output_text+=self.build_a_document_block('prompts_list', "", prompts_list)
-        self.full(output_text)
-        self.chunk("")
-
+            prompts_list=[]
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------

@@ -52,6 +52,7 @@ class Processor(APScript):
                 {"name":"master_model","type":"str","value":"", "help":"This is only if you need to use multi models for this personality. A single powerful model in format binding_name::model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
                 {"name":"nb_rounds","type":"int","value":2, "help":"This is only if you need to use multi models for this personality. The number of rounds in the generation process."},
                 {"name":"mode","type":"str","value":"discussion_long","options":["discussion_long","discussion_medium","discussion_short"], "help":"This sets how the AI builds code. The long version assumes large context and rewrites everything every time. The medium one writes the whole code the first time then does modifications on the code that are automatically stitched together by the software. The small one will only build snippets."},
+                {"name":"use_explainer","type":"bool","value":True, "help":"If true, then explain the code before writing it."},
 
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
@@ -190,12 +191,17 @@ class Processor(APScript):
         if context_details["is_continue"]:
             full_prompt = self.build_prompt_from_context_details(context_details, suppress= ["ai_prefix"])
         else:
+            custom_entries = self.system_custom_header("important information") + "\n"
             if self.personality_config.mode=="discussion_long":
-                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Always rewrite the full code")
+                custom_entries +="Code mode: Always rewrite the full code\n"
             elif self.personality_config.mode=="discussion_medium":
-                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Write the full code only if this is the first message inside the discussion or if the user asked for a new code. If this is not the first time you write the code, only answer with updates. specify the position of changes")
+                custom_entries +="Code mode: Write the full code only if this is the first message inside the discussion or if the user asked for a new code. If this is not the first time you write the code, only answer with updates. specify the position of changes\n"
             elif self.personality_config.mode=="discussion_short":
-                full_prompt = self.build_prompt_from_context_details(context_details, self.system_custom_header("important information")+"Only answer with code snippets. The user needs to write the code, you are just his coach and you help him update his code.")
+                custom_entries +="Code mode: Only answer with code snippets. The user needs to write the code, you are just his coach and you help him update his code\n"
+            if self.personality_config.use_explainer:
+                custom_entries +="Explanation Mode: Explain your reasoning and what you are about to change before giving the code."
+
+            full_prompt = self.build_prompt_from_context_details(context_details, custom_entries)
         if len(self.personality_config.models_to_use)>0:
             out = self.mix_it_up(full_prompt,self.personality_config.models_to_use.split(","), self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink)
             self.json("Rounds details",out)
