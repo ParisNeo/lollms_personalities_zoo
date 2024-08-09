@@ -284,6 +284,7 @@ disclaimer: If needed, write a disclaimer. else null
                 if len(codes)>0:
                     code = codes[0]["content"]
                 # Backup the existing index.html file
+                index_file_path = Path(self.personality_config.app_path) / "index.html"
                 if index_file_path.exists():
                     version = 1
                     while True:
