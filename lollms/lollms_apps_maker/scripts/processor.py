@@ -283,16 +283,16 @@ disclaimer: If needed, write a disclaimer. else null
                 codes = self.extract_code_blocks(code_content)
                 if len(codes)>0:
                     code = codes[0]["content"]
-                # Backup the existing index.html file
-                index_file_path = Path(self.personality_config.app_path) / "index.html"
-                if index_file_path.exists():
-                    version = 1
-                    while True:
-                        backup_file_path = index_file_path.with_name(f"index_v{version}.html")
-                        if not backup_file_path.exists():
-                            shutil.copy2(index_file_path, backup_file_path)
-                            break
-                        version += 1
+                    # Backup the existing index.html file
+                    index_file_path = Path(app_path) / "index.html"
+                    if index_file_path.exists():
+                        version = 1
+                        while True:
+                            backup_file_path = index_file_path.with_name(f"index_v{version}.html")
+                            if not backup_file_path.exists():
+                                shutil.copy2(index_file_path, backup_file_path)
+                                break
+                            version += 1
 
                     with open(app_path/"index.html","w", encoding="utf8") as f:
                         f.write(code)
