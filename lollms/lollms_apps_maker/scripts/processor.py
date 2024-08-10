@@ -356,7 +356,7 @@ disclaimer: If needed, write a disclaimer. else null
                     original_content,
                     "```",
                     self.system_custom_header("Lollms Apps Maker")
-                ]
+                ],24
             )
 
             updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
