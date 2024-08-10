@@ -356,7 +356,7 @@ disclaimer: If needed, write a disclaimer. else null
                     original_content,
                     "```",
                     self.system_custom_header("Lollms Apps Maker")
-                ],32
+                ]
             )
 
             updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
@@ -375,17 +375,17 @@ disclaimer: If needed, write a disclaimer. else null
                         version += 1
 
                 for code_block in codes:
-                    out = self.update_code(original_content, code_block["content"])
-                    out["updatedCode"]
-                    if out["hasQuery"]:
+                    out_ = self.update_code(original_content, code_block["content"])
+                    out_["updatedCode"]
+                    if out_["hasQuery"]:
                         out += f"Updated index file with new code\n"
                     else:
                         print(f"Warning: The AI did not manage to update the code!")
                 
                 # Write the updated content back to index.html
-                index_file_path.write_text(out["updatedCode"], encoding='utf8')
+                index_file_path.write_text(out_["updatedCode"], encoding='utf8')
                 
-                out += f"Updated index file:\n```html\n{out['updatedCode']}```\n"
+                out += f"Updated index file:\n```html\n{out_['updatedCode']}```\n"
             else:
                 out += "No sections were updated."
 
