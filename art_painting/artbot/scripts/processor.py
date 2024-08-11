@@ -40,7 +40,7 @@ class Processor(APScript):
         
         self.callback = None
         self.tti = None
-        self.previous_sd_positive_prompt = None
+        metadata["positive_prompt"] = None
         self.negative_prompt = None
 
         self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
@@ -130,7 +130,7 @@ class Processor(APScript):
         return '<link rel="stylesheet" href="/personalities/art/artbot/assets/tailwind.css">'
 
 
-    def make_selectable_photo(self, image_id, image_source, image_infos={}):
+    def make_selectable_photo(self, image_id, image_source, client_id, image_infos={}):
         with(open(Path(__file__).parent.parent/"assets/photo.html","r") as f):
             str_data = f.read()
         
@@ -140,6 +140,7 @@ class Processor(APScript):
             "{thumbneil_width}":f"{self.personality_config.width/self.personality_config.thumbneil_ratio}",
             "{thumbneil_height}":f"{self.personality_config.height/self.personality_config.thumbneil_ratio}",
             "{image_source}":image_source,
+            "{client_id}":client_id,
             "{__infos__}":str(image_infos).replace("True","true").replace("False","false").replace("None","null")
         })
         return str_data
@@ -282,7 +283,7 @@ class Processor(APScript):
         else:
             self.full("Showing Stable diffusion settings UI")        
         
-    def add_file(self, path, client, callback=None):
+    def add_file(self, path, client:Client, callback=None):
         self.new_message("")
         pth = str(path).replace("\\","/").split('/')
         idx = pth.index("uploads")
@@ -306,7 +307,7 @@ class Processor(APScript):
             # description = self.tti.interrogate(str(path)).info
             self.print_prompt("Blip description",description)
             self.step_end("Understanding the image", callback=callback)           
-            file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
+            file_html = self.make_selectable_photo(path.stem,f"/{pth}", client.client_id, {"name":path.stem,"type":"Imported image", "prompt":description})
             output += f"##  Image description :\n{description}\n"
             self.full(output, callback=callback)
             self.ui(self.make_selectable_photos(file_html))
@@ -314,15 +315,16 @@ class Processor(APScript):
         else:    
             self.full(f"File added successfully\n", callback=callback)
         
-    def regenerate(self, prompt="", full_context="", client=None):
+    def regenerate(self, prompt="", full_context="", client:Client=None):
+        metadata = client.discussion.get_metadata()
         self.prepare()
-        if self.previous_sd_positive_prompt:
+        if metadata["positive_prompt"]:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
-            output0 = f"### Positive prompt:\n{self.previous_sd_positive_prompt}\n\n### Negative prompt:\n{self.previous_negative_prompt}"
+            output0 = f"### Positive prompt:\n{metadata["positive_prompt"]}\n\n### Negative prompt:\n{metadata["negative_prompt"]}"
             output = output0
             self.full(output)
 
-            infos = self.paint(self.previous_sd_positive_prompt, self.previous_negative_prompt, self.previous_sd_title, output, client)
+            infos = self.paint(metadata["positive_prompt"], metadata["negative_prompt"], metadata["previous_sd_title"], output, client)
          
             self.step_end("Regenerating using the previous prompt")
         else:
@@ -330,7 +332,7 @@ class Processor(APScript):
 
     
 
-    def get_styles(self, prompt, full_context, client= None):
+    def get_styles(self, prompt, full_context, client:Client= None):
         self.step_start("Selecting style")
         styles=[
             "Oil painting",
@@ -440,7 +442,8 @@ class Processor(APScript):
         return infos
 
     def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
-        sd_title = "unnamed"    
+        metadata = client.discussion.get_metadata()
+        sd_title = metadata.get("sd_title","unnamed")
         metadata_infos=""
         try:
             full_context = context_details["discussion_messages"]
@@ -448,7 +451,6 @@ class Processor(APScript):
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
             if self.personality_config.activate_discussion_mode:
-
                 classification = self.multichoice_question("Classify the user prompt.", 
                                                            [
                                                                "The user is making an affirmation",
@@ -479,6 +481,7 @@ class Processor(APScript):
             else:
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
+
             metadata_infos += self.add_collapsible_entry("Chosen resolution",f"{self.width}x{self.height}") 
             self.full(f"{metadata_infos}")     
             # ====================================================================================
@@ -570,6 +573,7 @@ class Processor(APScript):
                 self.step_end("Making up a title")
                 metadata_infos += self.add_collapsible_entry(f"{sd_title}","")
                 self.full(f"{metadata_infos}")
+                
         else:
             self.width=self.personality_config.width
             self.height=self.personality_config.height
@@ -580,11 +584,11 @@ class Processor(APScript):
             else:
                 positive_prompt = prompt[0]
                 negative_prompt = ""
-            
-        self.previous_sd_positive_prompt = positive_prompt
-        self.previous_negative_prompt = negative_prompt
-        self.previous_sd_title = sd_title
 
+        metadata["positive_prompt"]=positive_prompt
+        metadata["negative_prompt"]=negative_prompt
+        metadata["sd_title"]=sd_title
+        client.discussion.set_metadata(metadata)
         output = metadata_infos
 
         if self.personality_config.paint:
@@ -597,12 +601,13 @@ class Processor(APScript):
         if self.personality_config.show_infos and infos:
             self.json("infos", infos)
 
-    async def handle_request(self, request: Request) -> Dict[str, Any]:
+    async def handle_request(self, data: dict, client:Client=None) -> Dict[str, Any]:
         """
         Handle client requests.
 
         Args:
             data (dict): A dictionary containing the request data.
+            client (Client): A refertence to the client asking for this request.
 
         Returns:
             dict: A dictionary containing the response, including at least a "status" key.
@@ -612,11 +617,12 @@ class Processor(APScript):
         Example usage:
         ```
         handler = YourHandlerClass()
+        client = checkaccess(lollmsServer, client_id)
         request_data = {"command": "some_command", "parameters": {...}}
-        response = await handler.handle_request(request_data)
+        response = handler.handle_request(request_data, client)
         ```
         """
-        data = (await request.json())
+        metadata = client.discussion.get_metadata()
 
         operation = data.get("name","variate")
         prompt = data.get("prompt","")
@@ -628,8 +634,8 @@ class Processor(APScript):
             ASCIIColors.info("Building new image")
             self.personality.image_files.append(self.personality.lollms_paths.personal_outputs_path/"sd"/imagePath.split("/")[-1])
             self.personality.info("Regenerating")
-            self.previous_sd_positive_prompt = prompt
-            self.previous_negative_prompt = negative_prompt
+            metadata["positive_prompt"] = prompt
+            metadata["negative_prompt"] = negative_prompt
             self.new_message(f"Generating {self.personality_config.num_images} variations")
             self.prepare()
             self.regenerate()

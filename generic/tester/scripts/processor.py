@@ -98,14 +98,13 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
 
-
-
-    async def handle_request(self, request: Request) -> Dict[str, Any]:
+    async def handle_request(self, data: dict, client:Client=None) -> Dict[str, Any]:
         """
         Handle client requests.
 
         Args:
             data (dict): A dictionary containing the request data.
+            client (Client): A refertence to the client asking for this request.
 
         Returns:
             dict: A dictionary containing the response, including at least a "status" key.
@@ -115,11 +114,11 @@ class Processor(APScript):
         Example usage:
         ```
         handler = YourHandlerClass()
+        client = checkaccess(lollmsServer, client_id)
         request_data = {"command": "some_command", "parameters": {...}}
-        response = await handler.handle_request(request_data)
+        response = handler.handle_request(request_data, client)
         ```
-        """
-        data = (await request.json())
+        """        
         personality_subpath = data['personality_subpath']
         logo_path = data['logo_path']
         assets_path:Path = self.personality.lollms_paths.personalities_zoo_path / "personal" / personality_subpath / "assets"

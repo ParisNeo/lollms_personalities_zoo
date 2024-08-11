@@ -192,7 +192,7 @@
             variateButton.className = 'variate-button';
             variateButton.innerHTML = 'Variate';
             variateButton.addEventListener('click', function() {
-                postToPersonality(imageId, infoData);
+                postToPersonality(imageId, infoData,{client_id});
             });
 
 
@@ -302,17 +302,20 @@
         }
 
 
-        function postToPersonality(imageId, infoData) {
+        function postToPersonality(imageId, infoData, client_id) {
             const floatingImage = document.getElementById(`floatingImage_${imageId}`);
             const imageSource = floatingImage.src;
             const name = 'variate';
 
             // Create a data object with the image path and name
             const data = {
-                imagePath: imageSource,
-                name: "variate",
-                prompt: infoData["prompt"],
-                negative_prompt: infoData["negative_prompt"]
+                client_id:"",
+                data:{
+                    "imagePath": imageSource,
+                    "name": "variate",
+                    "prompt": infoData["prompt"],
+                    "negative_prompt": infoData["negative_prompt"]
+                }
             };
 
             // Send a POST request to the "post_to_personality" endpoint
