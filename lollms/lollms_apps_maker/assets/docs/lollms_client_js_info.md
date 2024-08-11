@@ -7,8 +7,8 @@ The Lollms library provides a robust framework for building applications that in
 To start using the Lollms library in your HTML file, you need to include the following script tags:
 
 ```html
-<script src="/lollms_js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/lollms_assets/js/lollms_client_js"></script>
+<script src="/lollms_assets/js/axios.min"></script>
 ```
 
 > **Note:** The Lollms library requires Axios for making HTTP requests. Ensure that Axios is included in your HTML.
