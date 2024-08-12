@@ -40,8 +40,6 @@ class Processor(APScript):
         
         self.callback = None
         self.tti = None
-        metadata["positive_prompt"] = None
-        self.negative_prompt = None
 
         self.sd_models_folder = self.sd_folder/"models"/"Stable-diffusion"
         if self.sd_models_folder.exists():
@@ -320,7 +318,7 @@ class Processor(APScript):
         self.prepare()
         if metadata["positive_prompt"]:
             self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
-            output0 = f"### Positive prompt:\n{metadata["positive_prompt"]}\n\n### Negative prompt:\n{metadata["negative_prompt"]}"
+            output0 = f"### Positive prompt:\n{metadata['positive_prompt']}\n\n### Negative prompt:\n{metadata['negative_prompt']}"
             output = output0
             self.full(output)
 
