@@ -432,7 +432,7 @@ class Processor(APScript):
             if file!="":
                 escaped_url =  discussion_path_to_url(file)
                 metadata_infos += f'\n![]({escaped_url})'
-                file_html = self.make_selectable_photo(Path(file).stem, escaped_url, infos)
+                file_html = self.make_selectable_photo(Path(file).stem, escaped_url,client.client_id, infos)
                 ui += file_html
                 self.full(metadata_infos) 
 
