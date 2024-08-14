@@ -2,7 +2,7 @@ import logging
 
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from typing import Any, List, Optional, Type, Callable, Dict, Any, Union
 
@@ -207,7 +207,7 @@ class Processor(APScript):
         # Close the browser
         driver.quit()
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -273,7 +273,7 @@ class Processor(APScript):
             sources_text += f"[ [{i+1}] : {link}]({href})\n\n"
 
         output = output+sources_text
-        self.full(output)
+        self.set_message_content(output)
 
         return output
 

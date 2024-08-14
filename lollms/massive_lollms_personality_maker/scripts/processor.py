@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
@@ -159,7 +159,7 @@ class Processor(APScript):
 
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -204,13 +204,13 @@ Please ensure that each entry is presented on a separate line.
 Here is the output in the format you have requested:
 - """,512,0.1,10,0.98)
         output = f"## Personas to create:\n{list_of_personas}\n"
-        self.full(output)
+        self.set_message_content(output)
         self.step_end("Imagining personas list")
         list_of_personas = list_of_personas.split("\n")
         ASCIIColors.yellow(f"list_of_personas:{list_of_personas}")
         # ----------------------------------------------------------------
         for persona in list_of_personas:
-            self.new_message('',MSG_TYPE.MSG_TYPE_FULL)
+            self.new_message('',MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
             # ----------------------------------------------------------------
             self.step_start("Coming up with the personality name")
             name = self.generate(f"""{self.personality.personality_conditioning}
@@ -423,7 +423,7 @@ Avoid text as the generative ai is not good at generating text.
                     file_html = self.make_selectable_photo(Path(file).stem, url, assets_path)
                     files.append(file)
                     ui += file_html
-                    self.full(f'\n![]({urllib.parse.quote(url, safe="")})')
+                    self.set_message_content(f'\n![]({urllib.parse.quote(url, safe="")})')
 
             except Exception as ex:
                 self.exception("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
@@ -447,8 +447,8 @@ Avoid text as the generative ai is not good at generating text.
             # ----------------------------------------------------------------
             self.step_end("Painting Icon")
             
-            self.full(output, callback)
-            self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
+            self.set_message_content(output, callback)
+            self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
 
             path.mkdir(parents=True, exist_ok=True)
             with open (path/"config.yaml","w") as f:

@@ -4,9 +4,10 @@ personality: # Place holder: Personality name
 Author: # Place holder: creator name 
 description: # Place holder: personality description
 """
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.databases.discussions_database import Discussion
 from pathlib import Path
 import subprocess
@@ -157,7 +158,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -166,7 +167,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -232,16 +233,16 @@ class Processor(APScript):
             fn, params, next = parse_query(first_generation)
             if fn:
                 if self.personality_config.debug_mode:
-                    self.new_message("## Executing ...", MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                    self.new_message("## Executing ...", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
                 if fn=="ping":
                     self.step("The LLM issued a ping command")
                     try:
                         status = es.ping()
                         if self.personality_config.debug_mode:
-                            self.full(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            self.set_message_content(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
                         output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     except Exception as ex:
-                        self.full(f"## Execution result:\n{ex}")
+                        self.set_message_content(f"## Execution result:\n{ex}")
                         output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
 
                 if fn=="list_indexes":
@@ -249,10 +250,10 @@ class Processor(APScript):
                     try:
                         indexes = es.list_indexes()
                         if self.personality_config.debug_mode:
-                            self.full(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                            self.set_message_content(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
                         output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                     except Exception as ex:
-                        self.full(f"## Execution result:\n{ex}")
+                        self.set_message_content(f"## Execution result:\n{ex}")
                         output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                 
                 if fn=="view_mapping":
@@ -261,15 +262,15 @@ class Processor(APScript):
                         try:
                             mappings = es.view_mapping(params[0])
                             if self.personality_config.debug_mode:
-                                self.full(self.build_a_document_block(f"Execution result:",None,"")+f"\n```json\n{mappings}\n```\n", msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                                self.set_message_content(self.build_a_document_block(f"Execution result:",None,"")+f"\n```json\n{mappings}\n```\n", msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
                             output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
                         except Exception as ex:
                             if self.personality_config.debug_mode:
-                                self.full(f"## Execution result:\n{ex}")
+                                self.set_message_content(f"## Execution result:\n{ex}")
                             output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
-                        self.full("The AI issued the wrong number of parameters.\nTrying again")
+                        self.set_message_content("The AI issued the wrong number of parameters.\nTrying again")
                         failed=True
 
                 if fn=="query":
@@ -278,7 +279,7 @@ class Processor(APScript):
                         try:
                             qoutput = es.query(params[0], params[1])
                             if self.personality_config.debug_mode:
-                                self.full(self.build_a_document_block(f"Execution result:",None,f"")+f"\n```json\n{qoutput}\n```\n", msg_type=MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+                                self.set_message_content(self.build_a_document_block(f"Execution result:",None,f"")+f"\n```json\n{qoutput}\n```\n", msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
                             if "hits" in qoutput.body and len(qoutput.body["hits"]["hits"])>0:
                                 self.step("Found hits")
                                 if self.personality_config.output_format=="markdown":
@@ -409,7 +410,7 @@ class Processor(APScript):
                                             "\n</body>\n",
                                             "</html>",                                            
                                         ])
-                                        self.full(full_html)
+                                        self.set_message_content(full_html)
                                         with open(Path(self.personality_config.output_folder_path)/f"result_{formatted_date}.html","w") as f:
                                             f.write(full_html)
                                     else:
@@ -431,7 +432,7 @@ class Processor(APScript):
             else:
                 output = first_generation
             self.new_message("")
-            self.full(output)
+            self.set_message_content(output)
 
         return output
 

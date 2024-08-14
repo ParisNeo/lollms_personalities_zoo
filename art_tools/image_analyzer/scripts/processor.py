@@ -3,11 +3,13 @@ from pathlib import Path
 import os
 import sys
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.personality import APScript, AIPersonality
 import time
 from pathlib import Path
+from lollms.client_session import Client
+from lollms.types import MSG_OPERATION_TYPE
 
 import sys
 sys.path.append(str(Path(__file__).parent))
@@ -84,7 +86,7 @@ class Processor(APScript):
 
     def prepare(self):
         if self.model is None:
-            self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+            self.new_message("",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
             self.step_start("Loading Blip")
             self.model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b").to(self.personality_config.device)
             self.processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b").to(self.personality_config.device)
@@ -97,7 +99,7 @@ class Processor(APScript):
         if callback is None and self.callback is not None:
             callback = self.callback
         try:
-            self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK)
+            self.new_message("", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
             pth = str(path).replace("\\","/").split('/')
             idx = pth.index("uploads")
             pth = "/".join(pth[idx:])
@@ -111,12 +113,12 @@ class Processor(APScript):
             def local_callback(output):
                 token = output.argmax(dim=-1)
                 token_str = self.processor.decode(token)
-                self.full(token_str, callback=callback)
+                self.set_message_content(token_str, callback=callback)
                 print(token_str, end='')
             print("Processing...")
             output = self.processor.decode(self.model.generate(**inputs, max_new_tokens=self.personality.app.config.max_n_predict)[0], skip_special_tokens=True, callback=local_callback)
             print("Image description: "+output)
-            self.full(f"File added successfully\nImage description :\n{output}\nImage:\n!{file_path}", callback=callback)
+            self.set_message_content(f"File added successfully\nImage description :\n{output}\nImage:\n!{file_path}", callback=callback)
             self.finished_message()
             return True
         except Exception as ex:
@@ -170,8 +172,7 @@ class Processor(APScript):
                                 ).strip()    
         
 
-    from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -204,7 +205,7 @@ class Processor(APScript):
                 token = output.argmax(dim=-1)
                 token_str = self.processor.decode(token)
                 if callback is not None:
-                    callback(token_str, MSG_TYPE.MSG_TYPE_CHUNK)
+                    callback(token_str, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
                 else:
                     print(token_str, end='')
 
@@ -215,7 +216,7 @@ class Processor(APScript):
             trace_exception(ex)
             output = "There seems to be a problem with your image, please upload a valid image to talk about"
         
-        self.full(output)
+        self.set_message_content(output)
         return output
 
 

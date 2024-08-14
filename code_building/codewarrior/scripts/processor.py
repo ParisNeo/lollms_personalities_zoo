@@ -5,9 +5,10 @@ Author: # Placeholder: Creator name (e.g., "ParisNeo")
 Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
 
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
@@ -159,10 +160,10 @@ class Processor(APScript):
         # Example implementation that simply calls a method on the personality to get help information.
         # This can be expanded to dynamically generate help text based on the current state,
         # available commands, and user context.
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -213,5 +214,5 @@ class Processor(APScript):
                 out = out+self.fast_gen(full_prompt+out)
 
         if not context_details["is_continue"]:
-            self.full(out)
+            self.set_message_content(out)
 

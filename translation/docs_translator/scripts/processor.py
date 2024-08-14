@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
@@ -90,7 +90,7 @@ class Processor(APScript):
             txt = "".join(document_chunk)
             translated += self.translate(txt, self.personality_config.output_language, self.personality.config.ctx_size-len(document_chunk)).replace("\\_","_")
             self.step_end(f"Translating chunk {i+1}/{nb_chunks}")
-            self.full(translated)
+            self.set_message_content(translated)
         if output_path:
             self.save_text(document_text, output_path/(document_path.stem+f"_{self.personality_config.output_language}.txt"))
         return document_text, output
@@ -104,11 +104,11 @@ class Processor(APScript):
             file = Path(file)
             translation, output = self.translate_document(file, file.parent, output)
             output +=f"\n## {file.stem}\n{translation}"
-            self.full(output)
+            self.set_message_content(output)
 
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

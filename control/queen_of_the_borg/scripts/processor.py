@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from pathlib import Path
@@ -87,7 +87,7 @@ class Processor(APScript):
         self.play_mp3(Path(__file__).parent.parent/"assets"/"borg_threat.mp3")
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -96,7 +96,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -154,7 +154,7 @@ class Processor(APScript):
                 if collective[selection].processor and collective[selection].name!="Queen of the Borg":
                     q_prompt += f"{self.config.start_header_id_template}sytsem:Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                     reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                    self.full(f"{collective[selection].name}, {reformulated_request}")
+                    self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     collective[selection].new_message("")
                     collective[selection].full(f"At your service my queen.\n")
@@ -165,7 +165,7 @@ class Processor(APScript):
                     if collective[selection].name!="Queen of the Borg":
                         q_prompt += f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                         reformulated_request=self.fast_gen(q_prompt, show_progress=True)
-                        self.full(f"{collective[selection].name}, {reformulated_request}")
+                        self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                         previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                         collective[selection].new_message("")
                         collective[selection].full(f"At your service my queen.\n")

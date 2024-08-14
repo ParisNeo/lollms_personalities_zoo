@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import find_first_available_file_index
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 import subprocess
 import requests
@@ -85,7 +85,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def scrape_web(self, prompt="", full_context=""):
         self.new_message("")
@@ -164,7 +164,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -196,6 +196,6 @@ class Processor(APScript):
             ASCIIColors.info("Generating")
             self.callback = callback
             out = self.fast_gen(previous_discussion_text+"Looking at my configuration, I see that you did not yet give a link to the data file. Please open my settings by pressing my icon on the chatbox and setup the path to the raw data file to process.")
-            self.full(out)
+            self.set_message_content(out)
         return ""
 

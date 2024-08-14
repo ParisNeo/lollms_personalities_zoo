@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 from lollmsvectordb.text_chunker import TextChunker
 import subprocess
@@ -68,7 +68,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -108,7 +108,7 @@ class Processor(APScript):
         subject_summary = self.summarize_chunks(subject_chunks,"summarize this position description and do not add any comments after the summary.\nThe objective is to identify the skills required for this position. Only extract the information from the provided chunk.\nDo not invent anything outside the provided text.","position description chunk")
         subject_summary = subject_summary.replace("```","")
         output += f"**Position description summary**\n{subject_summary}\n"
-        self.full(output)
+        self.set_message_content(output)
         subject_text_path = Path(subject_path)
         self.save_text(subject_summary, output_path/(subject_text_path.stem+"_summary.md"))
         self.step_end(f"summerizing position subject {subject_path.stem}")
@@ -136,14 +136,14 @@ class Processor(APScript):
         self.step_start(f"chunking documents {cv_path.stem}")
         cv_chunks = DocumentDecomposer.decompose_document(cv_data,self.personality.config.ctx_size//2,0, self.personality.model.tokenize, self.personality.model.detokenize, True)
         output += f"- Found `{len(cv_chunks)}` chunks in cv\n"
-        self.full(output)
+        self.set_message_content(output)
         self.step_end(f"chunking documents {cv_path.stem}")
         
         self.step_start(f"summerizing cv {cv_path.stem}")
         cv_summary = self.summarize_chunks(cv_chunks,"summarize this CV chunk in form of bullet points separated by new line and do not add anny comments after the summary.\nUse a new line for each summary entry.\nStart by giving information about the candidate like his name and address and any other available information in the cv, then his academic record if applicable, followed by his professional record if applicable.\nKeep only relevant information about the candidate.\nDo not add information that is not in the cv.", "CV chunk", answer_start="- Name:")
         cv_summary = cv_summary.replace("```","")
         output += f"**CV summary**\n{cv_summary}\n\n"
-        self.full(output)
+        self.set_message_content(output)
         self.save_text(cv_summary, output_path/(cv_path.stem+"_summary.md"))
         self.step_end(f"summerizing cv {cv_path.stem}")
 
@@ -160,7 +160,7 @@ class Processor(APScript):
         grade = self.fast_gen(f"{self.config.start_header_id_template}instructions: Given the following candidate judgement, give a mark from 0 to 10.{self.config.separator_template}{self.config.start_header_id_template}judgement: {candidate_judgement}{self.config.separator_template}{self.config.start_header_id_template}grade: ")
         candidate_judgement += "\n\n## grade: "+grade+"\n"
         output += "\n## Candidate judgement:\n"+candidate_judgement        
-        self.full(output)
+        self.set_message_content(output)
         try:
             grade = float(grade)
         except:
@@ -189,7 +189,7 @@ class Processor(APScript):
         self.step_end("Converting to latex")
         interview_latex_path = output_path/(cv_path.stem+"_interview.tex")
         output += f"**Interview Latex file path**\n[{interview_latex_path}]({interview_latex_path})\n"
-        self.full(output)
+        self.set_message_content(output)
 
 
         if self.personality_config.language!="":
@@ -205,9 +205,9 @@ class Processor(APScript):
             self.step_end("Converting to latex")
             interview_latex_path = output_path/(cv_path.stem+f"_interview_{self.personality_config.language}.tex")
             output += f"**Translated interview Latex file path**\n[Interview Latex file path]({interview_latex_path})\n"
-            self.full(output)
+            self.set_message_content(output)
             
-        self.full(output)
+        self.set_message_content(output)
         return output, grade
 
 
@@ -217,7 +217,7 @@ class Processor(APScript):
 
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

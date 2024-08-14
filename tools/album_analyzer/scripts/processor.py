@@ -1,6 +1,7 @@
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -65,7 +66,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def display_folder_structure(self, folder_path):
         folder_path = Path(folder_path)
@@ -81,7 +82,7 @@ class Processor(APScript):
     def process_images(self):
         self.step_start("Scanning folder")
         structure = "## Structure:\n"+self.display_folder_structure(self.personality_config.album_folder_path)
-        self.full(structure)
+        self.set_message_content(structure)
         self.step_end("Scanning folder")
 
         self.step_start("Building photos metadata")
@@ -130,7 +131,7 @@ class Processor(APScript):
                     csv_file.flush()
 
                 descriptions += f"**{image_name}**: {description}\n\n"
-                self.full(descriptions)
+                self.set_message_content(descriptions)
 
         if self.personality_config.save_in_csv_file:
             csv_file.close()
@@ -148,7 +149,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

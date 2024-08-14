@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 import subprocess
 from pathlib import Path
 # Helper functions
@@ -72,7 +72,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -107,7 +107,7 @@ class Processor(APScript):
             description = self.fast_gen(f"@!>Instruction:Make a description of this png file: {filename} out of the fast description and the file name.\n@!>Fast description:{description}\n@!>Description:",256).replace("\"","")
             style_collection = file_path.parent.name
             all_descriptions += f"## {name}\n![](outputs/nft_reshaper/{filename})\n{description}\n"
-            self.full(all_descriptions)
+            self.set_message_content(all_descriptions)
             rows.append([counter, name, description, filename, external_url, style_collection])
             self.step_end(f"Processing : {name}")
             counter += 1
@@ -118,7 +118,7 @@ class Processor(APScript):
             writer.writerows(rows)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -149,6 +149,6 @@ class Processor(APScript):
         if self.personality_config.folder_path!="":
             self.create_csv_from_folder(self.personality_config.folder_path)
         else:
-            self.full("Please specify a valid folder path in the configurations of the personality")
+            self.set_message_content("Please specify a valid folder path in the configurations of the personality")
         return ""
 

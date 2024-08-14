@@ -65,7 +65,7 @@ const generated_text = await lc.generate(prompt);
 if you want to send one or multiple images to the AI then use lc.generate_with_images instead of generate:
 ```javascript
 // Generate text from a prompt and a list of images encoded in base64
-const generated_text = await lc.generate(prompt, images);
+const generated_text = await lc.generate_with_images(prompt, images);
 ```
 
 

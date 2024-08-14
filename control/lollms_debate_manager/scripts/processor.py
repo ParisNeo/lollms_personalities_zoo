@@ -4,10 +4,10 @@ Personality: # Placeholder: Personality name (e.g., "Science Enthusiast")
 Author: # Placeholder: Creator name (e.g., "ParisNeo")
 Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
-
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
@@ -157,10 +157,10 @@ class Processor(APScript):
         # Example implementation that simply calls a method on the personality to get help information.
         # This can be expanded to dynamically generate help text based on the current state,
         # available commands, and user context.
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -204,7 +204,7 @@ class Processor(APScript):
         if self.yes_no("is the user asking to start the debate?", prompt):
             p= self.build_prompt_from_context_details(context_details,f"{self.config.start_header_id_template}debaters list:\n{members}{self.config.separator_template}{self.config.start_header_id_template}Instruction: Debate manager, please introduce our guests and the subject.")
             out = self.fast_gen(p)
-            self.full(out)
+            self.set_message_content(out)
             while not self.yes_no("should we stop the debate?", prompt):
                 # TODO: add more functions to call
                 out = self.interact_with_function_call(context_details, self.function_definitions, callback = self.sink)
@@ -216,5 +216,5 @@ class Processor(APScript):
             prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
             out = self.interact_with_function_call(context_details, minimal_function_definitions, callback = self.sink)
 
-        self.full(out)
+        self.set_message_content(out)
 

@@ -4,9 +4,10 @@ personality: # Code documenter
 Author: # Place holder: creator name 
 description: # Place holder: personality description
 """
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 
 from pathlib import Path
 from typing import Callable
@@ -119,16 +120,16 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def build_documentation_report(self, code, fn):
         analysis = self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Analyze this code and provide a comprehensive documentation.\n Give the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.{self.config.separator_template}{self.config.start_header_id_template}file name:{fn}{self.config.start_header_id_template}code:\n```python\n{code}\n```{self.config.separator_template}{self.config.start_header_id_template}additional context:{self.personality_config.context}{self.config.separator_template}{self.config.start_header_id_template}documentation:\n")
-        self.full(analysis)
+        self.set_message_content(analysis)
         return analysis
 
     def continue_documentation_report(self, code):
         analysis = self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Analyze this chunk of code and provide a comprehensive documentation.\nThis is the continuation of previous documentation chunk\nGive the document a title and split it into sections.\nThe documentation is code oriented. The output format is {self.personality_config.output_format}.{self.config.separator_template}{self.config.start_header_id_template}code:\n```python\n{code}\n```{self.config.separator_template}{self.config.start_header_id_template}additional context:{self.personality_config.context}{self.config.separator_template}{self.config.start_header_id_template}documentation:\n")
-        self.full(analysis)
+        self.set_message_content(analysis)
         return analysis
 
 
@@ -206,7 +207,7 @@ class Processor(APScript):
 
     def start_documenting(self, prompt="", full_context=""):
         if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
-            self.full("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
+            self.set_message_content("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
     
         code_folder_path = Path(self.personality_config.code_folder_path)
         docs_folder_path = Path(self.personality_config.docs_folder_path)
@@ -223,7 +224,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -249,7 +250,7 @@ class Processor(APScript):
             None
         """
         output = self.fast_gen(previous_discussion_text)
-        self.full(output)
+        self.set_message_content(output)
 
         return output
 

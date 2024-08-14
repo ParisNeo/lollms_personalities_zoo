@@ -88,7 +88,7 @@ class Processor(APScript):
         """
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -143,7 +143,7 @@ step_start:
         callback = self.callback
 
     if callback:
-        callback(step_text, MSG_TYPE.MSG_TYPE_STEP_START)
+        callback(step_text, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_START)
 
 step_end:
         This triggers a step end

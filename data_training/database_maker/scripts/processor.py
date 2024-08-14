@@ -1,6 +1,7 @@
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from safe_store import GenericDataLoader
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from pathlib import Path
@@ -119,7 +120,7 @@ class Processor(APScript):
         )
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -173,14 +174,14 @@ class Processor(APScript):
                     questions_vector = json.load(file)
             except:
                 output = "FAILED to continue from last process: "
-                self.full(output)
+                self.set_message_content(output)
                 return
             output = "### Loading questions:\n"
             output += "\n".join(questions_vector)
         else:
             db_name = find_available_file(output_folder)
             output = "### Building questions:\n"
-            self.full(output)
+            self.set_message_content(output)
             # Iterate over all documents in data_folder_path
             processed_chunks = 0
             # Iterate over all chunks and extract text
@@ -201,7 +202,7 @@ class Processor(APScript):
                 questions_vector.extend(generated_lines)
                 self.step_end(f"Processing chunk {chunk_name}: {processed_chunks}/{total_chunks}")
                 output += "\n<".join(generated_lines) + "\n"
-                self.full(output)
+                self.set_message_content(output)
             
             self.step_start(f"Saving questions for future use")
             with open(output_folder/f"{db_name.split('.')[0]}_q.json", 'w') as file:
@@ -209,7 +210,7 @@ class Processor(APScript):
             self.step_end(f"Saving questions for future use")
         
         output += "### Building answers:\n"
-        self.full(output)
+        self.set_message_content(output)
         qna_list=[]
         # Perform further processing with questions_vector
         for index, question in enumerate(questions_vector):
@@ -251,7 +252,7 @@ Be precise and helpful.
                 "id":0
             })
             output += f"q:{question}\na:{answer}\n"
-            self.full(output)
+            self.set_message_content(output)
             self.step_end(f"Asking question {index}/{len(questions_vector)}")
             with open(output_folder/db_name, 'w') as file:
                 json.dump(qna_list, file)

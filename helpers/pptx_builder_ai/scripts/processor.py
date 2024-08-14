@@ -1,7 +1,8 @@
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 import subprocess
 if not PackageManager.check_package_installed("pptx"):
     PackageManager.install_package("pptx")
@@ -205,7 +206,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -235,7 +236,7 @@ A class for building PowerPoint slides programmatically using the python-pptx li
 """
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -273,7 +274,7 @@ A class for building PowerPoint slides programmatically using the python-pptx li
         if answer==0:# providing information about the document to build
             # ask the ai to reformulate the promptelif answer==1: # ask the ai to start building the document
             self.memory.append(self.fastgen(f"Reformulate the user prompt in form of a list of entries that describe the request.\nprompt:{prompt}"))
-            self.full("Information assimilated and stored to the memory. Do you want to add more information or do you want me to start generating the document?")            
+            self.set_message_content("Information assimilated and stored to the memory. Do you want to add more information or do you want me to start generating the document?")            
         elif answer==1:
             if self.multichoice_question("classify the prompt",[
                                                 "The prompt is do not contain useful information for the generation",
@@ -284,6 +285,6 @@ A class for building PowerPoint slides programmatically using the python-pptx li
             
         else:
             out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            self.set_message_content(out)
         return out
 

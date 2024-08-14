@@ -3,7 +3,7 @@ from fastapi import Request
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, PackageManager, find_next_available_filename, discussion_path_to_url
 from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
@@ -134,12 +134,12 @@ class Processor(APScript):
         
         reshaper = PromptReshaper(str_data)
         str_data = reshaper.replace({
-            "{image_id}":f"{image_id}",
-            "{thumbneil_width}":f"{self.personality_config.width/self.personality_config.thumbneil_ratio}",
-            "{thumbneil_height}":f"{self.personality_config.height/self.personality_config.thumbneil_ratio}",
-            "{image_source}":image_source,
-            "{client_id}":client_id,
-            "{__infos__}":str(image_infos).replace("True","true").replace("False","false").replace("None","null")
+            "{{image_id}}":f"{image_id}",
+            "{{thumbneil_width}}":f"{self.personality_config.width/self.personality_config.thumbneil_ratio}",
+            "{{thumbneil_height}}":f"{self.personality_config.height/self.personality_config.thumbneil_ratio}",
+            "{{image_source}}":image_source,
+            "{{client_id}}":client_id,
+            "{{__infos__}}":str(image_infos).replace("True","true").replace("False","false").replace("None","null")
         })
         return str_data
     def make_selectable_photos(self, html:str):
@@ -272,14 +272,14 @@ class Processor(APScript):
     def show_settings(self, prompt="", full_context="", client:Client=None):
         self.prepare()
         webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
-        self.full("Showing Stable diffusion settings UI")
+        self.set_message_content("Showing Stable diffusion settings UI")
         
     def show_last_image(self, prompt="", full_context=""):
         self.prepare()
         if len(self.personality.image_files)>0:
-            self.full(f"![]({self.personality.image_files})")        
+            self.set_message_content(f"![]({self.personality.image_files})")        
         else:
-            self.full("Showing Stable diffusion settings UI")        
+            self.set_message_content("Showing Stable diffusion settings UI")        
         
     def add_file(self, path, client:Client, callback=None):
         self.new_message("")
@@ -288,7 +288,7 @@ class Processor(APScript):
         pth = "/".join(pth[idx:])
 
         output = f"## Image:\n![]({pth})\n\n"
-        self.full(output)
+        self.set_message_content(output)
         if callback is None and self.callback is not None:
             callback = self.callback
 
@@ -296,7 +296,7 @@ class Processor(APScript):
         super().add_file(path, client)
         self.personality.image_files.append(path)
         if self.personality_config.caption_received_files:
-            self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
+            self.new_message("", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
             img = Image.open(str(path))
             # Convert the image to RGB mode
@@ -307,26 +307,26 @@ class Processor(APScript):
             self.step_end("Understanding the image", callback=callback)           
             file_html = self.make_selectable_photo(path.stem,f"/{pth}", client.client_id, {"name":path.stem,"type":"Imported image", "prompt":description})
             output += f"##  Image description :\n{description}\n"
-            self.full(output, callback=callback)
+            self.set_message_content(output, callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
-            self.full(f"File added successfully\n", callback=callback)
+            self.set_message_content(f"File added successfully\n", callback=callback)
         
     def regenerate(self, prompt="", full_context="", client:Client=None):
         metadata = client.discussion.get_metadata()
         self.prepare()
         if metadata["positive_prompt"]:
-            self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
+            self.new_message("Regenerating using the previous prompt",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_START)
             output0 = f"### Positive prompt:\n{metadata['positive_prompt']}\n\n### Negative prompt:\n{metadata['negative_prompt']}"
             output = output0
-            self.full(output)
+            self.set_message_content(output)
 
             infos = self.paint(metadata["positive_prompt"], metadata["negative_prompt"], metadata["previous_sd_title"], output, client)
          
             self.step_end("Regenerating using the previous prompt")
         else:
-            self.full("Please generate an image first then retry")
+            self.set_message_content("Please generate an image first then retry")
 
     
 
@@ -434,7 +434,7 @@ class Processor(APScript):
                 metadata_infos += f'\n![]({escaped_url})'
                 file_html = self.make_selectable_photo(Path(file).stem, escaped_url,client.client_id, infos)
                 ui += file_html
-                self.full(metadata_infos) 
+                self.set_message_content(metadata_infos) 
 
         self.ui(self.make_selectable_photos(ui))        
         return infos
@@ -468,7 +468,7 @@ class Processor(APScript):
                     self.print_prompt("Discussion",prompt)
 
                     response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-                    self.full(response)
+                    self.set_message_content(response)
                     return
 
 
@@ -481,12 +481,12 @@ class Processor(APScript):
                 self.height=self.personality_config.height
 
             metadata_infos += self.add_collapsible_entry("Chosen resolution",f"{self.width}x{self.height}") 
-            self.full(f"{metadata_infos}")     
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             if self.personality_config.add_style:
                 styles = self.get_styles(initial_prompt,full_context)
-                metadata_infos += self.add_collapsible_entry("Chosen style",f"{styles}") 
-                self.full(f"{metadata_infos}")     
+                metadata_infos += self.add_collapsible_entry("Chosen style",f"{styles}",open_by_default=True) 
+                self.set_message_content(f"{metadata_infos}")     
             else:
                 styles = None
             stl = f"{self.config.start_header_id_template}style_choice: {styles}\n" if styles is not None else ""
@@ -526,8 +526,8 @@ class Processor(APScript):
 
             positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}") 
-            self.full(f"{metadata_infos}")     
+            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}", open_by_default=True) 
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
             if not self.personality_config.use_fixed_negative_prompts:
@@ -551,8 +551,8 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{negative_prompt}") 
-            self.full(f"{metadata_infos}")     
+            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{negative_prompt}",open_by_default=True) 
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
                 self.step_start("Making up a title")
@@ -569,8 +569,8 @@ class Processor(APScript):
                 self.print_prompt("Make up a title", prompt)
                 sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
-                metadata_infos += self.add_collapsible_entry(f"{sd_title}","")
-                self.full(f"{metadata_infos}")
+                metadata_infos += self.add_collapsible_entry(f"{sd_title}","",open_by_default=True)
+                self.set_message_content(f"{metadata_infos}")
                 
         else:
             self.width=self.personality_config.width
@@ -592,7 +592,7 @@ class Processor(APScript):
         if self.personality_config.paint:
             self.prepare()
             infos = self.paint(positive_prompt, negative_prompt, sd_title, metadata_infos, client)
-            self.full(output.strip())
+            self.set_message_content(output.strip())
 
         else:
             infos = None
@@ -650,7 +650,7 @@ class Processor(APScript):
 
         return {"status":False, "message":"Unknown operation"}
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

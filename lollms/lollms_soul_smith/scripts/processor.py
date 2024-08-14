@@ -7,7 +7,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.sd.lollms_sd import LollmsSD
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename
@@ -324,7 +324,7 @@ class Processor(APScript):
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
         
@@ -332,7 +332,7 @@ class Processor(APScript):
 
         sd_negative_prompt = self.personality_config.default_negative_prompt
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
 
         self.new_message("")
@@ -366,7 +366,7 @@ class Processor(APScript):
                     escaped_url =  output_file_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
-                    self.full(f'\n![]({escaped_url})')
+                    self.set_message_content(f'\n![]({escaped_url})')
                 elif self.personality_config.generation_engine=="dall-e-2" or  self.personality_config.generation_engine=="dall-e-3":
                     import openai
                     openai.api_key = self.personality_config.config["openai_key"]
@@ -428,7 +428,7 @@ class Processor(APScript):
                         escaped_url =  output_file_path_to_url(file)
                         file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                         ui += file_html
-                        self.full(f'\n![]({escaped_url})')
+                        self.set_message_content(f'\n![]({escaped_url})')
                         self.chunk("")
 
         except Exception as ex:
@@ -505,8 +505,8 @@ class Processor(APScript):
         self.step_end("Painting Icon")
         
         output_text+= self.build_a_folder_link(self.personality_path,"press this text to access personality path")
-        self.full(output_text)
-        self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
+        self.set_message_content(output_text)
+        self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -520,11 +520,11 @@ class Processor(APScript):
         form_path = Path(__file__).parent.parent/"assets"/"edit_persona.html"
         with open(form_path,"r") as f:
             form = f.read()
-        self.new_message(form,MSG_TYPE.MSG_TYPE_UI)
+        self.new_message(form,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
         pass
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -639,7 +639,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         
         output_text+=self.build_a_document_block('Infos',"",Infos_text)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description")
@@ -660,7 +660,7 @@ class Processor(APScript):
         self.step_end("Coming up with the description")
         ASCIIColors.yellow(f"Description: {description}")
         output_text+= self.build_a_document_block('description',"",description)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
         
@@ -684,7 +684,7 @@ class Processor(APScript):
         self.step_end("Coming up with the disclaimer")
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
         output_text+=self.build_a_document_block('disclaimer',"",disclaimer)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
 
@@ -709,7 +709,7 @@ class Processor(APScript):
         self.step_end("Coming up with the conditioning")
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
         output_text+=self.build_a_document_block('conditioning',"",conditioning)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
         if self.personality_config.optimize_prompt:
@@ -728,7 +728,7 @@ class Processor(APScript):
             self.step_end("Coming up with the conditioning")
             ASCIIColors.yellow(f"Conditioning: {conditioning}")
             output_text+=self.build_a_document_block('refined conditioning',"",conditioning)
-            self.full(output_text)
+            self.set_message_content(output_text)
             self.chunk("")
 
                  
@@ -755,7 +755,7 @@ class Processor(APScript):
         self.step_end("Coming up with the welcome message")
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
         output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
-        self.full(output_text)
+        self.set_message_content(output_text)
         self.chunk("")
         # ----------------------------------------------------------------
                          

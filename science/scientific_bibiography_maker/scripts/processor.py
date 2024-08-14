@@ -3,7 +3,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors
 from lollms.utilities import PackageManager
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.bibliography import arxiv_pdf_search
@@ -107,7 +107,7 @@ class Processor(APScript):
             v = Word2VecVectorizer()
 
         self.persona_data_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
-        self.full_documents_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
+        self.set_message_content_documents_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
         self.abstract_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
 
     def settings_updated(self):
@@ -260,7 +260,7 @@ class Processor(APScript):
             relevance = f'<p style="color: red;">{relevance}</p>'
             articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
             report.append(report_entry)
-            self.full("\n".join(articles_checking_text))
+            self.set_message_content("\n".join(articles_checking_text))
             self.warning("The AI agent didn't respond to the relevance question correctly")
             return False
         if relevance_score>=float(self.personality_config.relevance_check_severity):
@@ -310,7 +310,7 @@ class Processor(APScript):
             f"<b>Relevance:</b>\n{relevance}<br>"
             ]))
             )
-        self.full("\n".join(articles_checking_text))
+        self.set_message_content("\n".join(articles_checking_text))
         report.append(report_entry)
         return True
     
@@ -331,7 +331,7 @@ class Processor(APScript):
                 ])
                 )
         self.new_message("")
-        self.full(text)
+        self.set_message_content(text)
         
         output_file = client.discussion_path/"organized_search_results.html" if client is not None else None
         if output_file:
@@ -347,12 +347,12 @@ class Processor(APScript):
                 ])
                 )
             text += "\n" + self.build_a_file_link(output_file,"Click here to vew the generated html file")
-            self.full(text)
+            self.set_message_content(text)
 
         return text
     def build_query(self, prompt,  context_details, previous_keywords=""):
             self.step_start("Building query...")
-            self.full("")
+            self.set_message_content("")
             keywords = self.fast_gen(f"{self.start_header_id_template}".join([
                 f"{self.start_header_id_template}{self.system_message_template}:",
                 "Act as arxiv search specialist.",
@@ -371,7 +371,7 @@ class Processor(APScript):
             debug=self.personality.config.debug,
             callback=self.sink)
             self.step_end("Building query...")
-            self.full(keywords)
+            self.set_message_content(keywords)
             if keywords=="":
                 ASCIIColors.error("The AI failed to build a keywords list. Using the prompt as keywords")
                 keywords=prompt 
@@ -404,7 +404,7 @@ class Processor(APScript):
             else:
                 keywords=query
             articles_checking_text.append(self.build_a_document_block("Keywords","",keywords))
-            self.full("\n".join(articles_checking_text))
+            self.set_message_content("\n".join(articles_checking_text))
             
             self.step_end(f"Searching and processing {self.personality_config.nb_arxiv_results+self.personality_config.nb_hal_results} documents")
             
@@ -430,7 +430,7 @@ class Processor(APScript):
             self.step_end(f"Searching articles on arxiv")
             nb_found += self.personality_config.nb_arxiv_results
             articles_checking_text.append(self.build_a_document_block(f"Searching on arxiv {self.personality_config.nb_arxiv_results} articles.","",f"Found : {len(pdf_info)} articles on the subject"))
-            self.full("\n".join(articles_checking_text))
+            self.set_message_content("\n".join(articles_checking_text))
             
             # Download and save articles
             for i,(key, val)  in enumerate(pdf_info.items()):
@@ -488,7 +488,7 @@ class Processor(APScript):
 
             self.step_start(f"Summerizing content")
             summary = self.summarize_text(text_to_summarize,"Create a comprehensive scientific bibliography report using markdown format. Include a title and one or more paragraphs summarizing each source's content. Make sure to only list the references cited within the document. Exclude any references not explicitly present in the text.", callback=self.sink)
-            self.full(summary)
+            self.set_message_content(summary)
             self.step_end(f"Summerizing content")           
 
             self.step_start(f"Building answer")
@@ -499,7 +499,7 @@ class Processor(APScript):
             with open(download_folder/"summary.md","w",encoding="utf-8") as f:
                 f.write(summary_text)
                         
-            self.full(summary_text)
+            self.set_message_content(summary_text)
             self.new_message("")
             if self.personality_config.make_survey:
                 summary_latex = "```latex\n"+self.fast_gen(
@@ -517,7 +517,7 @@ class Processor(APScript):
                 code_blocks = self.extract_code_blocks(summary_latex)
                 if len(code_blocks)>0:
                     for code_block in code_blocks[:1]:
-                        self.full(
+                        self.set_message_content(
                             "\n".join([
                                 "```latex",
                                 f"{code_block['content']}",
@@ -529,7 +529,7 @@ class Processor(APScript):
                     if self.personality_config.pdf_latex_path!="":
                         output_file = download_folder/f"{self.personality_config.output_file_name}.tex"
                         self.compile_latex(output_file,self.personality_config.pdf_latex_path)
-                        self.full(
+                        self.set_message_content(
                             "\n".join([
                                 "```latex",
                                 f"{code_block['content']}",
@@ -540,7 +540,7 @@ class Processor(APScript):
 
         else:
             self.personality.error("No article found about this subject!")
-            self.full("No article found about this subject!\nLet me try another query!")
+            self.set_message_content("No article found about this subject!\nLet me try another query!")
 
 
     def search_organize_and_summarize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
@@ -555,7 +555,7 @@ class Processor(APScript):
         self.summarize_report(report, download_folder, client)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

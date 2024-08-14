@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
 import re
@@ -238,7 +238,7 @@ class Processor(APScript):
 
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def new_image(self, prompt="", full_context=""):
         self.image_files=[]
@@ -254,14 +254,14 @@ class Processor(APScript):
     def show_settings(self, prompt="", full_context=""):
         self.prepare()
         webbrowser.open("http://127.0.0.1:7860/?__theme=dark")        
-        self.full("Showing Stable diffusion settings UI")
+        self.set_message_content("Showing Stable diffusion settings UI")
         
     def show_last_image(self, prompt="", full_context=""):
         self.prepare()
         if len(self.image_files)>0:
-            self.full(f"![]({self.image_files})")        
+            self.set_message_content(f"![]({self.image_files})")        
         else:
-            self.full("Showing Stable diffusion settings UI")        
+            self.set_message_content("Showing Stable diffusion settings UI")        
         
     def add_file(self, path, client, callback=None):
         self.new_message("")
@@ -271,7 +271,7 @@ class Processor(APScript):
         self.prepare()
         super().add_file(path, client, callback)
         if self.personality_config.caption_received_files:
-            self.new_message("", MSG_TYPE.MSG_TYPE_CHUNK, callback=callback)
+            self.new_message("", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK, callback=callback)
             self.step_start("Understanding the image", callback=callback)
             description = self.sd.interrogate(str(path)).info
             self.print_prompt("Blip description",description)
@@ -283,18 +283,18 @@ class Processor(APScript):
 
             
             file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
-            self.full(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
+            self.set_message_content(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
             self.ui(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
-            self.full(f"File added successfully\n", callback=callback)
+            self.set_message_content(f"File added successfully\n", callback=callback)
         
     def regenerate(self, prompt="", full_context=""):
         if self.previous_sd_positive_prompt:
-            self.new_message("Regenerating using the previous prompt",MSG_TYPE.MSG_TYPE_STEP_START)
+            self.new_message("Regenerating using the previous prompt",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_START)
             output0 = f"## Positive prompt:\n{self.previous_sd_positive_prompt}\n## negative prompt:\n{self.previous_sd_negative_prompt}"
             output = output0
-            self.full(output)
+            self.set_message_content(output)
             files = []
             ui=""
             for img in range(self.personality_config.num_images):
@@ -316,16 +316,16 @@ class Processor(APScript):
                 url = "/"+file[file.index("outputs"):].replace("\\","/")
                 file_html = self.make_selectable_photo(Path(file).stem,url, infos)
                 output += f'\n![]({url})' 
-                self.full(output)
+                self.set_message_content(output)
                 ui += file_html
                 self.step_end(f"Building image {img+1}/{self.personality_config.num_images}")
-            self.full(output0)
+            self.set_message_content(output0)
             self.step_end("Regenerating using the previous prompt")
-            self.new_message(self.make_selectable_photos(ui),MSG_TYPE.MSG_TYPE_UI)
+            self.new_message(self.make_selectable_photos(ui),MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
             if self.personality_config.show_infos:
-                self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS, infos)
+                self.new_message("infos", MSG_OPERATION_TYPE.MSG_TYPE_JSON_INFOS, infos)
         else:
-            self.full("Please generate an image first then retry")
+            self.set_message_content("Please generate an image first then retry")
 
     
     def get_resolution(self, prompt, full_context, default_resolution=[512,512]):
@@ -379,7 +379,7 @@ class Processor(APScript):
                     self.print_prompt("Discussion",prompt)
 
                     response = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
-                    self.full(response)
+                    self.set_message_content(response)
                     return
 
 
@@ -392,7 +392,7 @@ class Processor(APScript):
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
             metadata_infos += f"### Chosen resolution:\n{self.width}x{self.height}\n"
-            self.full(f"{metadata_infos}")     
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
@@ -417,7 +417,7 @@ Act as architectai, the art prompt generation AI. Use the previous discussion to
             sd_positive_prompt = f"{self.personality_config.production_type} "+self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
             metadata_infos += f"### Positive prompt:\n{sd_positive_prompt}\n"
-            self.full(f"{metadata_infos}")     
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
             if not self.personality_config.use_fixed_negative_prompts:
@@ -452,7 +452,7 @@ Act as architectai, the art prompt generation AI. Use the previous discussion to
             else:
                 sd_negative_prompt = self.personality_config.fixed_negative_prompts
             metadata_infos += f"### Negative prompt:\n{sd_negative_prompt}\n"
-            self.full(f"{metadata_infos}")     
+            self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
                 self.step_start("Making up a title")
@@ -478,7 +478,7 @@ Given this image description prompt and negative prompt, make a consize title
                 sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
                 metadata_infos += f"### title:\n{sd_title}\n"
-                self.full(f"{metadata_infos}")
+                self.set_message_content(f"{metadata_infos}")
 
         else:
             self.width=self.personality_config.width
@@ -524,7 +524,7 @@ Given this image description prompt and negative prompt, make a consize title
                     files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                     ui += file_html
                     metadata_infos += f'\n![]({url})'
-                    self.full(metadata_infos)
+                    self.set_message_content(metadata_infos)
                     
                 elif self.personality_config.generation_engine=="dalle-2":
                     import openai
@@ -560,14 +560,14 @@ Given this image description prompt and negative prompt, make a consize title
                     files.append("/"+file[file.index("outputs"):].replace("\\","/"))
                     ui += file_html
                     metadata_infos += f'\n![]({url})'
-                    self.full(metadata_infos)
+                    self.set_message_content(metadata_infos)
 
                 self.step_end(f"Generating image {img+1}/{self.personality_config.num_images}")
 
             if self.personality_config.continue_from_last_image:
                 self.image_files= [file]            
-            self.full(output.strip())
-            self.new_message(self.make_selectable_photos(ui), MSG_TYPE.MSG_TYPE_UI)
+            self.set_message_content(output.strip())
+            self.new_message(self.make_selectable_photos(ui), MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
         else:
             infos = None
         if self.personality_config.show_infos and infos:
@@ -624,7 +624,7 @@ Given this image description prompt and negative prompt, make a consize title
         return {"status":False, "message":"Unknown operation"}
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

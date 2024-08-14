@@ -1,6 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import trace_exception
 from lollms.personality import APScript, AIPersonality
 from typing import Callable
@@ -124,7 +124,7 @@ class Processor(APScript):
 
         return summary, is_ambiguous
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -168,7 +168,7 @@ class Processor(APScript):
             search_results = ""
             sources_text = "\n--\n"
             sources_text += "\n#Source :\n"
-            #self.full(output)
+            #self.set_message_content(output)
 
             for entry in results:
                 self.step_start(f"Entry: {entry}")
@@ -184,7 +184,7 @@ class Processor(APScript):
                     self.step_end(f"# Entry: {entry}")
                     output += f"{entry}:\n"+search_results+"\n"+images+"\n"+sources_text
 
-                    self.full(output)
+                    self.set_message_content(output)
                 except:
                     if len(entry)<=0:
                         raise Exception("Couldn't find relevant data")
@@ -201,7 +201,7 @@ class Processor(APScript):
 
                 self.step_end("Generating response")
                 output += summary + sources_text
-                self.full(output)
+                self.set_message_content(output)
 
         except Exception as ex:
             output = f"Exception occured while running workflow: {ex}"

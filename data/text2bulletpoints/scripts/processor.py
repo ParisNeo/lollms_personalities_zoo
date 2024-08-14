@@ -1,5 +1,6 @@
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.helpers import ASCIIColors
 
@@ -191,7 +192,7 @@ class Processor(APScript):
             return False        
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -223,21 +224,21 @@ class Processor(APScript):
             self.state = 1
             print("Please provide the file name")
             if callback is not None:
-                callback("Please provide the file path", MSG_TYPE.MSG_TYPE_FULL)
+                callback("Please provide the file path", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
             output = "Please provide the file name"
         elif prompt.strip().lower()=="help":
             ASCIIColors.info("Showing help")
             if callback:
-                callback(self.personality.help,MSG_TYPE.MSG_TYPE_FULL)
+                callback(self.personality.help,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
                 ASCIIColors.info(help)
             self.state = 0   
         elif prompt.strip().lower()=="show_database":
             if callback:
-                callback("Current database\n",MSG_TYPE.MSG_TYPE_CHUNK)
+                callback("Current database\n",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
                 print("Current database\n")
             for chunk in self.text_store.paragraphs:
                 if callback:
-                    callback(chunk+"\n",MSG_TYPE.MSG_TYPE_CHUNK)
+                    callback(chunk+"\n",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
                     print(chunk)
             
             self.state = 0
@@ -252,20 +253,20 @@ class Processor(APScript):
                                 max_chunk_size=self.personality_config.max_chunk_size
                                 )   
                 if callback is not None:
-                    callback("Database file cleared successfully", MSG_TYPE.MSG_TYPE_FULL)        
+                    callback("Database file cleared successfully", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)        
             else:
                 if callback is not None:
-                    callback("The database file does not exist yet, so you can't clear it", MSG_TYPE.MSG_TYPE_FULL)        
+                    callback("The database file does not exist yet, so you can't clear it", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)        
             self.state = 0
         elif prompt.strip().lower()=="set_database":
             print("Please provide the database file name")
             if callback is not None:
-                callback("Please provide the database file path", MSG_TYPE.MSG_TYPE_FULL)
+                callback("Please provide the database file path", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
             output = "Please provide the database file name"
             self.state = 2
         elif prompt.strip().lower()=="convert":
             if callback is not None:
-                callback("# Full bullet points summary:\n", MSG_TYPE.MSG_TYPE_CHUNK)
+                callback("# Full bullet points summary:\n", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
             for i,chunk in enumerate(self.text_store.paragraphs):
                 if len(chunk.split())<50:
                     print(chunk)
@@ -285,7 +286,7 @@ class Processor(APScript):
                 output = "-"+self.generate(docs, self.personality_config.max_answer_size)
                 self.text_store.paragraphs[i]= output
                 if callback is not None:
-                    callback(output, MSG_TYPE.MSG_TYPE_CHUNK)
+                    callback(output, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)
                     
         elif prompt.strip().lower()=="clear_database":
             (self.personality.lollms_paths.personal_data_path/self.personality_config["database_path"]).unlink()

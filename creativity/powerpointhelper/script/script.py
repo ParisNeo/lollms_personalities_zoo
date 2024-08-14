@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 import subprocess
@@ -61,7 +61,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -70,7 +70,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -99,6 +99,6 @@ class Processor(APScript):
         self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
-        self.full(out)
+        self.set_message_content(out)
         return out
 

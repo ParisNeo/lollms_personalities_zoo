@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 import json
 from typing import Callable
@@ -78,10 +78,10 @@ class Processor(APScript):
 
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def test_new_message(self, prompt, full_context):
-        self.new_message("Starting fresh :)", MSG_TYPE.MSG_TYPE_FULL)
+        self.new_message("Starting fresh :)", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
         
     def test_goto_state1(self, prompt, full_context):
         self.goto_state("state1")
@@ -143,24 +143,24 @@ class Processor(APScript):
         """
     # States ================================================
     def idle(self, prompt, full_context):    
-         self.full("testing responses and creating new json message")
-         self.new_message("json data", MSG_TYPE.MSG_TYPE_JSON_INFOS,{'test':{'value':1,'value2':2},'test2':['v1','v2']})
+         self.set_message_content("testing responses and creating new json message")
+         self.new_message("json data", MSG_OPERATION_TYPE.MSG_TYPE_JSON_INFOS,{'test':{'value':1,'value2':2},'test2':['v1','v2']})
          file_id = 721
          personality_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
          personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
          pth = "outputs/sd/Artbot_721.png"
          self.ui('<img src="outputs/sd/Artbot_721.png">')
-         self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_TYPE.MSG_TYPE_UI)
-         self.new_message("Testing generation", MSG_TYPE.MSG_TYPE_FULL)
+         self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
+         self.new_message("Testing generation", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
          out = self.generate("explain what is to be human",50,callback = self.callback)
-         self.full(out)
+         self.set_message_content(out)
         
     def state1(self, prompt, full_context):    
-         self.full("testing responses from state 1", callback=self.callback)
+         self.set_message_content("testing responses from state 1", callback=self.callback)
     
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

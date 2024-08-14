@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, PackageManager
 import re
@@ -89,9 +89,9 @@ class Processor(APScript):
         super().add_file(path, client, callback, process=False)
         image = Image.open(self.personality.image_files[-1])
         url = str(self.personality.image_files[-1]).replace("\\","/").split("discussion_databases")[-1]
-        self.new_message("",MSG_TYPE.MSG_TYPE_FULL)
+        self.new_message("",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
         output = f'<img src="/discussions{url}">'
-        self.full(output)
+        self.set_message_content(output)
         try:
             # Load an image using PIL (Python Imaging Library)
             image = Image.open(self.personality.image_files[-1])
@@ -99,21 +99,21 @@ class Processor(APScript):
             # Use pytesseract to extract text from the image
             text = pytesseract.image_to_string(image)
             output += "\n<h3>Extracted text:</h3>\n\n"+text
-            self.full(output)
+            self.set_message_content(output)
         except Exception as ex:
-            self.full(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
+            self.set_message_content(f"<h3>Looks like you didn't install tesseract correctly</h3><br>\n\nPlease install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.\n\nException:{ex}")
         return True
     
     
     def main_process(self, initial_prompt, full_context):
         if len(self.personality.image_files)==0:
-            self.full("<h3>Please send an image file first</h3>")
+            self.set_message_content("<h3>Please send an image file first</h3>")
         else:
             text = self.generate(full_context+initial_prompt,1024, callback=self.callback)
-            self.full(text)
+            self.set_message_content(text)
             
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

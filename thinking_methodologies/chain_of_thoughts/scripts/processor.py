@@ -1,6 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 import subprocess
 from pathlib import Path
@@ -80,7 +80,7 @@ class Processor(APScript):
 
         return string
     
-    def process(self, text, message_type:MSG_TYPE):
+    def process(self, text, message_type:MSG_OPERATION_TYPE):
         bot_says = self.bot_says + text
         ASCIIColors.success(f"generated:{len(bot_says)} words", end='\r')
         antiprompt = self.personality.detect_antiprompt(bot_says)
@@ -91,7 +91,7 @@ class Processor(APScript):
         else:
             self.bot_says = bot_says
             if self.callback is not None:
-                self.callback(text,MSG_TYPE.MSG_TYPE_CHUNK)            
+                self.callback(text,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_ADD_CHUNK)            
             return True
 
     def generate(self, prompt, max_size, temperature = None, top_k = None, top_p=None, repeat_penalty=None ):
@@ -108,7 +108,7 @@ class Processor(APScript):
                                 ).strip()    
         
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -159,7 +159,7 @@ Combine these ideas in a comprihensive and detailed essai that explains how to a
         print(summary_prompt)
         answer = self.generate(summary_prompt, self.personality_config["max_summary_size"])
         if callback:
-            callback(answer, MSG_TYPE.MSG_TYPE_FULL)
+            callback(answer, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
         return answer
 
 

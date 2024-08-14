@@ -5,9 +5,10 @@ Author: # Placeholder: Creator name (e.g., "ParisNeo")
 Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
 
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.utilities import output_file_path_to_url
 from lollms.functions.generate_image import build_image, build_image_function
@@ -580,7 +581,7 @@ class Processor(APScript):
         # Example implementation that simply calls a method on the personality to get help information.
         # This can be expanded to dynamically generate help text based on the current state,
         # available commands, and user context.
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def format_course_steps_as_markdown(self, course_steps):
         if not course_steps:
@@ -677,7 +678,7 @@ class Processor(APScript):
             return f'<img src="{personality_path_to_url(path)}" width="80%"></img>'
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -706,7 +707,7 @@ class Processor(APScript):
         self.get_or_create_user_profile()
         user_id = self.user_profile_db.get_user_id_by_name(self.personality_config.user_profile_name)
         if user_id is None:
-            self.full(self.personality.welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n")
+            self.set_message_content(self.personality.welcome_message+"\nI see that you did not specify a profile in my settings. Please specify a profile name.\nYou need to press my icon in the chatbar and you'll see my configuration window. Type your profile name and your level, then make a new discussion.\n")
             return
         self.personality.info("Generating")
         memory_data = self.user_profile_db.get_last_ai_state(user_id)
@@ -800,5 +801,5 @@ class Processor(APScript):
         if len(function_calls)>0:
             outputs = self.execute_function_calls(function_calls, self.function_definitions)
             out += "\n" + "\n".join([str(o) for o in outputs])
-        self.full(out)
+        self.set_message_content(out)
         return out

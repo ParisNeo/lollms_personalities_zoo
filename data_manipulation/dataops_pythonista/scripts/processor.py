@@ -7,7 +7,7 @@ description: # Place holder: personality description
 from lollms.helpers import ASCIIColors
 from fastapi import Request
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 import subprocess
 from typing import Callable
 import random
@@ -70,7 +70,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -147,10 +147,10 @@ class Processor(APScript):
         output_folder.mkdir(exist_ok=True, parents=True)
         out = module.reply_to_user([str(f) for f in self.personality.text_files], str(output_folder))
         out= out.replace(str(output_folder),f"/outputs/{self.personality.personality_folder_name}/{rnd_val}")
-        self.full(out)
+        self.set_message_content(out)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -238,7 +238,7 @@ class Processor(APScript):
 
                     self.ui(ui)
                         
-                    self.full(out)
+                    self.set_message_content(out)
                     done = True
                     self.step_end(f"Building code, attempt {fails}")
                 except Exception as ex:
@@ -250,11 +250,11 @@ class Processor(APScript):
                         out = "Failed to perform the task :(.\nLet me try again..."
                     else:
                         out = "Failed to perform the task :(.\nDon't be harsh, I'm still learning :(.Try using a bigger model or modify the parameters of the AI"
-                    self.full(out)
+                    self.set_message_content(out)
         else:
             self.personality.info("Generating")
             self.callback = callback
             out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            self.set_message_content(out)
         return out
 

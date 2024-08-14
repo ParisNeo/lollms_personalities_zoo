@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
@@ -193,7 +193,7 @@ class Processor(APScript):
         
         if len(files)==0:
 
-            self.full("\n".join([
+            self.set_message_content("\n".join([
                 "Hey there! 🌟 It looks like you're itching for a bit of that magic summary action.",
                 "📜✨ Well, I'm all revved up and ready to dive into the world of summarization, but here's the kicker—I can't exactly pull off my magic tricks without a hat... or in this case, without any documents. 🎩🚫 So, how about we make this a team effort? 🤝 Go ahead and press that shiny send documents button 📤, pick out some documents for me to sink my teeth into 📄🔍, and then let's reconvene. Summon me back into the arena 📣, and I promise, I'll zip through those documents faster than you can say \"LoLLMs, Lord of Large Language Multimodal Systems,\" extracting the juicy bits and serving you exactly what you need. 🚀 Looking forward to our next encounter.",
                 "See ya! 👋"  
@@ -220,7 +220,7 @@ class Processor(APScript):
                     self.save_text(summary, Path(self.personality_config.output_path)/(document_path.stem+"_summary.txt"))
                 all_summaries +=f"\n## Summary of {document_path.stem}\n{summary}"
                 formatted_summaries +=f"{start_header_id_template}Document {i} {end_header_id_template}{separator_template}Document file name: {document_path.stem}\nSummary:\n{summary}"
-                self.full(all_summaries)
+                self.set_message_content(all_summaries)
         self.new_message("")        
         ASCIIColors.yellow(all_summaries)
         summary = self.zip_text(
@@ -232,13 +232,13 @@ class Processor(APScript):
                                     
                                 )
         output =f"\n## Global summary\n{summary}"
-        self.full(output)
+        self.set_message_content(output)
         if self.personality_config.output_path:
             self.save_text(summary, Path(self.personality_config.output_path)/("global_summary.txt"))
             
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

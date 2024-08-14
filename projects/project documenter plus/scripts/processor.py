@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 import re
 import importlib
@@ -74,7 +74,7 @@ class Processor(APScript):
 
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -196,7 +196,7 @@ Here is the section content:
         
         self.previous_versions.append(output)
         if callback:
-            self.full(output, callback)
+            self.set_message_content(output, callback)
         
         self.current_document = sections
         

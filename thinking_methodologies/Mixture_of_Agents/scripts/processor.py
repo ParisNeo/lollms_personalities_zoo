@@ -4,9 +4,10 @@ personality: # Place holder: Personality name
 Author: # Place holder: creator name 
 description: # Place holder: personality description
 """
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 import subprocess
 import json
 from typing import Callable
@@ -70,7 +71,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def is_ok(self, prompt, true_answer, models_list):
         for model_to_test in models_list:
@@ -84,7 +85,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -147,7 +148,7 @@ class Processor(APScript):
         if self.config.debug:
             self.print_prompt("Final prompt",prompt)
         out = self.fast_gen(prompt, callback=self.sink)
-        self.full("## Final answer:\n"+out)
+        self.set_message_content("## Final answer:\n"+out)
         self.json("Rounds",rounds)
         model_outputs.append(out)
 

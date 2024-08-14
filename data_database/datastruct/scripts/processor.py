@@ -4,9 +4,10 @@ personality: # Place holder: Personality name
 Author: # Place holder: creator name 
 description: # Place holder: personality description
 """
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 import subprocess
@@ -158,7 +159,7 @@ class Processor(APScript):
                                                             ]),                                                            
                                                             "Doc",
                                                             callback=self.sink).replace("\_","_")
-        self.full(data_information_hints)
+        self.set_message_content(data_information_hints)
         codes = self.extract_code_blocks(data_information_hints)
         for code in codes:
             if code["type"].lower()=="python":
@@ -193,7 +194,7 @@ class Processor(APScript):
                                                             "The database should is named data.db"
                                                             ]),"Doc",callback=self.sink).replace("\_","_")
         
-        self.full(data_information_hints)
+        self.set_message_content(data_information_hints)
         codes = self.extract_code_blocks(data_information_hints)
         for code in codes:
             if code["type"].lower()=="python":
@@ -201,7 +202,7 @@ class Processor(APScript):
                 self.new_message(output)
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -209,7 +210,7 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -237,6 +238,6 @@ class Processor(APScript):
         self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
-        self.full(out)
+        self.set_message_content(out)
         return out
 

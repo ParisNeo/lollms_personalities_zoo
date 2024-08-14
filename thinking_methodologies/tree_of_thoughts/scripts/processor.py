@@ -1,6 +1,6 @@
 from lollms.config import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 import subprocess
 from pathlib import Path
@@ -66,7 +66,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")
 
 
-    def process(self, text, message_type:MSG_TYPE):
+    def process(self, text, message_type:MSG_OPERATION_TYPE):
         if text is None:
             return
         bot_says = self.bot_says + text
@@ -79,7 +79,7 @@ class Processor(APScript):
             return True
         
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -116,7 +116,7 @@ class Processor(APScript):
         for j in range(self.personality_config.nb_ideas):
             print(f"============= Starting level {j+1} of the tree =====================")
             output += f"\n-- level {j+1} ---\n"
-            self.full(output)
+            self.set_message_content(output)
             self.step_start(f"Processing Level {j+1} of the tree")
             local_ideas=[]
             judgement_prompt = f"{self.config.start_header_id_template}prompt: {prompt}\n"
@@ -137,7 +137,7 @@ class Processor(APScript):
 {self.config.start_header_id_template}idea:"""
                 idea = self.generate(idea_prompt,self.personality_config.max_thought_size,temperature=self.personality_config.idea_temperature)
                 output += f"\n## Idea {i+1}:\n {idea}\n"
-                self.full(output)
+                self.set_message_content(output)
                 local_ideas.append(idea.strip())
                 judgement_prompt += f"{self.config.separator_template}{self.config.start_header_id_template}Idea {i}:{idea}\n"
                 self.step_end(f"Generating idea number {j+1}:{i+1}/{self.personality_config.nb_samples_per_idea}")
@@ -155,7 +155,7 @@ class Processor(APScript):
                 else:
                     final_ideas.append(local_ideas[0]) 
             output += f"\n<b>Best level idea:</b>\n{local_ideas[idea_id]}\n"
-            self.full(output)
+            self.set_message_content(output)
             layers.append(local_ideas)
             selections.append(idea_id)
             
@@ -186,7 +186,7 @@ class Processor(APScript):
         ASCIIColors.success("Summary built successfully")
         self.step_end(f"Building final summary")
         output += f"## Final summary:\n{final_summary}"
-        self.full(output)
+        self.set_message_content(output)
         
         
         tree_full_output = {

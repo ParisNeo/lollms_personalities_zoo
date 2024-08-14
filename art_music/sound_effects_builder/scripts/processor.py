@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, File_Path_Generator
 from lollms.client_session import Client
@@ -110,11 +110,11 @@ class Processor(APScript):
         
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def new_music(self, prompt, full_context):
         self.image_files=[]
-        self.full("Starting fresh :)")
+        self.set_message_content("Starting fresh :)")
         
 
     def regenerate(self, prompt, full_context):
@@ -122,9 +122,9 @@ class Processor(APScript):
             self.music_model.set_generation_params(duration=self.personality_config.duration)
             res = self.music_model.generate([prompt], progress=True)
             if self.personality_config.show_infos:
-                self.new_message("infos", MSG_TYPE.MSG_TYPE_JSON_INFOS,{"prompt":prompt,"duration":self.personality_config.duration})
+                self.new_message("infos", MSG_OPERATION_TYPE.MSG_TYPE_JSON_INFOS,{"prompt":prompt,"duration":self.personality_config.duration})
         else:
-            self.full("Please generate an image first then retry")
+            self.set_message_content("Please generate an image first then retry")
 
     
 
@@ -176,7 +176,7 @@ class Processor(APScript):
                     ASCIIColors.yellow(current_prompt)
 
                     response = self.generate(current_prompt, self.personality_config.max_generation_prompt_size,callback=self.sink).strip().replace("</s>","").replace("<s>","")
-                    self.full(response)
+                    self.set_message_content(response)
                     return
 
 
@@ -186,7 +186,7 @@ class Processor(APScript):
                 styles = self.get_styles(initial_prompt,full_context)
             else:
                 styles = "No specific style selected."
-            self.full(f"### Chosen style:\n{styles}")         
+            self.set_message_content(f"### Chosen style:\n{styles}")         
 
             self.step_start("Imagining prompt")
             # 1 first ask the model to formulate a query
@@ -207,9 +207,9 @@ The generation ai has no access to the previous text so do not do references and
             ASCIIColors.yellow(current_prompt)
             generation_prompt = self.generate(current_prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining prompt")
-            self.full(f"### Chosen style:\n{styles}\n### Prompt:\n{generation_prompt}")         
+            self.set_message_content(f"### Chosen style:\n{styles}\n### Prompt:\n{generation_prompt}")         
             # ====================================================================================
-            self.full(f"### Chosen style:\n{styles}\n### Prompt:\n{generation_prompt}")         
+            self.set_message_content(f"### Chosen style:\n{styles}\n### Prompt:\n{generation_prompt}")         
             # ====================================================================================            
             
         else:
@@ -235,14 +235,14 @@ The generation ai has no access to the previous text so do not do references and
     Your browser does not support the audio element.
 </audio>
 """
-            self.full(output.strip())
+            self.set_message_content(output.strip())
         self.step_end("Making some music")
 
         ASCIIColors.success("Generation succeeded")
 
 
         
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

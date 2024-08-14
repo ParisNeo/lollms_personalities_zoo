@@ -30,7 +30,7 @@ step_start:
         callback = self.callback
 
     if callback:
-        callback(step_text, MSG_TYPE.MSG_TYPE_STEP_START)
+        callback(step_text, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_START)
 
 step_end:
         This triggers a step end

@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from safe_store.text_vectorizer import TextVectorizer, VectorizationMethod
@@ -65,7 +65,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -74,7 +74,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -102,7 +102,7 @@ class Processor(APScript):
         """
 
         if self.personality_config.project_folder_path=="":
-            self.full("Before starting to talk to me, please define a project folder path in my configuration settings then we can start building the app.")
+            self.set_message_content("Before starting to talk to me, please define a project folder path in my configuration settings then we can start building the app.")
             return
         
         project_folder_path = Path(self.personality_config.project_folder_path)
@@ -122,20 +122,20 @@ class Processor(APScript):
             ASCIIColors.info("Generating")
             self.step("Detected a generic communication")
             out = self.fast_gen(previous_discussion_text)
-            self.full(out)
+            self.set_message_content(out)
             self.step("Detected a generic communication")
         elif operation == 1: # Giving information about the software to build
             ASCIIColors.info("Generating")
             self.step("Detected a software information")
             self.step_start("Saving the information to long term memory")
             title = self.make_title(prompt)
-            self.full(f"{title}\n")
+            self.set_message_content(f"{title}\n")
             #self.data_base.add_document(title,prompt, add_to_index=True)
             self.step_end("Saving the information to long term memory")
             self.step_start(f"Assimilating the Data")
             out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
             self.step_end(f"Assimilating the Data")
-            self.full(out+"\nReady to start building, please say Start building when you think that you have input all data required.")
+            self.set_message_content(out+"\nReady to start building, please say Start building when you think that you have input all data required.")
         elif operation == 2: #build the software
             ASCIIColors.info("Generating")
             self.step("Detected a software build request")
@@ -168,7 +168,7 @@ class Processor(APScript):
             #self.data_base.add_document(title,prompt, add_to_index=True)
             #self.data_base.add_document("Plan",plan, add_to_index=True)
             self.step_end("Building plan")
-            self.full(output+"\n"+"## Plan:\n"+plan+"---")
+            self.set_message_content(output+"\n"+"## Plan:\n"+plan+"---")
             self.new_message("")
             self.step_start("Building files structure")
             context_details["discussion_messages"] += "\n"+context_details["ai_prefix"]+plan+"\n"
@@ -231,8 +231,8 @@ class Processor(APScript):
                 else:
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
                     attempt +=1 
-                self.full(self.output)
-            self.full(self.output)
+                self.set_message_content(self.output)
+            self.set_message_content(self.output)
             ASCIIColors.yellow(code)            
             
             
@@ -248,7 +248,7 @@ class Processor(APScript):
             self.step_start(f"Assimilating the Data")
             out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
             self.step_end(f"Assimilating the Data")
-            self.full(out)
+            self.set_message_content(out)
             attempt =0
             while attempt<self.personality_config.max_coding_attempts:
                 self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
@@ -267,7 +267,7 @@ class Processor(APScript):
                 else:
                     self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
                     attempt +=1 
-                self.full(self.output)
-            self.full(self.output)            
+                self.set_message_content(self.output)
+            self.set_message_content(self.output)            
         return ""
 

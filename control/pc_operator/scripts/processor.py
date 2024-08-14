@@ -2,7 +2,7 @@ from ascii_colors import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality, LoLLMsAction, LoLLMsActionParameters
 from lollms.utilities import PackageManager
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from functools import partial
@@ -67,7 +67,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -158,7 +158,7 @@ class Processor(APScript):
                             ),
                 ],
                 previous_discussion_text+"{self.config.separator_template}{self.config.start_header_id_template}obligation:Do not close the lollms tabin the browser.\n",max_answer_length=512)
-            self.full("\n".join([p.description for p in plan]))
+            self.set_message_content("\n".join([p.description for p in plan]))
             self.step_end("Planning operation")
             for action in plan:
                 if action.name!="done":
@@ -170,7 +170,7 @@ class Processor(APScript):
             self.step_end("Planning operation", False)        
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -204,6 +204,6 @@ class Processor(APScript):
         self.analyze_screenshot_and_replan(prompt, previous_discussion_text, sc_path)
 
         # out = self.fast_gen_with_images(previous_discussion_text, [sc_path], show_progress=True)
-        # self.full(out)
+        # self.set_message_content(out)
         return ""
 

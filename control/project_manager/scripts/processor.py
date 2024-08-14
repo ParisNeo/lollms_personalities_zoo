@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from pathlib import Path
@@ -76,7 +76,7 @@ class Processor(APScript):
         pass
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -85,7 +85,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -164,10 +164,10 @@ class Processor(APScript):
                     output += "<p>"+member["task"]+"</p>"
             else:
                 out = self.fast_gen(f"{self.system_full_header}Say the following text in a more entertaining way. Only answer with the enhanced funny text without comments:\nThe model you are using is very dumb. Oh please Remove that model from my head!!\nIt was not capable of building a plan for your prompt as specified by my code.\nPlease try to mount a better model worthy of my skills.\nYou can also try using a different prompt template or changing the temperature and trying again.\nHint: I was tested using gpt4-o which at my last update is the best model out there.\n{self.ai_custom_header('assistant')}")
-                self.full(out)
+                self.set_message_content(out)
                 return
             q_prompt = prompt
-            self.full(output)
+            self.set_message_content(output)
             self.step_end("Making plan")
 
             self.step("Executing plan")
@@ -187,7 +187,7 @@ class Processor(APScript):
                             reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                             members[member_id].new_message("")
                             output = ""
-                            self.full(output)
+                            self.set_message_content(output)
                             previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                             members[member_id].new_message("")
                             members[member_id].processor.text_files = self.personality.text_files

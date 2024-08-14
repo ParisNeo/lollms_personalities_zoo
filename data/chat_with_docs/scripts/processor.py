@@ -1,8 +1,8 @@
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from ascii_colors import ASCIIColors, trace_exception
@@ -101,7 +101,7 @@ class Processor(APScript):
     
 
     def help(self, prompt, full_context):
-        self.full(self.personality.help, callback=self.callback)
+        self.set_message_content(self.personality.help, callback=self.callback)
         
     def process_batch(self, prompt, full_context):
         output = ""
@@ -114,13 +114,13 @@ class Processor(APScript):
         for i, question in enumerate(questions):
             if len(question)>5:
                 output += "## Question:\n"+question+"\n"
-                self.full(output)
+                self.set_message_content(output)
                 self.step_start(f"Analyzing request {i+1}/{len(questions)}")
                 if self.personality_config.build_keywords:
                     query = self.personality.fast_gen("{self.config.start_header_id_template}prompt:"+question+"{self.config.separator_template}{self.config.start_header_id_template}instruction: Convert the prompt to a web search query."+"\nDo not answer the prompt. Do not add explanations. Use comma separated syntax to make a list of keywords in the same line.\nThe keywords should reflect the ideas written in the prompt so that a seach engine can process them efficiently.{self.config.separator_template}{self.config.start_header_id_template}query: ", max_generation_size=256, show_progress=True)
                     preprocessed_prompt = self.fast_gen(query, int(self.personality_config["max_answer_size"]),show_progress=True).strip()
                     output += "### Query:\n"+preprocessed_prompt+"\n"
-                    self.full(output)
+                    self.set_message_content(output)
                 else:
                     preprocessed_prompt = question
                 if preprocessed_prompt=="":
@@ -142,7 +142,7 @@ class Processor(APScript):
                     ASCIIColors.yellow(full_text)
                 answer = self.fast_gen(full_text, self.personality_config["max_answer_size"],show_progress=True).strip()
                 output += "## Answer:\n"+answer+"\n"
-                self.full(output)
+                self.set_message_content(output)
                 docs_sources=[]
                 for entry in sorted_similarities:
                     e = "_".join(entry[0].replace("\\","/").split("/")[-1].split('_')[:-2])
@@ -155,7 +155,7 @@ class Processor(APScript):
                 ASCIIColors.yellow(output)
 
                 self.step_end(f"Analyzing request {i+1}/{len(questions)}")
-                self.full(output)                
+                self.set_message_content(output)                
         self.step_start("Saving report")
         if self.personality_config.batch_mode_report_file!="":
             with open(self.personality_config.batch_mode_report_file, "w") as f:
@@ -172,20 +172,20 @@ class Processor(APScript):
             out_path+=f"db{end}.png"
             self.vector_store.show_document(save_fig_path=out_pth/"db.png",show_interactive_form=self.personality_config.show_interactive_form)
             if self.personality_config.data_visualization_method=="PCA":
-                self.full(f"Database representation (PCA):\n![{out_path}]({out_path})", callback=self.callback)
+                self.set_message_content(f"Database representation (PCA):\n![{out_path}]({out_path})", callback=self.callback)
             else:
-                self.full(f"Database representation (TSNE):\n![{out_path}]({out_path})", callback=self.callback)
+                self.set_message_content(f"Database representation (TSNE):\n![{out_path}]({out_path})", callback=self.callback)
 
     def set_database(self, prompt, full_context):
         self.goto_state("waiting_for_file")
 
     def clear_database(self,prompt, full_context):
         self.vector_store.clear_database()
-        self.full("Starting fresh")
+        self.set_message_content("Starting fresh")
         
     def show_files(self,prompt, full_context):
         files = "\n".join([f.name for f in self.personality.text_files])
-        self.full(files)
+        self.set_message_content(files)
         
 
     def chat_with_doc(self, prompt, full_context):
@@ -203,7 +203,7 @@ class Processor(APScript):
             self.step_end("Analyzing request", callback=self.callback)
             if preprocessed_prompt=="":
                 preprocessed_prompt = prompt
-            self.full(f"Query : {preprocessed_prompt}")
+            self.set_message_content(f"Query : {preprocessed_prompt}")
 
             docs, sorted_similarities, document_ids = self.vector_store.recover_text(preprocessed_prompt, top_k=int(self.personality_config.nb_chunks))
             # for doc in docs:
@@ -239,9 +239,9 @@ class Processor(APScript):
             ASCIIColors.yellow(output)
 
             self.step_end("Thinking", callback=self.callback)
-            self.full(output, callback=self.callback)
+            self.set_message_content(output, callback=self.callback)
         else:
-            self.full("Vector store is not ready. Please send me a document to use. Use Send file command form your chatbox menu to trigger this.", callback=self.callback)
+            self.set_message_content("Vector store is not ready. Please send me a document to use. Use Send file command form your chatbox menu to trigger this.", callback=self.callback)
 
     def build_db(self):
         if self.vector_store is None:
@@ -297,7 +297,7 @@ class Processor(APScript):
         super().add_file(path, client)
         self.prepare()
         try:
-            self.new_message("",MSG_TYPE.MSG_TYPE_FULL_INVISIBLE_TO_AI)
+            self.new_message("",MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
             self.step_start("Vectorizing database", callback = callback)
             if not self.build_db():
                 self.step_end("Vectorizing database",status=False, callback = callback)
@@ -335,7 +335,7 @@ class Processor(APScript):
             self.ready = True
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

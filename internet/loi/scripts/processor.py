@@ -1,6 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality, craft_a_tag_to_specific_text
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
@@ -220,7 +220,7 @@ class Processor(APScript):
         driver.quit()
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -302,7 +302,7 @@ class Processor(APScript):
             )
         print(prompt)
         output = self.fast_gen(prompt, self.personality_config.max_summery_size, callback=self.sink)
-        self.full(output)
+        self.set_message_content(output)
         sources_text = '<div class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm ">'
         sources_text += '<div class="text-gray-400 mr-10px">Sources:</div>'
         for i,s in enumerate(sorted_similarities):
@@ -323,7 +323,7 @@ class Processor(APScript):
             #sources_text += f"- [{i+1}] : {crafted_link}\n\n"#{link}]({href})\n\n"
         sources_text += '</div>'
         output = output+sources_text
-        self.full(output)
+        self.set_message_content(output)
         self.step_end("Building summary")
 
         return output

@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.utilities import PackageManager
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.internet import internet_search, scrape_and_save
 from typing import Callable
 
@@ -108,7 +108,7 @@ class Processor(APScript):
         pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
         if len(pages)==0:
-            self.full("Failed to do internet search!!")
+            self.set_message_content("Failed to do internet search!!")
             self.step_end("Performing internet search",False)
             return
         self.step_end("Performing internet search")
@@ -135,7 +135,7 @@ class Processor(APScript):
                             ]),
                             "Document chunk"
                             )
-                self.full(page_text)
+                self.set_message_content(page_text)
             else:
                 chunks = self.vectorize_and_query(page['content'], page['title'], page['url'], query)
                 content = "\n".join([c.text for c in chunks])
@@ -155,8 +155,8 @@ class Processor(APScript):
                     ]),
                     "Document chunk"
                     )
-                self.full(page_text)
-            self.full(page_text)
+                self.set_message_content(page_text)
+            self.set_message_content(page_text)
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
@@ -178,7 +178,7 @@ class Processor(APScript):
             "Document chunk",
             callback=self.sink
             )
-        self.full(page_text)
+        self.set_message_content(page_text)
 
         self.step_start(f"Last composition")
         page_text = self.summarize_text(page_text,"\n".join([
@@ -194,7 +194,7 @@ class Processor(APScript):
             "Document chunk",
             callback=self.sink
             )
-        self.full(page_text)
+        self.set_message_content(page_text)
         self.step_end(f"Last composition")
 
         if self.personality_config.output_path:
@@ -242,7 +242,7 @@ class Processor(APScript):
         return card_html
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

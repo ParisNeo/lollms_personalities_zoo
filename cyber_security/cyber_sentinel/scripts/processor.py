@@ -1,7 +1,7 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
@@ -76,7 +76,7 @@ class Processor(APScript, FileSystemEventHandler):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
 
     def on_modified(self, event):
@@ -181,7 +181,7 @@ Here is my report as a valid json:
                     except Exception as ex:
                         ASCIIColors.error(ex)
                     self.step_end(f"Processing {file.name} chunk {i+1}/{n_chunks}")
-                    self.full(self.output)
+                    self.set_message_content(self.output)
 
                 self.step_end(f"Processing {file.name}")
 
@@ -236,7 +236,7 @@ Here is my report as a valid json:
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -266,11 +266,11 @@ Here is my report as a valid json:
         self.callback = callback
         if self.personality_config.output_file_path=="":
             out = self.fast_gen(previous_discussion_text + "Please set the output file path in my settings page.")
-            self.full(out)
+            self.set_message_content(out)
             return
         if self.personality_config.logs_path=="":
             out = self.fast_gen(previous_discussion_text + "Please set the logs folder path in my settings page.")
-            self.full(out)
+            self.set_message_content(out)
             return
 
         self.process_logs(

@@ -5,9 +5,10 @@ Author: # Placeholder: Creator name (e.g., "ParisNeo")
 Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
 
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image_from_simple_prompt
 from lollms.functions.select_image_file import select_image_file_function
@@ -178,7 +179,7 @@ class Processor(APScript):
         # Example implementation that simply calls a method on the personality to get help information.
         # This can be expanded to dynamically generate help text based on the current state,
         # available commands, and user context.
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def buildDescription(self, context_details, out, metadata, client:Client):
         self.step_start("Building description.yaml")
@@ -221,7 +222,7 @@ disclaimer: If needed, write a disclaimer. else null
             with open(app_path/"description.yaml","w") as f:
                 yaml.safe_dump(infos,f)
             out += f"description file:\n```yaml\n{codes[0]['content']}"+"\n```\n"
-            self.full_invisible_to_ai(out)
+            self.set_message_content_invisible_to_ai(out)
             self.step_end("Building description.yaml")
             return infos
         else:
@@ -276,14 +277,14 @@ disclaimer: If needed, write a disclaimer. else null
             out += f"index file:\n```html\n{code}"+"\n```\n"
             self.step_end("Building index.html")
             shutil.copy(Path(__file__).parent.parent/"assets"/"icon.png", Path(metadata["app_path"])/"icon.png")
-            self.full_invisible_to_ai(out)
+            self.set_message_content_invisible_to_ai(out)
         else:
             self.step_end("Building index.html", False)
-            self.full("The model you are using failed to build the index.html file. Change the prompt a bit and try again.")
+            self.set_message_content("The model you are using failed to build the index.html file. Change the prompt a bit and try again.")
 
     def update_index(self, context_details, metadata, out:str):
         if not metadata.get("app_path", None):
-            self.full("""
+            self.set_message_content("""
 <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
     <h3 style="margin-top: 0;">⚠️ No Application Path Found</h3>
     <p>It appears that no application path is present in this discussion. Before attempting to make updates, you need to create a new project first.</p>
@@ -355,7 +356,7 @@ disclaimer: If needed, write a disclaimer. else null
 
             self.step_end("Updating index.html")
 
-            self.full_invisible_to_ai(out)            
+            self.set_message_content_invisible_to_ai(out)            
         else:
             crafted_prompt = self.build_prompt(
                 [
@@ -423,7 +424,7 @@ disclaimer: If needed, write a disclaimer. else null
 
             self.step_end("Updating index.html")
 
-            self.full_invisible_to_ai(out)
+            self.set_message_content_invisible_to_ai(out)
 
     def generate_icon(self, repo, infos, metadata, client):
         app_path = Path(metadata["app_path"])
@@ -453,7 +454,7 @@ disclaimer: If needed, write a disclaimer. else null
             repo.index.add([os.path.relpath(icon_dst, app_path)])
             repo.index.commit("Add icon.png")        
     
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -496,7 +497,7 @@ disclaimer: If needed, write a disclaimer. else null
             # ----------------------------------------------------------------
             infos = self.buildDescription(context_details, out, metadata, client)
             if infos is None:
-                self.full("The AI failed to build the description")
+                self.set_message_content("The AI failed to build the description")
                 return
             # ----------------------------------------------------------------
             self.buildIndex(context_details, infos, out, metadata, client)
@@ -586,7 +587,7 @@ disclaimer: If needed, write a disclaimer. else null
     </ol>
 </div>
             """
-            self.full_invisible_to_ai(out)
+            self.set_message_content_invisible_to_ai(out)
             client.discussion.set_metadata(metadata)
         elif choices ==2:
             out = ""

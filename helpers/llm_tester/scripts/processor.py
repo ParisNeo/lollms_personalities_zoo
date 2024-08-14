@@ -4,9 +4,10 @@ personality: # Place holder: Personality name
 Author: # Place holder: creator name 
 description: # Place holder: personality description
 """
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
-from lollms.personality import APScript, AIPersonality, MSG_TYPE
+from lollms.personality import APScript, AIPersonality
 import subprocess
 import json
 from typing import Callable
@@ -71,7 +72,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
 
     def is_ok(self, prompt, true_answer, models_list):
         for model_to_test in models_list:
@@ -85,7 +86,7 @@ class Processor(APScript):
             msg.append("Please set the test file path to be used in my settings first then try again. I need that file to test the AIs")
         if self.personality_config.models_to_test=="":
             msg.append("Please set the list of models to be tested first (in form binding_name/model_name) It is case sensitive so be careful.")
-        self.full("\n".join(msg))
+        self.set_message_content("\n".join(msg))
         if len(msg)>0:
             return
         master_model={
@@ -151,7 +152,7 @@ class Processor(APScript):
             json.dump(results, f, indent=4)
         
         self.step_end(f'Saving test results')
-        self.full("Done testing.\nFinal results:\n"+"\n".join([f"{k}: {v}% correct answers." for k,v in results["results"].items()])+f"\nThe details can be found in the generated file on your pc at {self.personality_config.output_file_path}")
+        self.set_message_content("Done testing.\nFinal results:\n"+"\n".join([f"{k}: {v}% correct answers." for k,v in results["results"].items()])+f"\nThe details can be found in the generated file on your pc at {self.personality_config.output_file_path}")
     
     def add_file(self, path, client, callback=None):
         """
@@ -160,7 +161,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -188,6 +189,6 @@ class Processor(APScript):
         self.personality.info("Generating")
         self.callback = callback
         out = self.fast_gen(previous_discussion_text)
-        self.full(out)
+        self.set_message_content(out)
         return out
 

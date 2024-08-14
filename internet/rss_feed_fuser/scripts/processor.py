@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.utilities import PackageManager
 from lollms.personality import APScript, AIPersonality
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from lollms.internet import internet_search, scrape_and_save
 from typing import Callable
 
@@ -192,7 +192,7 @@ class Processor(APScript):
                 "### News:",
             ]+links)
             ASCIIColors.yellow("Done URLs recovery")
-            self.full(output)
+            self.set_message_content(output)
 
     def fuse_articles(self, prompt="", full_context=""):
         output_folder = self.personality_config.output_folder
@@ -235,7 +235,7 @@ class Processor(APScript):
 </div>    
 <b>{'same' if answer else 'different'}<b><br>
 '''+previous_output
-                        self.full(out)
+                        self.set_message_content(out)
                         if answer:
                             subjects[-1].append(second_feed)
                             processed.append(second_feed)
@@ -259,7 +259,7 @@ class Processor(APScript):
     <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
 </div>    
 '''+previous_output
-                self.full(out)
+                self.set_message_content(out)
 
 
 
@@ -320,7 +320,7 @@ class Processor(APScript):
 '''
             out += self.build_a_folder_link(self.personality_config.output_folder,"Open output folder")
             out +=card
-            self.full(out)
+            self.set_message_content(out)
         out = "<html><header></header><body>"+"\n"+out+"</body><html>"
         with open(output_folder/"news.html","w") as f:
             f.write(out)
@@ -352,7 +352,7 @@ class Processor(APScript):
                 progress = ((index+1) / total_entries) * 100
                 answer = self.multichoice_question("Determine the category that suits this article the most.", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
                 categorized[cats[answer]].append(feed)
-                self.full(f'''
+                self.set_message_content(f'''
 Article classified as : {cats[answer]}
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
@@ -377,7 +377,7 @@ Article classified as : {cats[answer]}
         self.fuse_articles()
         self.categorize_news()
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

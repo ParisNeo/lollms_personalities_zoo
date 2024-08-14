@@ -2,7 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
-from lollms.types import MSG_TYPE
+from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable
 import importlib.util
 import subprocess
@@ -87,7 +87,7 @@ class Processor(APScript):
         ASCIIColors.success("Installed successfully")        
 
     def help(self, prompt="", full_context=""):
-        self.full(self.personality.help)
+        self.set_message_content(self.personality.help)
     
     def add_file(self, path, client, callback=None):
         """
@@ -160,14 +160,14 @@ class Processor(APScript):
         self.goto_state("idle")
         index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: extract the index name from the prompt?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
         self.operation(index_name.replace("\"","").replace(".",""))
-        self.full("Index created successfully")
+        self.set_message_content("Index created successfully")
 
     def get_mapping(self, prompt, previous_discussion_text=""):
         self.goto_state("idle")
         output="```json\n{\n    \"properties\": {"+self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested mapping in json format?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
         output=self.remove_backticks(output.strip())
         self.create_mapping(json.loads(output))
-        self.full("Mapping created successfully")
+        self.set_message_content("Mapping created successfully")
 
     def idle(self, prompt, previous_discussion_text=""):
         self.step_start("Analyzing request")
@@ -192,21 +192,21 @@ class Processor(APScript):
                 out = "Here is the list of available indexes:\n"
                 for index in indexes:
                     out += f"- {index}\n"
-                self.full(out)
+                self.set_message_content(out)
             except Exception as ex:
-                self.full(f"I couldn't recover the indexes because of the following error:\n<p>{ex}</p>")
+                self.set_message_content(f"I couldn't recover the indexes because of the following error:\n<p>{ex}</p>")
 
         elif index==1:# "The prompt is asking for creating a new index"
             self.step("Analysis result: The prompt is asking for creating a new index")
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested index name?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
                 if self.create_index(index_name.replace("\"","").replace(".","")):
-                    self.full("Index created successfully")
+                    self.set_message_content("Index created successfully")
                 else:
-                    self.full("Unfortunately an error occured and I couldn't build the index. please check the connection to the database as well as the certificate")
+                    self.set_message_content("Unfortunately an error occured and I couldn't build the index. please check the connection to the database as well as the certificate")
 
             else:
-                self.full("Please provide the index name")
+                self.set_message_content("Please provide the index name")
                 self.operation = self.create_index
                 self.goto_state("waiting_for_index_name")
                 return
@@ -215,9 +215,9 @@ class Processor(APScript):
             if self.yes_no("does the prompt contain the index name?",prompt):
                 index_name=self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested index name?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is ").split("\n")[0].strip()
                 self.set_index(index_name)
-                self.full("Index set successfully")
+                self.set_message_content("Index set successfully")
             else:
-                self.full("Please provide the index name")
+                self.set_message_content("Please provide the index name")
                 self.operation = self.set_index
                 self.goto_state("waiting_for_index_name")
                 return
@@ -227,16 +227,16 @@ class Processor(APScript):
                 output="```json\n{\n    \"properties\": {"+self.fast_gen(f"{self.config.start_header_id_template}instruction: what is the requested mapping in json format?{self.config.separator_template}{self.config.start_header_id_template}user prompt: {prompt}{self.config.separator_template}{self.config.start_header_id_template}answer: The requested index name is :\n```json\n"+"{\n    \"properties\": {")
                 output=self.remove_backticks(output.strip())
                 self.create_mapping(json.loads(output))
-                self.full("Mapping created successfully")
+                self.set_message_content("Mapping created successfully")
             else:
-                self.full("Please provide the mapping")
+                self.set_message_content("Please provide the mapping")
                 self.operation = self.set_index
                 self.goto_state("waiting_for_mapping")
                 return
         elif index==4:# "reading a mapping"            
             self.step("Analysis result: The prompt is asking for reading a mapping")
             mapping = self.read_mapping()
-            self.full("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
+            self.set_message_content("```json\n"+json.dumps(mapping.body,indent=4)+"\n```\n")
         elif index==5:# "a question about an entry"
             self.step("Analysis result: The prompt is asking a question about an entry")
         elif index==6:# "add an entry to the database"
@@ -271,7 +271,7 @@ class Processor(APScript):
                     out = f"<div hidden>\n{code}\n</div>\n" + self.fast_gen(f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Describe the data being added to the database.{self.config.separator_template}{self.config.start_header_id_template}code: {code}"+"{self.config.start_header_id_template}elesticsearchai: ")
                 else:
                     out = f"<div hidden>\n{code}\n</div>\n" + "Couldn't add data to the database"
-                self.full(out)
+                self.set_message_content(out)
         elif index==7:# "querying the database"
             self.step("Analysis result: The prompt is asking for querying the database")
             code = "```python\nfrom elasticsearch import Elasticsearch\n"+self.fast_gen("{self.config.start_header_id_template}context!:\n"+previous_discussion_text+"{self.config.separator_template}{self.config.start_header_id_template}instructions: Make a python function that takes an ElasticSearch object es and perform the right operations to query the database in order to answer the question of the user. The output should be a string containing the requested information in markdown format.\nHere is the signature of the function:\ndef query(es:ElasticSearch, index_name:str)->str:\nDo not provide explanations or usage example.{self.config.separator_template}{self.config.start_header_id_template}elasticsearch_ai:Here is the query function that you are asking for:\n```python\n", callback=self.sink)
@@ -294,16 +294,16 @@ class Processor(APScript):
                     out = self.fast_gen(self.personality.personality_conditioning+"\n"+previous_discussion_text+docs)
                 else:
                     out = "Failed to query the database"
-                self.full(out)
+                self.set_message_content(out)
         else:
             self.step("Analysis result: The prompt is asking for something else")
             out = self.fast_gen(previous_discussion_text)
-            self.full(out)        
+            self.set_message_content(out)        
         
 
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
@@ -331,13 +331,13 @@ class Processor(APScript):
 
         self.callback = callback
         if self.personality_config.user=="" or self.personality_config.servers=="":
-            self.full("Sorry, but before talking, I need to get access to your elasticsearch server.\nTo do this:\n- Got to my settings and set the server(s) names in hte format https://server name or ip address:port number. You can give multiple servers separated by coma.\n- Set your user name and password.\n- come back here and we can start to talk.")
+            self.set_message_content("Sorry, but before talking, I need to get access to your elasticsearch server.\nTo do this:\n- Got to my settings and set the server(s) names in hte format https://server name or ip address:port number. You can give multiple servers separated by coma.\n- Set your user name and password.\n- come back here and we can start to talk.")
         else:
             self.prepare()
             if self.ping():
                 self.process_state(prompt, previous_discussion_text)
             else:
-                self.full("I couldn't connect to the server. Please make sure it is on and reachable and that your user name and password are correct")
+                self.set_message_content("I couldn't connect to the server. Please make sure it is on and reachable and that your user name and password are correct")
 
         return ""
 
