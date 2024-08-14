@@ -322,7 +322,7 @@ class Processor(APScript):
             output = output0
             self.set_message_content(output)
 
-            infos = self.paint(metadata["positive_prompt"], metadata["negative_prompt"], metadata["previous_sd_title"], output, client)
+            infos = self.paint(metadata["positive_prompt"], metadata["negative_prompt"], metadata["sd_title"], output, client)
          
             self.step_end("Regenerating using the previous prompt")
         else:
