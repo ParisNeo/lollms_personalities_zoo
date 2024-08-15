@@ -3,7 +3,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import trace_exception
 from lollms.personality import APScript, AIPersonality
-from typing import Callable
+from typing import Callable, Any
 
 
 from pathlib import Path
@@ -11,7 +11,7 @@ import subprocess
 import re
 
 from lollms.client_session import Client
-from typing import Callable
+from typing import Callable, Any
 
 
 def format_url_parameter(value:str):
@@ -124,7 +124,7 @@ class Processor(APScript):
 
         return summary, is_ambiguous
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 

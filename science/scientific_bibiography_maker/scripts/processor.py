@@ -13,7 +13,7 @@ import requests
 import json
 from lollmsvectordb import VectorDatabase
 import requests 
-from typing import Callable
+from typing import Callable, Any
 if not PackageManager.check_package_installed("arxiv"):
     PackageManager.install_package("arxiv")
 
@@ -555,7 +555,7 @@ class Processor(APScript):
         self.summarize_report(report, download_folder, client)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

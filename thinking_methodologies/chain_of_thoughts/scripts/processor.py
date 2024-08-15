@@ -13,7 +13,7 @@ import yaml
 import random
 import re
 from lollms.client_session import Client
-from typing import Callable
+from typing import Callable, Any
 
 def find_matching_number(numbers, text):
     for index, number in enumerate(numbers):
@@ -108,7 +108,7 @@ class Processor(APScript):
                                 ).strip()    
         
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         Runs the workflow for processing the model input and output.
 

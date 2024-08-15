@@ -15,7 +15,7 @@ from pathlib import Path
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
-from typing import Callable
+from typing import Callable, Any
 from functools import partial
 from ascii_colors import trace_exception
 
@@ -157,7 +157,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

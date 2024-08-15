@@ -7,6 +7,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, File_Path_Generator
 from lollms.client_session import Client
 import pipmaster as pm
+from typing import Any
 
 import pipmaster as pm
 if not pm.is_installed("torch"):
@@ -20,7 +21,7 @@ if not torch.cuda.is_available():
 
 import torchaudio
 
-from typing import Callable
+from typing import Callable, Any
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -242,7 +243,7 @@ The generation ai has no access to the previous text so do not do references and
 
 
         
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

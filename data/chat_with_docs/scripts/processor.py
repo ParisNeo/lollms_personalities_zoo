@@ -3,7 +3,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.paths import LollmsPaths
 from lollms.types import MSG_OPERATION_TYPE
-from typing import Callable
+from typing import Callable, Any
 
 from ascii_colors import ASCIIColors, trace_exception
 from safe_store import TextVectorizer, VectorizationMethod, GenericDataLoader
@@ -335,7 +335,7 @@ class Processor(APScript):
             self.ready = True
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

@@ -4,7 +4,7 @@ from lollms.utilities import PackageManager
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.internet import internet_search, scrape_and_save
-from typing import Callable
+from typing import Callable, Any
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 from lollmsvectordb.text_chunker import TextChunker
@@ -377,7 +377,7 @@ Article classified as : {cats[answer]}
         self.fuse_articles()
         self.categorize_news()
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

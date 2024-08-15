@@ -6,6 +6,7 @@ Description: This personality can help you keep positive thoughts and access the
 """
 
 from lollms.types import MSG_OPERATION_TYPE
+from typing import Any
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
@@ -14,7 +15,7 @@ from lollms.utilities import output_file_path_to_url
 from lollms.functions.generate_image import build_image, build_image_function
 from ascii_colors import trace_exception
 import subprocess
-from typing import Callable
+from typing import Callable, Any
 from functools import partial
 
 import sqlite3
@@ -470,7 +471,7 @@ class Processor(APScript):
             return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

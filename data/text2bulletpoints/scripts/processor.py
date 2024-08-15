@@ -6,7 +6,7 @@ from lollms.helpers import ASCIIColors
 
 import json
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Any
 
 class Text2Paragraphs:
     def __init__(self, database_path=None, max_chunk_size=2000):
@@ -192,7 +192,7 @@ class Processor(APScript):
             return False        
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

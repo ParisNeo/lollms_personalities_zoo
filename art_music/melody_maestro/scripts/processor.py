@@ -5,6 +5,8 @@ Author: # Placeholder: Creator name (e.g., "ParisNeo")
 Description: # Placeholder: Personality description (e.g., "A personality designed for enthusiasts of science and technology, promoting engaging and informative interactions.")
 """
 from lollms.types import MSG_OPERATION_TYPE
+from typing import Any
+
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
@@ -18,7 +20,7 @@ from lollms.functions.peripherals import move_mouse_to_position_function, press_
 from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.music_gen import open_and_fill_udio_function
 
-from typing import Callable
+from typing import Callable, Any
 from functools import partial
 from ascii_colors import trace_exception
 
@@ -184,7 +186,7 @@ class Processor(APScript):
 
 
         
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

@@ -14,7 +14,7 @@ import yaml
 import re
 import random
 
-from typing import Callable
+from typing import Callable, Any
 
 
 def find_matching_number(numbers, text):
@@ -79,7 +79,7 @@ class Processor(APScript):
             return True
         
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

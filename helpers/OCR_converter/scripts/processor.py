@@ -8,7 +8,7 @@ from lollms.utilities import PromptReshaper, git_pull, PackageManager
 import re
 import importlib
 import requests
-from typing import Callable
+from typing import Callable, Any
 from tqdm import tqdm
 import webbrowser
 from functools import partial
@@ -113,7 +113,7 @@ class Processor(APScript):
             self.set_message_content(text)
             
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

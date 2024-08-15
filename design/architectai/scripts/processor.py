@@ -13,7 +13,7 @@ from tqdm import tqdm
 import webbrowser
 from typing import Dict, Any
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Any
 
 
 import requests
@@ -624,7 +624,7 @@ Given this image description prompt and negative prompt, make a consize title
         return {"status":False, "message":"Unknown operation"}
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

@@ -4,6 +4,8 @@ import os
 import sys
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_OPERATION_TYPE
+from typing import Any
+
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.personality import APScript, AIPersonality
 import time
@@ -18,7 +20,7 @@ from torchvision import transforms
 from PIL import Image
 from transformers import Blip2Processor, Blip2ForConditionalGeneration
 from lollms.utilities import check_and_install_torch
-from typing import Callable
+from typing import Callable, Any
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -172,7 +174,7 @@ class Processor(APScript):
                                 ).strip()    
         
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 

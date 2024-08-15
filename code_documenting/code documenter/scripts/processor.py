@@ -5,12 +5,14 @@ Author: # Place holder: creator name
 description: # Place holder: personality description
 """
 from lollms.types import MSG_OPERATION_TYPE
+from typing import Any
+
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Any
 import subprocess
 import ast
 
@@ -224,7 +226,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
 
