@@ -10,6 +10,7 @@
 
 <script>
     const infoData_{{image_id}} = {{__infos__}};
+    const buttonClasses = 'px-4 py-2 rounded-md text-white transition-colors duration-300';
     
     function copy_to_clipboard(infoData){
         text = `${infoData["prompt"]}\n${infoData["negative_prompt"]}`;
@@ -46,7 +47,6 @@
         const buttonsBar = document.createElement('div');
         buttonsBar.className = 'flex justify-center space-x-2 p-4';
 
-        const buttonClasses = 'px-4 py-2 rounded-md text-white transition-colors duration-300';
         const saveButton = createButton('Save Image', 'bg-green-500 hover:bg-green-600', () => saveImage(imageId, infoData));
         const saveMetadataButton = createButton('Save Metadata', 'bg-blue-500 hover:bg-blue-600', () => saveMetadata(imageId, infoData));
         const variateButton = createButton('Variate', 'bg-purple-500 hover:bg-purple-600', () => postToPersonality(imageId, infoData, {{client_id}}));

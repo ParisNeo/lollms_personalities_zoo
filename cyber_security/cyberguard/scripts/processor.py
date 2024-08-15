@@ -69,7 +69,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
     
 
-    def process_chunk(self, title, chunk, message = ""):
+    def process_data(self, title, chunk, message = ""):
         self.step_start(f"Processing {title}")
         prompt = self.build_prompt([
             f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Read the code chunk and try to detect any portential vulenerabilities. Point out the error by rewriting the code line where it occures, then propose a fix to it with a small example.",
@@ -95,7 +95,7 @@ class Processor(APScript):
                 tk = self.personality.model.tokenize(txt)
                 message +=f"<h2>{txt_pth}</h2>\n"
                 if len(tk)<self.personality.config.ctx_size/2:
-                    message = self.process_chunk(f"{txt_pth}",txt, message)
+                    message = self.process_data(f"{txt_pth}",txt, message)
                 else:
                     self.step_start(f"Chunking file {txt_pth}")
                     cs = int(self.personality.config.ctx_size/2)
@@ -106,7 +106,7 @@ class Processor(APScript):
                         message +=f"<h3>chunk : {chunk_id+1}</h3>\n"
                         chunk = tk[last_pos:last_pos+cs]
                         last_pos= last_pos+cs
-                        message = self.process_chunk(f"{txt_pth} chunk {chunk_id+1}/({n+1})", self.personality.model.detokenize(chunk), message)
+                        message = self.process_data(f"{txt_pth} chunk {chunk_id+1}/({n+1})", self.personality.model.detokenize(chunk), message)
                         chunk_id += 1
                     self.step_end(f"Chunking file {txt_pth}")
 

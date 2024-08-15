@@ -60,8 +60,11 @@ class Processor(APScript):
                 {"name":"generate_icon", "type":"bool", "value":False, "help":"Generate an icon for the application (requires tti to be active)."},
                 {"name":"use_lollms_library", "type":"bool", "value":False, "help":"Activate this if the application requires interaction with lollms."},
                 {"name":"use_lollms_tasks_library", "type":"bool", "value":False, "help":"Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
-                {"name":"use_lollms_image_gen_library", "type":"bool", "value":False, "help":"Activate this if the application requires image generation."},
-                {"name":"use_lollms_audio_gen_library", "type":"bool", "value":False, "help":"Activate this if the application requires audio manipulation."},
+                {"name":"use_lollms_rag_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
+                {"name":"use_lollms_image_gen_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application requires image generation."},
+                {"name":"use_lollms_audio_gen_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application requires audio manipulation."},
+
+                {"name":"use_lollms_localization_library", "type":"bool", "value":False, "help":"Activate this library if you want to automatically localize your application into multiple languages."},
 
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
@@ -445,6 +448,7 @@ disclaimer: If needed, write a disclaimer. else null
             shutil.copy(icon_src, icon_dst)
             self.step_end("Generating icon")
         else:
+            self.step_start("Using default icon")
             # Copy icon.png
             icon_src = Path(__file__).parent.parent/"assets"/"icon.png"
             icon_dst = app_path/"icon.png"
@@ -453,6 +457,7 @@ disclaimer: If needed, write a disclaimer. else null
             # Stage and commit the icon
             repo.index.add([os.path.relpath(icon_dst, app_path)])
             repo.index.commit("Add icon.png")        
+            self.step_end("Using default icon")
     
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str, MSG_OPERATION_TYPE, dict, list], bool]=None, context_details:dict=None, client:Client=None):
         """
@@ -561,6 +566,7 @@ disclaimer: If needed, write a disclaimer. else null
             repo.index.commit("Initial commit")
 
             self.step_end("Initializing Git repository")
+
             self.generate_icon(repo, metadata)
 
             # Show the user everything that was created

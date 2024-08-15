@@ -80,7 +80,7 @@ class Processor(APScript):
 
     def add_file(self, path, client, callback=None):
         if self.callback is None and callback==None:
-            self.callback = partial(self.personality.app.process_chunk, client_id = client.client_id)
+            self.callback = partial(self.personality.app.process_data, client_id = client.client_id)
         elif self.callback is None:
             self.callback = callback
         # Load an image using PIL (Python Imaging Library)
