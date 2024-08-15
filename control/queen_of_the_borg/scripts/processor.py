@@ -157,7 +157,7 @@ class Processor(APScript):
                     self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                     collective[selection].new_message("")
-                    collective[selection].full(f"At your service my queen.\n")
+                    collective[selection].set_message_content(f"At your service my queen.\n")
                     collective[selection].processor.text_files = self.personality.text_files
                     collective[selection].processor.image_files = self.personality.image_files
                     collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
@@ -168,7 +168,7 @@ class Processor(APScript):
                         self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                         previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                         collective[selection].new_message("")
-                        collective[selection].full(f"At your service my queen.\n")
+                        collective[selection].set_message_content(f"At your service my queen.\n")
                     collective[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
                 break
             except Exception as ex:

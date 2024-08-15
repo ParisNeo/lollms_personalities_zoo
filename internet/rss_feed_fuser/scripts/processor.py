@@ -147,7 +147,7 @@ class Processor(APScript):
             self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
             return
         self.new_message("")
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         if self.personality_config.rss_urls!="":
             self.step_start("Recovering rss feeds")
             rss_feeds = [feed.strip() for feed in self.personality_config.rss_urls.split(",")]
@@ -204,7 +204,7 @@ class Processor(APScript):
             self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
             return
         self.new_message("")
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         self.step_start("Fusing articles")
         with open(output_folder/"news_data.json","r") as f:
             feeds = json.load(f)
@@ -338,7 +338,7 @@ class Processor(APScript):
             self.personality.InfoMessage("output_folder does not exist, please open the configurations of the personality and set a valid output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
             return
         self.new_message("")
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         self.step_start("Categorizing articles")
         with open(output_folder/"news_data.json","r") as f:
             feeds = json.load(f)

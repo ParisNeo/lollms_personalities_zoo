@@ -204,7 +204,7 @@ class Processor(APScript):
                             ]))
                             members[member_id].new_message("")
                             output = members[member_id].generate(previous_discussion_text_,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
-                            members[member_id].full(output)
+                            members[member_id].set_message_content(output)
                         break
                     except Exception as ex:
                         trace_exception(ex)

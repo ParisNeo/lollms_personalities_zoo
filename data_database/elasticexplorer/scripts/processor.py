@@ -164,7 +164,7 @@ class Processor(APScript):
             prev_out = out
             out = self.fast_gen(prompt, callback=self.sink)
             self.set_message_content(out)
-            self.chunk("")
+            self.add_chunk_to_message_content("")
             context_details["discussion_messages"] += f"{self.config.start_header_id_template}ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""

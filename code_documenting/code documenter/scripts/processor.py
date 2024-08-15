@@ -158,7 +158,7 @@ class Processor(APScript):
                     output_documentation_file_path = docs_folder_path/f"{file.stem}.md"
                     if self.personality_config.reprocess_processed_files or not output_documentation_file_path.exists():
                         self.new_message("")
-                        self.chunk("")
+                        self.add_chunk_to_message_content("")
                         self.step_start(f"Processing file {file}")
                         with open(file, "r", encoding="utf-8") as f:
                             code = f.read()

@@ -316,7 +316,7 @@ class Processor(APScript):
         ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
         output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -324,7 +324,7 @@ class Processor(APScript):
         sd_negative_prompt = self.personality_config.default_negative_prompt
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         self.step_start("Painting Icon")
         try:
             files = []
@@ -443,7 +443,7 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Coming up with the personality name")
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         crafted_prompt = self.build_prompt(
             [
                 self.system_full_header,
@@ -533,7 +533,7 @@ class Processor(APScript):
         
         output_text+=self.build_a_document_block('Infos',"",Infos_text)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         self.step_start("Coming up with the description")
         crafted_prompt = self.build_prompt(
@@ -557,7 +557,7 @@ class Processor(APScript):
         ASCIIColors.yellow(f"Description: {description}")
         output_text+= self.build_a_document_block('description',"",description)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -584,7 +584,7 @@ class Processor(APScript):
         ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
         output_text+=self.build_a_document_block('disclaimer',"",disclaimer)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
 
         # ----------------------------------------------------------------
@@ -620,7 +620,7 @@ class Processor(APScript):
         ASCIIColors.yellow(f"Conditioning: {conditioning}")
         output_text+=self.build_a_document_block('conditioning',"",conditioning)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
@@ -645,7 +645,7 @@ class Processor(APScript):
         ASCIIColors.yellow(f"Welcome message: {welcome_message}")
         output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
         self.set_message_content(output_text)
-        self.chunk("")
+        self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
                          
         # ----------------------------------------------------------------

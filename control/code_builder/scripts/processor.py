@@ -206,7 +206,7 @@ class Processor(APScript):
                                 with open(file, "w", encoding="utf-8") as f:
                                     f.write(code_block["content"])
                                 #self.data_base.add_document(file,code_block["content"], add_to_index=True)
-                            self.chunk("\n")
+                            self.add_chunk_to_message_content("\n")
             self.step_end("Building files structure")
             self.step_start("preparing environment")
 
