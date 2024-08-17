@@ -239,6 +239,10 @@ disclaimer: If needed, write a disclaimer. else null
                 lollms_infos = f.read()
         else:
             lollms_infos = ""
+        if self.personality_config.use_lollms_localization_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_auto_localizer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
         crafted_prompt = self.build_prompt(
             [
                 self.system_full_header,

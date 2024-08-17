@@ -1,4 +1,4 @@
-### Lollms Library Information
+## Lollms client Library Information
 
 The Lollms library provides a robust framework for building applications that interact with Lollms as a client. This documentation will guide you through the essential steps to integrate and utilize the Lollms library effectively within your projects.
 
@@ -43,8 +43,12 @@ const lc = new LollmsClient(
     default_generation_mode = ELF_GENERATION_FORMAT.LOLLMS
 );
 ```
+Supported generation modes:
+ELF_GENERATION_FORMAT.LOLLMS : The default one that uses the lollms backend (key is optional)
+ELF_GENERATION_FORMAT.OPENAI : Uses openai API as backend and requires a key
+ELF_GENERATION_FORMAT.OLLAMA : Uses ollama API as backend (key is optional)
 
-2. **Generate Text from a Prompt:**
+1. **Generate Text from a Prompt:**
 
 To generate text, construct the prompt and use the `generate` method:
 
