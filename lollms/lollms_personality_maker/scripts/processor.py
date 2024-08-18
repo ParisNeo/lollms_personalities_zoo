@@ -431,8 +431,6 @@ class Processor(APScript):
                     <button onclick='open_script_in_vscode(); return false;' class='button-link'>Click here to open the script folder of the persona in vscode</button>
                 </div>
             </div>
-            """
-        footer ="""
             <script>
                 function open_script_folder(){
                     const secretMessage1 = {'folder_path': """+str(self.scripts_path)+"""};
@@ -465,7 +463,10 @@ class Processor(APScript):
                             console.error('Oh no! Something went wrong:', error);
                         });
                 }
-            </script>
+            </script>            
+            """
+        footer ="""
+
             </body>
             </html>
         """
@@ -476,7 +477,7 @@ class Processor(APScript):
         self.set_message_content(output_text)
         full_page = header+'\n'+ui+"\n"+footer
         print(full_page)
-        self.ui_in_iframe(full_page)
+        self.ui(ui)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
