@@ -331,4 +331,5 @@ class Processor(APScript):
             for stat in top_stats[:10]:
                 print(stat)
             tracemalloc.stop()
+            self.json("json", {"test":"test"})
 
