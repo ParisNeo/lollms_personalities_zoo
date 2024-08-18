@@ -49,6 +49,7 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"test_ui", "type":"bool", "value":False, "help":"Enables testing the ui functionality of lollms."},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -183,8 +184,151 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        full_prompt = self.build_prompt_from_context_details(context_details)
-        out = self.fast_gen(full_prompt)
+        if self.personality_config.test_ui:
+            prompt='''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Widgets Interface with Tailwind</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#3498db',
+                            dark: '#2980b9',
+                        },
+                        secondary: {
+                            light: '#2ecc71',
+                            dark: '#27ae60',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white transition-colors duration-200">
+    <div class="container mx-auto p-8 max-w-2xl">
+        <h1 class="text-3xl font-bold mb-8">Widget Interface with Themes</h1>
 
-        self.set_message_content(out)
+        <div class="mb-6">
+            <label for="theme" class="block mb-2">Select Theme:</label>
+            <select id="theme" class="w-full p-2 border rounded" onchange="toggleTheme(this.value)">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+        <div class="mb-6">
+            <label for="image-select" class="block mb-2">Select Image:</label>
+            <select id="image-select" class="w-full p-2 border rounded dark:bg-gray-700" onchange="changeImage(this.value)">
+                <option value="">Choose an image</option>
+                <option value="https://picsum.photos/300/200?random=1">Random Image 1</option>
+                <option value="https://picsum.photos/300/200?random=2">Random Image 2</option>
+                <option value="https://picsum.photos/300/200?random=3">Random Image 3</option>
+            </select>
+        </div>
+
+        <div class="mb-6">
+            <img id="display-image" src="" alt="Selected Image" class="w-full h-auto rounded shadow-lg hidden">
+        </div>
+        <div class="mb-6">
+            <label for="text-input" class="block mb-2">Text Input:</label>
+            <input type="text" id="text-input" placeholder="Enter some text" class="w-full p-2 border rounded dark:bg-gray-700">
+        </div>
+
+        <div class="mb-6">
+            <label for="dropdown" class="block mb-2">Dropdown Select:</label>
+            <select id="dropdown" class="w-full p-2 border rounded dark:bg-gray-700">
+                <option value="">Choose an option</option>
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+            </select>
+        </div>
+
+        <div class="mb-6">
+            <label class="block mb-2">Radio Buttons:</label>
+            <div class="flex space-x-4">
+                <label class="inline-flex items-center">
+                    <input type="radio" name="radio-group" value="1" class="form-radio text-primary-light dark:text-primary-dark">
+                    <span class="ml-2">Option 1</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="radio-group" value="2" class="form-radio text-primary-light dark:text-primary-dark">
+                    <span class="ml-2">Option 2</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="radio-group" value="3" class="form-radio text-primary-light dark:text-primary-dark">
+                    <span class="ml-2">Option 3</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block mb-2">Checkboxes:</label>
+            <div class="flex space-x-4">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" class="form-checkbox text-secondary-light dark:text-secondary-dark">
+                    <span class="ml-2">Option 1</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" class="form-checkbox text-secondary-light dark:text-secondary-dark">
+                    <span class="ml-2">Option 2</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" class="form-checkbox text-secondary-light dark:text-secondary-dark">
+                    <span class="ml-2">Option 3</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="slider" class="block mb-2">Slider:</label>
+            <input type="range" id="slider" min="0" max="100" value="50" class="w-full">
+        </div>
+
+        <div>
+            <button onclick="alert('Button clicked!')" class="bg-primary-light dark:bg-primary-dark text-white font-bold py-2 px-4 rounded hover:bg-opacity-90 transition-colors duration-200">
+                Click Me!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function changeImage(src) {
+            const img = document.getElementById('display-image');
+            if (src) {
+                img.src = src;
+                img.classList.remove('hidden');
+            } else {
+                img.classList.add('hidden');
+            }
+        }
+        function toggleTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    </script>
+</body>
+</html>
+'''
+            import tracemalloc
+            tracemalloc.start()
+            self.set_message_content("Testing ui")
+            self.ui(prompt)
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            print("[ Top 10 ]")
+            for stat in top_stats[:10]:
+                print(stat)
+            tracemalloc.stop()
 
