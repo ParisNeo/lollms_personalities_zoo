@@ -223,7 +223,7 @@ class Processor(APScript):
                 f"""
 ```yaml
 name: Give a name to the application using the user provided information
-description: Here you can make a detailed description of the application
+description: Here you can make a detailed description of the application. do not use : or lists, just plain text in a single paragraph.
 version: 1.0
 author: make the user the author
 category: give a suitable category name from {self.application_categories}
@@ -242,6 +242,7 @@ disclaimer: If needed, write a disclaimer. else null
         app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         codes = self.extract_code_blocks(app_description)
         if len(codes)>0:
+            ASCIIColors.info(codes[0]["content"])
             infos = yaml.safe_load(codes[0]["content"].encode('utf-8').decode('ascii', 'ignore'))
             infos["creation_date"]=datetime.now().isoformat()
             infos["last_update_date"]=datetime.now().isoformat()
