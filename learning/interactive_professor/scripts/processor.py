@@ -183,7 +183,7 @@ class Processor(APScript):
             None
         """
         self.callback = callback
-        full_prompt = self.build_prompt_from_context_details(context_details,"Extra: This is the first phase, do not provide a demo. we will do that later.")
+        full_prompt = self.build_prompt_from_context_details(context_details,"Extra: This is the first phase, do not provide a html demo. We will do that later.")
         out = self.fast_gen(full_prompt)
         new_prompt = full_prompt + out + """
 Create a visually appealing and interactive HTML demonstration using Tailwind CSS. The demonstration should be self-explanatory and showcase a specific concept or feature without any accompanying text explanations. Ensure the code is clean, well-structured, and fully functional. Include any necessary JavaScript for interactivity. The entire demonstration should be contained within a single HTML file.
@@ -211,9 +211,7 @@ Provide the complete HTML code within a markdown code block, ready for immediate
       Building demo
     </div>
   </div>
-</div>
-
-                """)
+</div>""")
         out = self.fast_gen(new_prompt, callback=self.sink)
         codes = self.extract_code_blocks(out)
         ui = ""
