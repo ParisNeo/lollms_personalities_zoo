@@ -314,9 +314,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             lollms_infos = ""
         if self.personality_config.use_lollms_rag_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_rag_info.md","r", errors="ignore") as f:
-                lollms_infos = f.read()
-        else:
-            lollms_infos = ""
+                lollms_infos += f.read()
 
 
         if self.personality_config.use_lollms_localization_library:
