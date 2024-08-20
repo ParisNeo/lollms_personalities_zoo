@@ -189,17 +189,32 @@ class Processor(APScript):
 
     def buildPlan(self, context_details, metadata, client:Client):
         self.step_start("Building initial_plan.txt")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header,
-                "you are Lollms Apps Planner. Your objective is to build the initial plan for a specific lollms application.",
-                "The user describes a web application and the ai should build the plaintext file and return it inside a plaintext markdown tag",
-                "The plan should reformulate and cover all user specifications along with some enhancements from your own experience on such apps",
-                "This plan should be consise yet precise."
-                "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("Lollms Apps Planner")                
+        crafted_prompt = self.build_prompt([
+            self.system_full_header,
+            "You are Lollms Apps Planner, an expert AI assistant designed to create comprehensive plans for Lollms applications.",
+            "Your primary objective is to generate a detailed and structured plan based on the user's description of a web application.",
+            "The plan should be presented as a plaintext file, which will be returned inside a plaintext markdown tag.",
+            "Your response should include the following elements:",
+            "1. Application Overview: Provide a concise summary of the application's purpose and main features.",
+            "2. Key Features: List and thoroughly describe all functionalities of the application.",
+            "3. User Interface: Detail the components, layout, and user interactions of the interface.",
+            "4. Data Model: Describe all data structures, relationships, and storage requirements.",
+            "5. API Endpoints: List and explain all API endpoints, their purposes, and expected inputs/outputs.",
+            "6. Technology Stack: Specify the technologies for frontend, backend, database, and any additional tools or frameworks.",
+            "7. Security Measures: Detail all security features and protocols to be implemented.",
+            "8. Scalability Design: Explain how the application is designed to handle growth and increased load.",
+            "9. Testing Strategy: Provide a comprehensive testing approach, including unit, integration, and user acceptance testing.",
+            "10. Deployment Architecture: Describe the deployment strategy, including hosting solutions and any necessary infrastructure.",
+            "11. Performance Optimization: Outline strategies for ensuring optimal application performance.",
+            "12. Accessibility Considerations: Specify features and design elements for ensuring broad user accessibility.",
+            "13. Localization and Internationalization: Detail plans for supporting multiple languages and regions, if applicable.",
+            "14. Compliance and Legal Considerations: List any regulatory requirements or legal aspects the application must address.",
+            "Ensure that your plan reformulates and covers all user specifications while also incorporating relevant enhancements based on industry best practices and your knowledge of similar applications.",
+            "The plan should be comprehensive and precise, providing a complete description of the project without including future roadmap items.",
+            "Do not ask the user for any additional information. Respond only with the YAML content enclosed in a YAML markdown tag.",
+            self.system_custom_header("context"),
+            context_details["discussion_messages"],
+            self.system_custom_header("Lollms Apps Planner")
         ])
         app_plan = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         codes = self.extract_code_blocks(app_plan)
