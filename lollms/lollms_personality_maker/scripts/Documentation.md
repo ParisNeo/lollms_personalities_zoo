@@ -1,68 +1,243 @@
-APScript useful methods:
-fast_gen:
-    Fast way to gener       ate text from prompt
-    
-    This method takes in a prompt, maximum generation size, optional placeholders, sacrifice list, and debug flag.
-    It reshapes the context before performing text generation by adjusting and cropping the number of tokens.
-    
-    Parameters:
-    - prompt (str): The input prompt for text generation.
-    - max_generation_size (int): The maximum number of tokens to generate.
-    - placeholders (dict, optional): A dictionary of placeholders to be replaced in the prompt. Defaults to an empty dictionary.
-    - sacrifice (list, optional): A list of placeholders to sacrifice if the window is bigger than the context size minus the number of tokens to generate. Defaults to ["previous_discussion"].
-    - debug (bool, optional): Flag to enable/disable debug mode. Defaults to False.
-    
-    Returns:
-    - str: The generated text after removing special tokens ("<s>" and "</s>") and stripping any leading/trailing whitespace.
+# LoLLMs Personality Development Documentation
 
-step_start:
-    This triggers a step start for multi steps actions
+## Table of Contents
 
-    Args:
-        step_text (str): The step text
+- [LoLLMs Personality Development Documentation](#lollms-personality-development-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [1. Introduction ](#1-introduction-)
+  - [2. Personality Types ](#2-personality-types-)
+  - [3. Personality Structure ](#3-personality-structure-)
+  - [4. Scripted Personalities ](#4-scripted-personalities-)
+    - [4.1 Processor Class ](#41-processor-class-)
+    - [4.2 Key Methods ](#42-key-methods-)
+    - [4.3 Workflow Execution ](#43-workflow-execution-)
+    - [4.4 User Interaction ](#44-user-interaction-)
+    - [4.5 AI Querying ](#45-ai-querying-)
+    - [4.6 Asset Management ](#46-asset-management-)
+    - [4.7 Text Processing ](#47-text-processing-)
+    - [4.8 Code Handling ](#48-code-handling-)
+  - [5. Advanced Features ](#5-advanced-features-)
+    - [5.1 Text-to-Image Generation ](#51-text-to-image-generation-)
+    - [5.2 Settings System ](#52-settings-system-)
+  - [6. Best Practices ](#6-best-practices-)
+  - [7. Conclusion ](#7-conclusion-)
 
-    if not callback and self.callback:
-        callback = self.callback
+## 1. Introduction <a name="introduction"></a>
 
-    if callback:
-        callback(step_text, MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_START)
+LoLLMs (Lord of Large Language Multimodal Systems) is a powerful framework for creating AI personalities with advanced capabilities. This documentation focuses on developing scripted personalities, which offer more complex and interactive functionalities compared to standard personalities.
 
-step_end:
-        This triggers a step end
+## 2. Personality Types <a name="personality-types"></a>
 
-        Args:
-            step_text (str): The step text must be the same ass the one used for start
+LoLLMs supports two types of personalities:
 
-full:
-        full_text:str
-        This sends full text to front end
+1. **Standard Personalities**: Controlled primarily by a system prompt.
+2. **Scripted Personalities**: Utilize both a system prompt and a Python script for complex interactions and workflows.
 
-        Args:
-            full_text (str): The text to send to the ui for the user
-            callback (callable, optional): A callable with this signature (str, MSG_TYPE) to send the text to. Defaults to None.
+## 3. Personality Structure <a name="personality-structure"></a>
 
-yes_no(self, question: str, context:str="", max_answer_length: int = 50) -> bool:
+Personalities in LoLLMs are organized within the personalities zoo. Each personality resides in its own folder within a category folder. The structure is as follows:
 
-        Analyzes the user prompt and answers whether it is asking to generate an image.
+```
+personalities_zoo/
+├── category_1/
+│   ├── personality_1/
+│   │   ├── config.yaml
+│   │   ├── assets/
+│   │   │   └── logo.png
+│   │   ├── files/ (optional)
+│   │   ├── audio/ (optional)
+│   │   └── scripts/
+│   │       └── processor.py
+│   └── personality_2/
+└── category_2/
+    └── ...
+```
 
-        Args:
-            question (str): The user's message.
-            max_answer_length (int, optional): The maximum length of the generated answer. Defaults to 50.
+Key components:
+- `config.yaml`: Contains metadata about the personality (name, author, description, etc.)
+- `assets/logo.png`: The personality's logo
+- `files/`: Optional folder for augmented personalities (used by the inner RAG system)
+- `audio/`: Optional folder for prerecorded audio
+- `scripts/processor.py`: Main script for scripted personalities
 
-        Returns:
-            bool: True if the user prompt is asking to generate an image, False otherwise.
+## 4. Scripted Personalities <a name="scripted-personalities"></a>
 
-def multichoice_question(self, question: str, possible_answers: list, context: str = "", max_answer_length: int = 50, conditionning="") -> int:
-    """
-    Interprets a multi-choice question from a user's response. Expects one correct choice; returns -1 if none are correct.
+Scripted personalities offer advanced control and functionality through Python code. The main component is the `Processor` class in `processor.py`.
 
-    Args:
-        question (str): The multi-choice question.
-        possible_answers (List[Any]): List of valid options. Each item can be 'True', 'False', None, or a callable for truth testing.
-        context (str, optional): Additional context for the question. Defaults to "".
-        max_answer_length (int, optional): Max length of user response. Defaults to 50.
-        conditionning (str, optional): System message at the beginning of the prompt. Defaults to "".
+### 4.1 Processor Class <a name="processor-class"></a>
 
-    Returns:
-        int: Index of the selected option in possible_answers, or -1 if no match.
-    """
+The `Processor` class inherits from `APScript` and defines the behavior of the personality:
+
+```python
+class Processor(APScript):
+    def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
+        # Initialize configuration and states
+        personality_config_template = ConfigTemplate([
+            # Configuration entries
+        ])
+        personality_config_vals = BaseConfig.from_template(personality_config_template)
+        personality_config = TypedConfig(personality_config_template, personality_config_vals)
+        
+        super().__init__(
+            personality,
+            personality_config,
+            states_list=[
+                {
+                    "name": "idle",
+                    "commands": {
+                        "help": self.help,
+                    },
+                    "default": None
+                },
+            ],
+            callback=callback
+        )
+```
+
+### 4.2 Key Methods <a name="key-methods"></a>
+
+- `mounted()`: Triggered when the personality is mounted
+- `selected()`: Triggered when the personality is selected
+- `install()`: Sets up necessary dependencies
+- `help(prompt="", full_context="")`: Provides help information
+- `run_workflow(prompt, previous_discussion_text, callback, context_details, client)`: Main method for executing the personality's workflow
+
+### 4.3 Workflow Execution <a name="workflow-execution"></a>
+
+The `run_workflow` method is the core of a scripted personality. It handles user input and orchestrates the personality's response:
+
+```python
+def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    self.callback = callback
+    full_prompt = self.build_prompt_from_context_details(context_details)
+    out = self.fast_gen(full_prompt)
+    self.set_message_content(out)
+```
+
+### 4.4 User Interaction <a name="user-interaction"></a>
+
+Scripted personalities can interact with users through various methods:
+
+- `set_message_content(text)`: Sets the current AI message output
+- `add_chunk_to_message_content(text)`: Adds a new chunk to the current message
+- `step_start(step_text)` and `step_end(step_text)`: Show workflow execution steps
+- `json(dict)`: Display JSON data
+- `ui(ui_string)`: Send complete UI with HTML/CSS/JavaScript
+
+Example:
+```python
+self.step_start("Processing user input")
+result = self.process_input(prompt)
+self.step_end("Input processed successfully")
+
+self.json({"result": result})
+```
+
+### 4.5 AI Querying <a name="ai-querying"></a>
+
+Scripted personalities can query the AI for decision-making:
+
+- `yes_no(question, context="", max_answer_length=50, conditioning="")`: Ask yes/no questions to the LLM
+- `multichoice_question(question, possible_answers, context="", max_answer_length=50, conditioning="")`: Ask multiple-choice questions to LLM
+
+Example:
+```python
+if self.yes_no("Does the user want to generate an image?", context=prompt):
+    self.generate_image()
+```
+
+### 4.6 Asset Management <a name="asset-management"></a>
+
+Access personality and discussion assets:
+
+- Personality assets:
+  - `self.personality.text_files`
+  - `self.personality.image_files`
+  - `self.personality.audio_files`
+
+- Discussion assets:
+  - `client.discussion.text_files`
+  - `client.discussion.image_files`
+  - `client.discussion.audio_files`
+
+### 4.7 Text Processing <a name="text-processing"></a>
+
+Use the summarization feature for processing large texts:
+
+```python
+summary = self.summarize_text(
+    text,
+    summary_instruction="Summarize the key points",
+    max_summary_size=512,
+    summary_mode=SUMMARY_MODE.SUMMARY_MODE_HIERARCHICAL
+)
+```
+
+### 4.8 Code Handling <a name="code-handling"></a>
+
+Extract and process code blocks from AI responses:
+
+```python
+code_blocks = self.extract_code_blocks(ai_response)
+for block in code_blocks:
+    print(f"File: {block['file_name']}, Type: {block['type']}")
+    print(block['content'])
+```
+
+## 5. Advanced Features <a name="advanced-features"></a>
+
+### 5.1 Text-to-Image Generation <a name="text-to-image-generation"></a>
+
+Generate images using the built-in text-to-image service:
+
+```python
+file, infos = self.tti.paint(
+    positive_prompt,
+    negative_prompt,
+    self.personality_config.sampler_name,
+    self.personality_config.seed,
+    self.personality_config.scale,
+    self.personality_config.steps,
+    self.personality_config.img2img_denoising_strength,
+    width=self.personality_config.width,
+    height=self.personality_config.height,
+    output_path=client.discussion.discussion_folder
+)
+
+escaped_url = discussion_path_to_url(file)
+self.set_message_content(f"Generated image: {escaped_url}")
+```
+
+### 5.2 Settings System <a name="settings-system"></a>
+
+Implement customizable settings for your personality:
+
+```python
+personality_config_template = ConfigTemplate([
+    {"name": "image_size", "type": "int", "value": 512, "help": "Size of generated images"},
+    {"name": "style", "type": "string", "options": ["realistic", "cartoon", "abstract"], "value": "realistic", "help": "Image generation style"}
+])
+```
+
+Access settings in your code:
+```python
+image_size = self.personality_config.image_size
+style = self.personality_config.style
+```
+
+## 6. Best Practices <a name="best-practices"></a>
+
+1. Use AI querying when decision making is needed.
+2. Use the step system to provide clear progress indicators to users.
+3. Implement error handling and provide informative error messages.
+4. Use the settings system to make your personality customizable.
+5. Leverage the AI querying methods for dynamic decision-making.
+6. Utilize assets and discussion files for context-aware responses.
+7. Implement the `help` method thoroughly to guide users.
+
+## 7. Conclusion <a name="conclusion"></a>
+
+Scripted personalities in LoLLMs offer powerful capabilities for creating advanced AI interactions. By leveraging the provided methods and features, developers can create rich, interactive, and context-aware AI personalities that can perform complex tasks and provide engaging user experiences.
+
+Remember to test your personality thoroughly and consider edge cases in user interactions. The flexibility of the scripted approach allows for continuous improvement and expansion of your AI personality's capabilities.
+

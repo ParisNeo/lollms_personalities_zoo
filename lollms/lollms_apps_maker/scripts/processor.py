@@ -547,22 +547,35 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             repo = git.Repo(app_path)
 
         if self.personality_config.generate_icon:
-            self.step_start("Generating icon")
-            crafted_prompt = self.build_prompt(
-                [
-                    "Make an icon for this application:"
-                    "```yaml",
-                    str(infos),
-                    "```",
-                    "The icon should depict the essence of the application as described in the description."
-                ]
-            )
-            icon_infos = build_image_from_simple_prompt(crafted_prompt, self, client, production_type="icon")
-            
-            icon_src = str(Path(icon_infos["path"]))
-            icon_dst = str(app_path/"icon.png")
-            shutil.copy(icon_src, icon_dst)
-            self.step_end("Generating icon")
+            try:
+                self.step_start("Generating icon")
+                crafted_prompt = self.build_prompt(
+                    [
+                        "Make an icon for this application:"
+                        "```yaml",
+                        str(infos),
+                        "```",
+                        "The icon should depict the essence of the application as described in the description."
+                    ]
+                )
+                icon_infos = build_image_from_simple_prompt(crafted_prompt, self, client, production_type="icon")
+                
+                icon_src = str(Path(icon_infos["path"]))
+                icon_dst = str(app_path/"icon.png")
+                shutil.copy(icon_src, icon_dst)
+                self.step_end("Generating icon")
+            except:
+                self.step_start("Using default icon")
+                # Copy icon.png
+                icon_src = str(Path(__file__).parent.parent/"assets"/"icon.png")
+                icon_dst = str(app_path/"icon.png")
+                shutil.copy(icon_src, icon_dst)
+                
+                # Stage and commit the icon
+                repo.index.add([os.path.relpath(icon_dst, app_path)])
+                repo.index.commit("Add icon.png")        
+                self.step_end("Using default icon")
+
         else:
             self.step_start("Using default icon")
             # Copy icon.png

@@ -70,20 +70,23 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
-                {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
-                {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
-
-                {"name":"generate_prompt_examples","type":"bool","value":True, "help":"Generates prompt examples for the personality"},
 
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
+                {"name":"build_the_scipt","type":"bool","value":True, "help":"Experimental! This requires at least to be using a 128k tokens context LLM"},
+                
                 {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
-                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
                 {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
                 {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
+                {"name":"model_temperature","type":"float","value":0.1, "help":"The temperature of generation using this personality (lower = more deterministic, higher = more creative, very high may lead to halucinations (make sure to keep it between 0 and 1))"},
+
                 {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
                 {"name":"num_images","type":"int","value":1, "help":"Number of icons to generate"},
-                {"name":"model_temperature","type":"float","value":0.1, "help":"The temperature of generation using this personality (lower = more deterministic, higher = more creative, very high may lead to halucinations (make sure to keep it between 0 and 1))"},
+                {"name":"examples_extraction_method","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
+                {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
+                {"name":"generate_prompt_examples","type":"bool","value":True, "help":"Generates prompt examples for the personality"},
+
+
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -285,9 +288,9 @@ class Processor(APScript):
         self.step_start("Imagining Icon")
         examples = ""
         expmls = []
-        if self.personality_config.examples_extraction_mathod=="random":
+        if self.personality_config.examples_extraction_method=="random":
             expmls = get_random_image_gen_prompt(self.personality_config.number_of_examples_to_recover)
-        elif self.personality_config.examples_extraction_mathod=="rag_based":
+        elif self.personality_config.examples_extraction_method=="rag_based":
             expmls = get_image_gen_prompt(name, self.personality_config.number_of_examples_to_recover)
             
         for i,expml in enumerate(expmls):
@@ -682,9 +685,9 @@ class Processor(APScript):
 
         # ----------------------------------------------------------------
         self.step_start("Coming up with the conditionning")
-        if self.personality_config.examples_extraction_mathod=="random":
+        if self.personality_config.examples_extraction_method=="random":
             examples = get_random_system_prompt()
-        elif self.personality_config.examples_extraction_mathod=="rag_based":
+        elif self.personality_config.examples_extraction_method=="rag_based":
             examples = get_system_prompt(name,3)
         else:
             examples = ""
@@ -860,13 +863,45 @@ class Processor(APScript):
             
         if self.personality_config.make_scripted:
             self.scripts_path.mkdir(parents=True, exist_ok=True)
-            self.step_start("Creating default script")
-            if self.personality_config.script_version=="3.0":
-                template_fn = Path(__file__).parent/"script_template_v3.py"
+            if self.personality_config.build_the_scipt:
+                self.step_start("Creating custom script")
+                with open(Path(__file__).parent/"Documentation.md","r") as f:
+                    custom_script = f.read()
+                code = self.fast_gen(previous_discussion_text+self.system_custom_header("Documentation")+custom_script+"\n"+self.system_custom_header("Instructions")+"Build the script for the personality that satisfies the user request. Build the full file and put its content into a python markdown tag.\nMake sure to use AI querying when needed.\nMake sure the code is complete and handle failure cases."+self.ai_full_header)
+                codes = self.extract_code_blocks(code)
+                if len(codes)>0:
+                    code = codes[0]["content"]
+                    while not codes[0]["is_complete"]:
+                        self.step("Continuing generation")
+                        code = self.fast_gen(previous_discussion_text+self.system_custom_header("Documentation")+custom_script+"\n"+self.system_custom_header("Instructions")+"Build the script for the personality that satisfies the user request. Build the full file and put its content into a python markdown tag.\n"+self.ai_full_header+f"""
+```python
+{code}
+```
+"""+self.user_full_header+"Continue starting from last line of code"+self.ai_full_header)
+                        codes = self.extract_code_blocks(code)
+                        if len(codes)>0:
+                            code = "\n".join(code.split("\n")[:-1])+codes[0]["content"]
+
+                    with(open(self.scripts_path/"processor.py","w") as f):
+                        f.write(codes[0]["content"])
+                    self.step_end("Creating custom script")                    
+                else:
+                    self.step_end("Creating custom script", False)
+                    self.step_start("Creating default script")
+                    if self.personality_config.script_version=="3.0":
+                        template_fn = Path(__file__).parent/"script_template_v3.py"
+                    else:
+                        template_fn = Path(__file__).parent/"script_template_v2.py"
+                    shutil.copy(template_fn, self.scripts_path/"processor.py")
+                    self.step_end("Creating default script")
             else:
-                template_fn = Path(__file__).parent/"script_template_v2.py"
-            shutil.copy(template_fn, self.scripts_path/"processor.py")
-            self.step_end("Creating default script")
+                self.step_start("Creating default script")
+                if self.personality_config.script_version=="3.0":
+                    template_fn = Path(__file__).parent/"script_template_v3.py"
+                else:
+                    template_fn = Path(__file__).parent/"script_template_v2.py"
+                shutil.copy(template_fn, self.scripts_path/"processor.py")
+                self.step_end("Creating default script")
 
         if self.personality_config.data_folder_path!="":
             self.data_path.mkdir()
