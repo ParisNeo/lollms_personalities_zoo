@@ -49,6 +49,7 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"build a demo", "type":"bool", "value":False, "help":"If true, the AI will try to build a html demo to show you the concept."},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -185,7 +186,8 @@ class Processor(APScript):
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details,"Extra: This is the first phase, do not provide a html demo. We will do that later.")
         out = self.fast_gen(full_prompt)
-        new_prompt = full_prompt + out + """
+        if self.personality_config["build a demo"]:
+            new_prompt = full_prompt + out + """
 Create a visually appealing and interactive HTML demonstration using Tailwind CSS. The demonstration should be self-explanatory and showcase a specific concept or feature without any accompanying text explanations. Ensure the code is clean, well-structured, and fully functional. Include any necessary JavaScript for interactivity. The entire demonstration should be contained within a single HTML file.
 
 Important guidelines:
@@ -202,7 +204,7 @@ Important guidelines:
 Provide the complete HTML code within a markdown code block, ready for immediate use. Do not include any explanations or descriptions outside the code block.
 
 """+self.ai_full_header
-        self.ui("""
+            self.ui("""
 <div class="flex items-center justify-center h-screen bg-gray-100">
   <div class="relative w-24 h-24">
     <div class="absolute top-0 left-0 w-full h-full border-8 border-gray-200 rounded-full"></div>
@@ -212,14 +214,15 @@ Provide the complete HTML code within a markdown code block, ready for immediate
     </div>
   </div>
 </div>""")
-        out = self.fast_gen(new_prompt, callback=self.sink)
-        codes = self.extract_code_blocks(out)
-        ui = ""
-        if len(codes)>0:
-            for code in codes:
-                ASCIIColors.success(f'Found code: {code["type"]}')
-                if code["type"]=="html":
-                    ui += code["content"]
-        self.ui(ui)                    
+            demo = self.fast_gen(new_prompt, callback=self.sink)
+            codes = self.extract_code_blocks(demo)
+            ui = ""
+            if len(codes)>0:
+                for code in codes:
+                    ASCIIColors.success(f'Found code: {code["type"]}')
+                    if code["type"]=="html":
+                        ui += code["content"]
+            self.ui(ui)
+
         self.set_message_content(out)
 
