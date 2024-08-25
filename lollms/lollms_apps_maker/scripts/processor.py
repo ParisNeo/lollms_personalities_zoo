@@ -69,6 +69,7 @@ class Processor(APScript):
 
                 {"name":"use_lollms_localization_library", "type":"bool", "value":False, "help":"Activate this library if you want to automatically localize your application into multiple languages."},
                 {"name":"use_lollms_flow_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms flow library in your application into multiple languages."},
+                {"name":"lollms_anything_to_markdown_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms anything to markdown library which allows you to read any text type of files and returns it as markdown (useful for RAG)."},
 
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
@@ -329,6 +330,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_rag_info.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
 
+        if self.personality_config.use_lollms_image_gen_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_tti.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
 
         if self.personality_config.use_lollms_localization_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_auto_localizer.md","r", errors="ignore") as f:
@@ -337,6 +342,11 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
         if self.personality_config.use_lollms_flow_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_flow.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
+
+        if self.personality_config.lollms_anything_to_markdown_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_anything_to_markdown.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
 
         crafted_prompt = self.build_prompt(
             [
