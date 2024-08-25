@@ -45,10 +45,6 @@ commands:
     value: new_image
     icon: 'feather:file'
     help: start 
-  - name: Show Stable diffusion UI
-    value: show_sd
-    icon: personalities/art_painting/artbot/assets/open_sd.svg
-    help: shows the full stable diffusion ui for more options.
   - name: Regenerate with last prompt
     value: regenerate
     help: shows the stable diffusion settings

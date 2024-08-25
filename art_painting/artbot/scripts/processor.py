@@ -53,17 +53,12 @@ class Processor(APScript):
                 {"name":"examples_extraction_mathod","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
                 {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
                 
-                {"name":"generation_engine","type":"str","value":"system_tti", "options":["system_tti", "stable_diffusion", "dall-e-2", "dall-e-3", "midjourney", "comfyui", "diffusers", "foocus"],"help":"Select the engine to be used to generate the images. Notice, dalle2 requires open ai key"},                
-                {"name":"openai_key","type":"str","value":"","help":"A valid open AI key to generate images using open ai api (optional)"},
                 {"name":"production_type","type":"str","value":"an artwork", "options":["a photo","an artwork", "a drawing", "a painting", "a hand drawing", "a design", "a presentation asset", "a presentation background", "a game asset", "a game background", "an icon"],"help":"This selects what kind of graphics the AI is supposed to produce"},
                 {"name":"sd_model_name","type":"str","value":self.sd_models[0], "options":self.sd_models, "help":"Name of the model to be loaded for stable diffusion generation"},
                 {"name":"sd_address","type":"str","value":"http://127.0.0.1:7860","help":"The address to stable diffusion service"},
-                {"name":"share_sd","type":"bool","value":False,"help":"If true, the created sd server will be shared on yourt network"},
                 {"name":"sampler_name","type":"str","value":"DPM++ 3M SDE", "options":["Euler a","Euler","LMS","Heun","DPM2","DPM2 a","DPM++ 2S a","DPM++ 2M","DPM++ SDE","DPM++ 2M SDE", "DPM fast", "DPM adaptive", "DPM Karras", "DPM2 Karras", "DPM2 a Karras","DPM++ 2S a Karras","DPM++ 2M Karras","DPM++ SDE Karras","DPM++ 2M SDE Karras" ,"DDIM", "PLMS", "UniPC", "DPM++ 3M SDE", "DPM++ 3M SDE Karras", "DPM++ 3M SDE Exponential"], "help":"Select the sampler to be used for the diffusion operation. Supported samplers ddim, dpms, plms"},                
                 {"name":"steps","type":"int","value":40, "min":10, "max":1024},
                 {"name":"scale","type":"float","value":5, "min":0.1, "max":100.0},
-                
-                {"name":"install_sd","type":"btn","value":"Install Stable diffusion","help":"Installs stable diffusion"},
 
                 {"name":"imagine","type":"bool","value":True,"help":"Imagine the images"},
                 {"name":"build_title","type":"bool","value":True,"help":"Build a title for the artwork"},
@@ -92,8 +87,6 @@ class Processor(APScript):
                 {"name":"num_images","type":"int","value":1, "min":1, "max":100,"help":"Number of batch of images to generate (to speed up put a batch of n and a single num images, to save vram, put a batch of 1 and num_img of n)"},
                 {"name":"seed","type":"int","value":-1},
                 {"name":"max_generation_prompt_size","type":"int","value":512, "min":10, "max":personality.config["ctx_size"]},
-
-                {"name":"quality","type":"str","value":"standard", "options":["standard","hd"],"help":"The quality of Dalle generated files."},                
    
             ]
             )
@@ -112,7 +105,6 @@ class Processor(APScript):
                                     "commands": { # list of commands
                                         "help":self.help,
                                         "new_image":self.new_image,
-                                        "show_sd":self.show_sd,
                                         "regenerate":self.regenerate,
                                         "show_settings":self.show_settings,
                                     },
@@ -164,86 +156,6 @@ class Processor(APScript):
         # Install dependencies using pip from requirements.txt
         subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
 
-
-    def prepare(self):
-        if self.tti is None or self.tti.name!=self.personality_config.generation_engine:
-            
-            if self.personality_config.generation_engine=="system_tti":
-                if self.personality.app.tti:
-                    self.step(f"Using tti system: {self.personality.app.tti.name}")
-                    self.tti = self.personality.app.tti
-                else:
-                    self.InfoMessage("You have selected system TTI but you have no system TTI selected. Please make sure you install a TTI service and select it ni your services settings or select another service in artbot settings.")              
-                    raise Exception("No service available")
-            if self.personality_config.generation_engine=="stable_diffusion":
-                from lollms.services.sd.lollms_sd import LollmsSD
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsSD:
-                    self.step("Using system SD")
-                    self.tti = self.personality.app.tti
-                else:
-                    self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-                    self.tti = LollmsSD(self.personality.app, "Artbot", max_retries=-1,auto_sd_base_url=self.personality_config.sd_address,share = self.personality_config.share_sd)
-                    self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
-            
-                if self.personality_config.generation_engine=="stable_diffusion":
-                    model = self.tti.util_get_current_model().split(".")[0]
-                    if model!=self.personality_config.sd_model_name:
-                        self.step_start(f"Changing the model to {self.personality_config.sd_model_name}")
-                        self.tti.util_set_model(self.personality_config.sd_model_name,True)
-                        self.step_end(f"Changing the model to {self.personality_config.sd_model_name}")
-
-            if self.personality_config.generation_engine=="dall-e-2":
-                from lollms.services.dalle.lollms_dalle import LollmsDalle
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDalle:
-                    self.step("Using system Dalle-2")
-                    self.tti = self.personality.app.tti
-                    self.tti.generation_engine = "dall-e-2"
-                else:
-                    self.tti = LollmsDalle(self.personality.app, self.personality_config.openai_key)
-
-            if self.personality_config.generation_engine=="dall-e-3":
-                from lollms.services.dalle.lollms_dalle import LollmsDalle
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDalle:
-                    self.step("Using system Dalle-3")
-                    self.tti = self.personality.app.tti
-                    self.tti.generation_engine = "dall-e-3"
-                else:
-                    self.tti = LollmsDalle(self.personality.app, self.personality_config.openai_key)
-
-            if self.personality_config.generation_engine=="midjourney":
-                from lollms.services.midjourney.lollms_midjourney import LollmsMidjourney
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsMidjourney:
-                    self.step("Using system midjourney")
-                    self.tti = self.personality.app.tti
-                else:
-                    self.tti = LollmsMidjourney(self.personality.app, self.personality_config.openai_key, self.config.midjourney_timeout, self.config.midjourney_retries)
-
-
-            if self.personality_config.generation_engine=="diffusers":
-                from lollms.services.diffusers.lollms_diffusers import LollmsDiffusers
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsDiffusers:
-                    self.step("Using system Diffusers")
-                    self.tti = self.personality.app.tti
-                    self.tti.generation_engine = "diffusers"
-                else:
-                    self.tti = LollmsDiffusers(self.personality.app)
-
-            if self.personality_config.generation_engine=="comfyui":
-                from lollms.services.comfyui.lollms_comfyui import LollmsComfyUI
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsComfyUI:
-                    self.step("Using system ComfyUI")
-                    self.tti = self.personality.app.tti
-                else:
-                    self.tti = LollmsComfyUI(self.personality.app, comfyui_base_url=self.config.comfyui_base_url)
-
-            if self.personality_config.generation_engine=="fooocus":
-                from lollms.services.fooocus.lollms_fooocus import LollmsFooocus
-                if self.personality.app.tti and type(self.personality.app.tti)==LollmsFooocus:
-                    self.step("Using system Fooocus")
-                    self.tti = self.personality.app.tti
-                else:
-                    self.tti = LollmsFooocus(self.personality.app)
-
     def remove_image_links(self, markdown_text):
         # Regular expression pattern to match image links in Markdown
         image_link_pattern = r"!\[.*?\]\((.*?)\)"
@@ -260,13 +172,6 @@ class Processor(APScript):
     def new_image(self, prompt="", full_context="", client:Client=None):
         self.personality.image_files=[]
         self.personality.info("Starting fresh :)")
-        
-        
-    def show_sd(self, prompt="", full_context="", client:Client=None):
-        self.prepare()
-        
-        webbrowser.open(self.personality_config.sd_address+"/?__theme=dark")        
-        self.personality.info("Showing Stable diffusion UI")
         
         
     def show_settings(self, prompt="", full_context="", client:Client=None):
@@ -308,7 +213,8 @@ class Processor(APScript):
             file_html = self.make_selectable_photo(path.stem,f"/{pth}", client.client_id, {"name":path.stem,"type":"Imported image", "prompt":description})
             output += f"##  Image description :\n{description}\n"
             self.set_message_content(output, callback=callback)
-            self.ui(self.make_selectable_photos(file_html))
+            photos_ui = self.make_selectable_photos(file_html)
+            self.ui(photos_ui)
             self.finished_message()
         else:    
             self.set_message_content(f"File added successfully\n", callback=callback)
@@ -400,7 +306,7 @@ class Processor(APScript):
         for img in range(self.personality_config.num_images):
             self.step_start(f"Generating image {img+1}/{self.personality_config.num_images}")
             if len(self.personality.image_files)>0:
-                file, infos = self.tti.paint_from_images(
+                file, infos = self.personality.app.tti.paint_from_images(
                                     positive_prompt,
                                     negative_prompt,
                                     self.personality.image_files,
@@ -415,7 +321,7 @@ class Processor(APScript):
                                     
                                 )
             else:
-                file, infos = self.tti.paint(
+                file, infos = self.personality.app.tti.paint(
                                     positive_prompt,
                                     negative_prompt,
                                     self.personality_config.sampler_name,
@@ -436,8 +342,15 @@ class Processor(APScript):
                 ui += file_html
                 self.set_message_content(metadata_infos) 
 
-        self.ui(self.make_selectable_photos(ui))        
+        photos_ui = self.make_selectable_photos(self.make_selectable_photos(ui))
+        self.ui(photos_ui)
+
         return infos
+    
+    def prepare(self):
+        if self.personality.app.tti is None:
+            self.set_message_content("Lollms can no longer run without setting tti service in lollms settings.\nPlease go to settings page, then in services zoo select a TTI service from the available list.\nYou may need to configure the TTI service if it requires configurations or api key etc...")
+            raise Exception("NO TTI service is on")
 
     def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
         metadata = client.discussion.get_metadata()

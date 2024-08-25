@@ -1,18 +1,19 @@
-<div id="photoGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+<div id="photoGallery" class="gap-6 p-6 bg-gray-100 rounded-lg">
     {{photos}}
 </div>
 
-<div id="floatingImageContainer" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-    <div class="relative max-w-4xl w-full">
-        <img id="floatingImage" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-xl" src="" alt="Enlarged image">
-        <button id="closeButton" class="absolute top-2 right-2 text-white hover:text-gray-300 transition-colors duration-300">
+<div id="floatingImageContainer" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden p-4 sm:p-8">
+    <div class="relative max-w-4xl w-full bg-white rounded-xl shadow-2xl overflow-hidden">
+        <img id="floatingImage" class="max-w-full max-h-[75vh] object-contain mx-auto" src="" alt="Enlarged image">
+        <button id="closeButton" class="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors duration-300 shadow-lg">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
         </button>
-        <div id="imageInfo" class="mt-4 text-white text-center"></div>
+        <div id="imageInfo" class="mt-4 p-4 text-gray-800 text-center bg-gray-100 border-t border-gray-200"></div>
     </div>
 </div>
+
 
 <script>
     function image_clicked(id_) {

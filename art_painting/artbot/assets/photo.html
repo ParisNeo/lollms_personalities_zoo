@@ -1,16 +1,17 @@
-<div class="flex items-center justify-around">
-    <img id="img_{{image_id}}" src="{{image_source}}" alt="Artbot generated image" class="cursor-pointer w-{{thumbneil_width}} h-{{thumbneil_height}} transition-transform duration-300 hover:scale-105" onclick="openFloatingImage('{{image_id}}',infoData_{{image_id}})">
-    <button id="copy_prompt" class="ml-2 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-300" onclick="copy_to_clipboard(infoData_{{image_id}})">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+<div class="relative inline-block">
+    <img id="img_{{image_id}}" src="{{image_source}}" width ="{{thumbneil_width}}" height="{{thumbneil_height}}" alt="Artbot generated image" class="cursor-pointer transition-transform duration-300 hover:scale-105" onclick="openFloatingImage('{{image_id}}',infoData_{{image_id}})">
+    <button id="copy_prompt" class="absolute top-2 right-2 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-300 shadow-lg opacity-70 hover:opacity-100" onclick="copy_to_clipboard(infoData_{{image_id}})">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
             <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
         </svg>
     </button>
 </div>
 
+
 <script>
     const infoData_{{image_id}} = {{__infos__}};
-    const buttonClasses = 'px-4 py-2 rounded-md text-white transition-colors duration-300';
+    const buttonClasses_{{image_id}} = 'px-4 py-2 rounded-md text-white transition-colors duration-300';
     
     function copy_to_clipboard(infoData){
         text = `${infoData["prompt"]}\n${infoData["negative_prompt"]}`;
@@ -83,7 +84,7 @@
 
     function createButton(text, classes, clickHandler) {
         const button = document.createElement('button');
-        button.className = `${buttonClasses} ${classes}`;
+        button.className = `${buttonClasses_{{image_id}}} ${classes}`;
         button.textContent = text;
         button.addEventListener('click', clickHandler);
         return button;
