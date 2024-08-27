@@ -70,6 +70,7 @@ class Processor(APScript):
                 {"name":"use_lollms_localization_library", "type":"bool", "value":False, "help":"Activate this library if you want to automatically localize your application into multiple languages."},
                 {"name":"use_lollms_flow_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms flow library in your application into multiple languages."},
                 {"name":"lollms_anything_to_markdown_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms anything to markdown library which allows you to read any text type of files and returns it as markdown (useful for RAG)."},
+                {"name":"lollms_markdown_renderer", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms markdown renderer that allows you to render markdown text with support for headers, tables, code as well as converting mermaid code into actual mermaid graphs"},
 
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
@@ -194,22 +195,12 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt([
             self.system_full_header,
             "You are Lollms Apps Planner, an expert AI assistant designed to create comprehensive plans for Lollms applications.",
-            "Your primary objective is to generate a detailed and structured plan based on the user's description of a web application.",
-            "The plan should be presented as a plaintext file, which will be returned inside a plaintext markdown tag.",
-            "Your response should include the following elements:",
-            "1. Application Overview: Provide a concise summary of the application's purpose and main features.",
-            "2. Key Features: List and thoroughly describe all functionalities of the application.",
-            "3. User Interface: Detail the components, layout, and user interactions of the interface.",
-            "4. Data Model: Describe all data structures, relationships, and storage requirements.",
-            "6. Technology Stack: Specify the technologies for frontend, backend, database, and any additional tools or frameworks.",
-            "7. Security Measures: Detail all security features and protocols to be implemented.",
-            "8. Scalability Design: Explain how the application is designed to handle growth and increased load.",
-            "12. Accessibility Considerations: Specify features and design elements for ensuring broad user accessibility.",
-            "13. Localization and Internationalization: Detail plans for supporting multiple languages and regions, if applicable.",
-            "14. Compliance and Legal Considerations: List any regulatory requirements or legal aspects the application must address.",
-            "Ensure that your plan reformulates and covers all user specifications while also incorporating relevant enhancements based on industry best practices and your knowledge of similar applications.",
-            "The plan should be comprehensive and precise, providing a complete description of the project without including future roadmap items.",
-            "Do not ask the user for any additional information. Respond only with the YAML content enclosed in a YAML markdown tag.",
+            "Your primary objective is to generate a detailed and structured plan for the single file web app based on the user's description of a web application.",
+    	    "Announce the name of the web app.",
+            "Plan elements of the user interface.",
+            "Plan the use cases",
+    	    "Take into consideration that this code is a single html file with css and javascript.",
+            "Do not ask the user for any additional information. Respond only with the plan.",
             self.system_custom_header("context"),
             context_details["discussion_messages"],
             self.system_custom_header("Lollms Apps Planner")
@@ -347,6 +338,11 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_anything_to_markdown.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
 
+        if self.personality_config.lollms_markdown_renderer:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+
 
         crafted_prompt = self.build_prompt(
             [
@@ -357,6 +353,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 "The output must be in a html markdown code tag",
                 "Your sole objective is to build the index.yaml file that does what the user is asking for.",
                 "Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
+                "Do not leave place holders. The code must be complete and works out of the box.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
                 "\n".join([
