@@ -201,21 +201,17 @@ class Processor(APScript):
             "Plan the use cases",
     	    "Take into consideration that this code is a single html file with css and javascript.",
             "Do not ask the user for any additional information. Respond only with the plan.",
+            "Answer with the plan without any extra explanation or comments.",
             self.system_custom_header("context"),
             context_details["discussion_messages"],
             self.system_custom_header("Lollms Apps Planner")
         ])
         app_plan = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
-        codes = self.extract_code_blocks(app_plan)
-        if len(codes)>0:
-            app_plan = codes[0]["content"]
-            # Store plan into context
-            metadata["plan"]=app_plan
-            client.discussion.set_metadata(metadata)
-            self.step_end("Building initial_plan.txt")
-            return app_plan
-        self.step_end("Building initial_plan", False)
-        return None
+        # Store plan into context
+        metadata["plan"]=app_plan
+        client.discussion.set_metadata(metadata)
+        self.step_end("Building initial_plan.txt")
+        return app_plan
 
     def buildDescription(self, context_details, metadata, client:Client):
         self.step_start("Building description.yaml")
