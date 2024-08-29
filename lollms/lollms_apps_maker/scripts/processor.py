@@ -197,6 +197,7 @@ class Processor(APScript):
             "You are Lollms Apps Planner, an expert AI assistant designed to create comprehensive plans for Lollms applications.",
             "Your primary objective is to generate a detailed and structured plan for the single file web app based on the user's description of a web application.",
     	    "Announce the name of the web app.",
+            "re express the user requirements in a better wording.",
             "Plan elements of the user interface.",
             "Plan the use cases",
     	    "Take into consideration that this code is a single html file with css and javascript.",
@@ -336,6 +337,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 
         if self.personality_config.lollms_markdown_renderer:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.use_lollms_tasks_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_taskslib_js_info.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
 
 
