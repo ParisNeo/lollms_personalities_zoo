@@ -436,7 +436,7 @@ class Processor(APScript):
         try:
             if self.personality_config.image_generation_engine=="autosd":
                 if not hasattr(self, "sd"):
-                    from lollms.services.sd.lollms_sd import LollmsSD
+                    from lollms.services.tti.sd.lollms_sd import LollmsSD
                     self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
                     self.sd = LollmsSD(self.personality.app, self.personality.name, max_retries=-1,auto_sd_base_url=self.personality.config.sd_base_url)
                     self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
@@ -450,7 +450,7 @@ class Processor(APScript):
                             )
             elif self.personality_config.image_generation_engine in ["dall-e-2", "dall-e-3"]:
                 if not hasattr(self, "dalle"):
-                    from lollms.services.dalle.lollms_dalle import LollmsDalle
+                    from lollms.services.tti.dalle.lollms_dalle import LollmsDalle
                     self.step_start("Loading dalle service")
                     self.dalle = LollmsDalle(self.personality.app, self.personality.config.dall_e_key, self.personality_config.image_generation_engine)
                     self.step_end("Loading dalle service")

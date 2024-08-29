@@ -5,7 +5,7 @@ from lollms.personality import APScript, AIPersonality
 from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS
-from lollms.services.sd.lollms_sd import LollmsSD
+from lollms.services.tti.sd.lollms_sd import LollmsSD
 import subprocess
 from typing import Callable, Any
 # Helper functions

@@ -84,7 +84,7 @@ class Processor(APScript):
         
     def prepare(self):
         if self.sd is None:
-            from lollms.services.sd.lollms_sd import LollmsSD
+            from lollms.services.tti.sd.lollms_sd import LollmsSD
             self.step_start("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
             self.sd = LollmsSD.get()(self.personality.lollms_paths, "Artbot", max_retries=-1)
             self.step_end("Loading ParisNeo's fork of AUTOMATIC1111's stable diffusion service")
