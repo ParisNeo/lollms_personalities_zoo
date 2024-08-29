@@ -48,6 +48,11 @@ ELF_GENERATION_FORMAT.LOLLMS : The default one that uses the lollms backend (key
 ELF_GENERATION_FORMAT.OPENAI : Uses openai API as backend and requires a key
 ELF_GENERATION_FORMAT.OLLAMA : Uses ollama API as backend (key is optional)
 
+0. **Properties:**
+`lc.system_message()` : the system message keyword 
+`lc.user_message()` : the user message start keyword 
+`lc.ai_message()` : the ai message start keyword 
+
 1. **Generate Text from a Prompt:**
 
 To generate text, construct the prompt and use the `generate` method:
