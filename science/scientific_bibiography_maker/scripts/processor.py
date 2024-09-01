@@ -95,16 +95,16 @@ class Processor(APScript):
         self.code=[]
         
         from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
-        vectorizer = self.config.rag_vectorizer
-        if vectorizer == "bert":
-            from lollmsvectordb.lollms_vectorizers.bert_vectorizer import BERTVectorizer
-            v = BERTVectorizer()
-        elif vectorizer == "tfidf":
+
+        if self.config.rag_vectorizer == "semantic":
+            from lollmsvectordb.lollms_vectorizers.semantic_vectorizer import SemanticVectorizer
+            v = SemanticVectorizer(self.config.rag_vectorizer_model)
+        elif self.config.rag_vectorizer == "tfidf":
             from lollmsvectordb.lollms_vectorizers.tfidf_vectorizer import TFIDFVectorizer
             v = TFIDFVectorizer()
-        elif vectorizer == "word2vec":
-            from lollmsvectordb.lollms_vectorizers.word2vec_vectorizer import Word2VecVectorizer
-            v = Word2VecVectorizer()
+        elif self.config.rag_vectorizer == "openai":
+            from lollmsvectordb.lollms_vectorizers.openai_vectorizer import OpenAIVectorizer
+            v = OpenAIVectorizer(self.config.rag_vectorizer_openai_key)        
 
         self.persona_data_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
         self.set_message_content_documents_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
