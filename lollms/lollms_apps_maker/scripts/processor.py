@@ -378,7 +378,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             index_file_path = Path(metadata["app_path"]) / "index.html"
             if index_file_path.exists():
                 try:
-                    if not (app_path / ".git").exists():
+                    if not (Path(app_path) / ".git").exists():
                         repo = git.Repo.init(app_path)
                     else:
                         repo = git.Repo(app_path)
