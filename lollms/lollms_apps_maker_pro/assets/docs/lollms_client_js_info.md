@@ -2,6 +2,7 @@
 
 The Lollms library provides a robust framework for building applications that interact with Lollms as a client. This documentation will guide you through the essential steps to integrate and utilize the Lollms library effectively within your projects.
 
+
 #### Importing Lollms in HTML
 
 To start using the Lollms library in your HTML file, you need to include the following script tags:
@@ -48,6 +49,30 @@ ELF_GENERATION_FORMAT.LOLLMS : The default one that uses the lollms backend (key
 ELF_GENERATION_FORMAT.OPENAI : Uses openai API as backend and requires a key
 ELF_GENERATION_FORMAT.OLLAMA : Uses ollama API as backend (key is optional)
 
+-1. **Change settings**
+- **updateSettings(settings)**: Updates multiple settings of the LollmsClient instance at once.
+  - Format: An object containing key-value pairs of settings to update.
+  - Important elements:
+    - `host_address` (string): The URL of the LoLLMs server (e.g., 'http://localhost:9600').
+    - `ctx_size` (number): The context size for the AI model, typically a power of 2 (e.g., 2048, 4096).
+    - `n_predict` (number): The number of tokens to predict, usually matching or smaller than the context size.
+  - Example usage:
+    ```javascript
+    lollmsClient.updateSettings({
+      host_address: 'http://localhost:9600',
+      ctx_size: 4096,
+      n_predict: 2048,
+      personality: 1,
+      temperature: 0.7
+    });
+    ```
+
+
+0. **Properties:**
+`lc.system_message()` : the system message keyword 
+`lc.user_message()` : the user message start keyword 
+`lc.ai_message()` : the ai message start keyword 
+
 1. **Generate Text from a Prompt:**
 
 To generate text, construct the prompt and use the `generate` method:
@@ -72,6 +97,15 @@ if you want to send one or multiple images to the AI then use lc.generate_with_i
 const generated_text = await lc.generate_with_images(prompt, images);
 ```
 
+2. **Generate Code from a Prompt:**
+When you need to generate code, please use this function that allows a better generation of code, json, yaml etc...
+```javascript
+// Generate  code
+const code = await lc.generateCode(prompt);
+if (code!=null){
+  // Use the code
+}
+```
 
 #### Tokenization Functions
 

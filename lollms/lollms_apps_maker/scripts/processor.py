@@ -207,7 +207,11 @@ class Processor(APScript):
             context_details["discussion_messages"],
             self.system_custom_header("Lollms Apps Planner")
         ])
-        app_plan = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
+        if len(self.personality.image_files)>0:
+            app_plan = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
+        else:
+            app_plan = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
+
         # Store plan into context
         metadata["plan"]=app_plan
         client.discussion.set_metadata(metadata)
@@ -239,8 +243,11 @@ disclaimer: If needed, write a disclaimer. else null
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
+        if len(self.personality.image_files)>0:
+            app_description = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
+        else:
+            app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         
-        app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         codes = self.extract_code_blocks(app_description)
         if len(codes)>0:
             ASCIIColors.info(codes[0]["content"])
@@ -287,7 +294,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             ],6
         )
         
-        app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
+        if len(self.personality.image_files)>0:
+            app_description = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
+        else:
+            app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
         codes = self.extract_code_blocks(app_description)
         if len(codes)>0:
             infos = yaml.safe_load(codes[0]["content"].encode('utf-8').decode('ascii', 'ignore'))
@@ -366,7 +376,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
-        code_content = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        if len(self.personality.image_files)>0:
+            code_content = self.generate_with_images(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        else:
+            code_content = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
         if self.config.debug:
             ASCIIColors.yellow("--- Code file ---")
             ASCIIColors.yellow(code_content)
@@ -446,8 +459,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     self.system_custom_header("Lollms Apps Maker")
                 ],5
             )
-
-            updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            if len(self.personality.image_files)>0:
+                updated_sections = self.generate_with_images(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            else:
+                updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
             # Extract code blocks
             codes = self.extract_code_blocks(updated_sections)
@@ -459,7 +474,11 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 repo.index.commit("Backup before update")
                 self.step_end("Backing up previous version")
                 while not codes[0]["is_complete"]:
-                    updated_sections = self.generate(crafted_prompt+updated_sections+"\n"+self.user_full_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+                    if len(self.personality.image_files)>0:
+                        updated_sections = self.generate_with_images(crafted_prompt+updated_sections+"\n"+self.user_full_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+                    else:
+                        updated_sections = self.generate(crafted_prompt+updated_sections+"\n"+self.user_full_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+
                     codes = self.extract_code_blocks(updated_sections)
                     if len(codes) > 0:
                         content = "\n".join(content.split("\n")[:-1])+codes[0]["content"]    
@@ -516,8 +535,11 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     self.system_custom_header("Lollms Apps Maker")
                 ],24
             )
+            if len(self.personality.image_files)>0:
+                updated_sections = self.generate_with_images(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            else:
+                updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
-            updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
             # Extract code blocks
             codes = self.extract_code_blocks(updated_sections)
@@ -758,6 +780,7 @@ The code contains description.yaml that describes the application, the author, t
             else:
                 out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
                 self.set_message_content_invisible_to_ai(out)
+                return
 
             # ----------------------------------------------------------------
             out += "\nBefore we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
