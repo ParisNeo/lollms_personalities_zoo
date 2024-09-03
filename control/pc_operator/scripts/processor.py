@@ -128,11 +128,30 @@ class Processor(APScript):
     def save_screenshot(self, image, filename):
         image.save(filename)
 
-    def run_app(name: str) -> None:
+    def select_text(self, start_x, start_y, end_x, end_y):
+        screen_width, screen_height = pyautogui.size()
         try:
-            subprocess.run(name)
-        except FileNotFoundError:
-            print(f"Application '{name}' not found.")
+            # Calculate actual pixel coordinates
+            start_x_px = int(start_x * screen_width / 100)
+            start_y_px = int(start_y * screen_height / 100)
+            end_x_px = int(end_x * screen_width / 100)
+            end_y_px = int(end_y * screen_height / 100)
+
+            # Move to the start position
+            pyautogui.moveTo(start_x_px, start_y_px)
+            
+            # Click and hold to start selection
+            pyautogui.mouseDown()
+            
+            # Move to the end position
+            pyautogui.moveTo(end_x_px, end_y_px)
+            
+            # Release the mouse button to end selection
+            pyautogui.mouseUp()
+            
+            return f"Text selected from ({start_x}%, {start_y}%) to ({end_x}%, {end_y}%)"
+        except Exception as e:
+            return f"Error selecting text: {str(e)}"
 
     def run_application(self, app_name):
         system = platform.system().lower()
@@ -185,12 +204,13 @@ class Processor(APScript):
         self.save_screenshot(img, sc_path)
         self.step_end("Observing")
         self.step_start("Planning operation")
+        code = ""
         try:
             def replan(objective, context):
                 prompt = self.system_custom_header("objective")+objective+self.separator_template+self.system_custom_header("context")+context+self.separator_template+self.system_custom_header("Instruction")+"In your plan, only issue actions starting from the current state and do not issue actions that are not needed given the current state. if this is not the last required operation, or issue a done action."
-                self.analyze_screenshot_and_replan(prompt=prompt,previous_discussion_text=previous_discussion_text, sc_path=sc_path)
+                self.analyze_screenshot_and_replan(prompt=prompt,previous_discussion_text=previous_discussion_text+"\n```json\n"+str(code)+"```\n", sc_path=sc_path)
             self.add_chunk_to_message_content("\n")
-            plan = self.plan(prompt, [sc_path],
+            plan, code = self.plan(prompt, [sc_path],
                 [
                 LoLLMsAction(
                             "take_screenshot_and_plan_next",[LoLLMsActionParameters("objective", str, ""), LoLLMsActionParameters("context", str, "")],
@@ -235,7 +255,6 @@ class Processor(APScript):
                     self.run_application,
                     "Runs the specified application if it's available on the current system. Make sure you type the name of the executable file to run."
                 ),
-
                 LoLLMsAction(
                             "type_text",[
                                             LoLLMsActionParameters("text", str, value=""),
@@ -243,6 +262,17 @@ class Processor(APScript):
                                         ],
                             self.type_text,
                             "Typing text"),
+                LoLLMsAction(
+                    "select_text",
+                    [
+                        LoLLMsActionParameters("start_x", float, ""),
+                        LoLLMsActionParameters("start_y", float, ""),
+                        LoLLMsActionParameters("end_x", float, ""),
+                        LoLLMsActionParameters("end_y", float, "")
+                    ],
+                    self.select_text,
+                    "Selects text from the starting coordinates (start_x%, start_y%) to the ending coordinates (end_x%, end_y%). Coordinates are percentages of screen dimensions."
+                ),                            
                 LoLLMsAction(
                             "done",[],
                             self.done,
