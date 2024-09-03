@@ -12,7 +12,9 @@ else:
     PackageManager.install_package("pyautogui")
     import pyautogui
 from PIL import Image
+import webbrowser
 import subprocess
+import time
 
 # Helper functions
 class Processor(APScript):
@@ -75,6 +77,14 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
+    def open_new_tab(self, url="https://www.example.com"):
+        """
+        Opens a new tab in the currently open web browser.
+        
+        :param url: The URL to open in the new tab. Defaults to "https://www.example.com" if not provided.
+        """
+        webbrowser.open_new_tab(url)
+
     # Move the mouse
     def move_mouse(self, x, y):
         screen_width, screen_height = pyautogui.size()
@@ -87,14 +97,24 @@ class Processor(APScript):
 
 
     # type text
-    def type_text(self, text):
-        pyautogui.typewrite(text)
+    def type_text(self, text, add_return=False):
+        pyautogui.typewrite(text + "\n" if add_return else "")
 
     def mouse_click(self, button):
         if button == 'left':
             pyautogui.click()
         elif button == 'right':
             pyautogui.click(button='right')
+
+    def move_mouse_and_click(self, x, y):
+        screen_width, screen_height = pyautogui.size()
+        try:
+            target_x = int(x * screen_width)/100
+            target_y = int(y * screen_height)/100
+            pyautogui.moveTo(target_x, target_y)
+            pyautogui.click()
+        except:
+            ASCIIColors.error(f"Couldn't locate mouse: x:{x},y:{y}")        
 
     def make_screenshot(self, file_name):
         self.save_screenshot(self.take_screenshot(), file_name)
@@ -124,13 +144,25 @@ class Processor(APScript):
         self.step_end("Observing")
         self.step_start("Planning operation")
         try:
-            plan = self.plan_with_images(prompt, [sc_path],
+            def replan(objective, context):
+                prompt = self.system_custom_header("objective")+objective+self.separator_template+self.system_custom_header("context")+context+self.separator_template+self.system_custom_header("Instruction")+"Continue from here, do not issue the previous commands. Just analyze and perform next operation this if this is not the last required operation, you may issue another analysis command."
+                self.analyze_screenshot_and_replan(prompt=prompt,previous_discussion_text=previous_discussion_text, sc_path=sc_path)
+            self.add_chunk_to_message_content("\n")
+            plan = self.plan(prompt, [sc_path],
                 [
                 LoLLMsAction(
-                            "take_screenshot_and_plan_next",[],
-                            partial(self.analyze_screenshot_and_replan,prompt=prompt,previous_discussion_text=previous_discussion_text, sc_path=sc_path),
-                            "Takes a screen shot then replans the next operations. Make sure to call this step if you have unsufficient information about the situation."
+                            "take_screenshot_and_plan_next",[LoLLMsActionParameters("objective", str, ""), LoLLMsActionParameters("context", str, "")],
+                            replan,
+                            "Takes a screen shot then replans the next operations. Write the objective and as context, you should rewrite a description of what you are attempting to do and what next steps you are wanting to accomplish.\nThis action must be issued at the end of the generated plan unless the objective is already reached."
                             ),
+                LoLLMsAction(
+                    "open_new_tab",
+                    [
+                        LoLLMsActionParameters("url", str, "https://www.example.com")
+                    ],
+                    self.open_new_tab,
+                    "Opens a new tab in the currently open web browser with the specified URL. If no URL is provided, it opens a blank new tab."
+                ),                      
                 LoLLMsAction(
                             "move_mouse",[
                                             LoLLMsActionParameters("x", int, ""), 
@@ -146,8 +178,17 @@ class Processor(APScript):
                             self.mouse_click,
                             "Click on the screen using left or right button of the mouse"),
                 LoLLMsAction(
+                            "click_at",[
+                                            LoLLMsActionParameters("x", int, ""), 
+                                            LoLLMsActionParameters("y", int, value="")
+                                        ],
+                            self.move_mouse_and_click,
+                            "Move the mouse to the position x,y of the screen then left click. x and y are values between 0 and 100"
+                            ),
+                LoLLMsAction(
                             "type_text",[
-                                            LoLLMsActionParameters("text", str, value="")
+                                            LoLLMsActionParameters("text", str, value=""),
+                                            LoLLMsActionParameters("add_return", bool, value="True")
                                         ],
                             self.type_text,
                             "Typing text"),
@@ -157,8 +198,7 @@ class Processor(APScript):
                             "This triggers the end of the operation. It should be called when the objective is reached."
                             ),
                 ],
-                previous_discussion_text+"{self.config.separator_template}{self.config.start_header_id_template}obligation:Do not close the lollms tabin the browser.\n",max_answer_length=512)
-            self.set_message_content("\n".join([p.description for p in plan]))
+                previous_discussion_text+self.separator_template+self.system_custom_header("obligation") +"Do not close the lollms tabin the browser.\n",max_answer_length=512)
             self.step_end("Planning operation")
             for action in plan:
                 if action.name!="done":
