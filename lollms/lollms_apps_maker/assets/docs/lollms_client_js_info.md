@@ -97,7 +97,15 @@ if you want to send one or multiple images to the AI then use lc.generate_with_i
 const generated_text = await lc.generate_with_images(prompt, images);
 ```
 
-
+2. **Generate Code from a Prompt:**
+When you need to generate code, please use this function that allows a better generation of code, json, yaml etc...
+```javascript
+// Generate  code
+const code = await lc.generateCode(prompt);
+if (code!=null){
+  // Use the code
+}
+```
 
 #### Tokenization Functions
 
