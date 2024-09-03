@@ -145,7 +145,7 @@ class Processor(APScript):
         self.step_start("Planning operation")
         try:
             def replan(objective, context):
-                prompt = self.system_custom_header("objective")+objective+self.separator_template+self.system_custom_header("context")+context+self.separator_template+self.system_custom_header("Instruction")+"Continue from here, do not issue the previous commands. Just analyze and perform next operation this if this is not the last required operation, you may issue another analysis command."
+                prompt = self.system_custom_header("objective")+objective+self.separator_template+self.system_custom_header("context")+context+self.separator_template+self.system_custom_header("Instruction")+"In your plan, only issue actions starting from the current state and do not issue actions that are not needed given the current state. if this is not the last required operation, or issue a done action."
                 self.analyze_screenshot_and_replan(prompt=prompt,previous_discussion_text=previous_discussion_text, sc_path=sc_path)
             self.add_chunk_to_message_content("\n")
             plan = self.plan(prompt, [sc_path],
@@ -153,7 +153,7 @@ class Processor(APScript):
                 LoLLMsAction(
                             "take_screenshot_and_plan_next",[LoLLMsActionParameters("objective", str, ""), LoLLMsActionParameters("context", str, "")],
                             replan,
-                            "Takes a screen shot then replans the next operations. Write the objective and as context, you should rewrite a description of what you are attempting to do and what next steps you are wanting to accomplish.\nThis action must be issued at the end of the generated plan unless the objective is already reached."
+                            "Takes a screen shot then replans the next operations. add this action to all plans except if the objective is reached."
                             ),
                 LoLLMsAction(
                     "open_new_tab",
@@ -198,7 +198,7 @@ class Processor(APScript):
                             "This triggers the end of the operation. It should be called when the objective is reached."
                             ),
                 ],
-                previous_discussion_text+self.separator_template+self.system_custom_header("obligation") +"Do not close the lollms tabin the browser.\n",max_answer_length=512)
+                previous_discussion_text+self.separator_template,max_answer_length=1024)
             self.step_end("Planning operation")
             for action in plan:
                 if action.name!="done":
