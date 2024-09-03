@@ -134,20 +134,42 @@ class Processor(APScript):
         except FileNotFoundError:
             print(f"Application '{name}' not found.")
 
-    def open_application(self, app_name):
+    def run_application(self, app_name):
         system = platform.system().lower()
         
         try:
             if system == "windows":
+                # Open the application
                 os.startfile(app_name)
+                time.sleep(1)  # Give the application some time to start
+                
+                # Bring the window to front (requires pywin32)
+                import win32gui
+                import win32com.client
+                
+                def bring_to_front(window_name):
+                    shell = win32com.client.Dispatch("WScript.Shell")
+                    shell.SendKeys('%')
+                    win32gui.SetForegroundWindow(win32gui.FindWindow(None, window_name))
+                
+                bring_to_front(app_name)
+                
             elif system == "darwin":  # macOS
-                subprocess.call(["open", "-a", app_name])
+                # Open the application and bring it to front
+                subprocess.call(["open", "-a", app_name, "--new", "--fresh"])
+                
             elif system == "linux":
+                # Open the application
                 subprocess.Popen(app_name)
+                time.sleep(1)  # Give the application some time to start
+                
+                # Bring the window to front (requires wmctrl)
+                subprocess.call(["wmctrl", "-a", app_name])
+                
             else:
                 return f"Unsupported operating system: {system}"
             
-            return f"Successfully opened {app_name}"
+            return f"Successfully opened {app_name} and brought it to the front"
         except FileNotFoundError:
             return f"Application '{app_name}' not found on this system."
         except Exception as e:
@@ -211,8 +233,8 @@ class Processor(APScript):
                         LoLLMsActionParameters("app_name", str, "")
                     ],
                     self.run_application,
-                    "Opens the specified application if it's available on the current system."
-                )
+                    "Runs the specified application if it's available on the current system. Make sure you type the name of the executable file to run."
+                ),
 
                 LoLLMsAction(
                             "type_text",[
