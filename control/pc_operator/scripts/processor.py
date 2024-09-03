@@ -15,6 +15,9 @@ from PIL import Image
 import webbrowser
 import subprocess
 import time
+import platform
+import os
+
 
 # Helper functions
 class Processor(APScript):
@@ -131,7 +134,24 @@ class Processor(APScript):
         except FileNotFoundError:
             print(f"Application '{name}' not found.")
 
-
+    def open_application(self, app_name):
+        system = platform.system().lower()
+        
+        try:
+            if system == "windows":
+                os.startfile(app_name)
+            elif system == "darwin":  # macOS
+                subprocess.call(["open", "-a", app_name])
+            elif system == "linux":
+                subprocess.Popen(app_name)
+            else:
+                return f"Unsupported operating system: {system}"
+            
+            return f"Successfully opened {app_name}"
+        except FileNotFoundError:
+            return f"Application '{app_name}' not found on this system."
+        except Exception as e:
+            return f"Error opening {app_name}: {str(e)}"
     def done(self):
         print("Congrats!")
         self.personality.success("Done")
@@ -185,6 +205,15 @@ class Processor(APScript):
                             self.move_mouse_and_click,
                             "Move the mouse to the position x,y of the screen then left click. x and y are values between 0 and 100"
                             ),
+                LoLLMsAction(
+                    "run_application",
+                    [
+                        LoLLMsActionParameters("app_name", str, "")
+                    ],
+                    self.run_application,
+                    "Opens the specified application if it's available on the current system."
+                )
+
                 LoLLMsAction(
                             "type_text",[
                                             LoLLMsActionParameters("text", str, value=""),
