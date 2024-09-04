@@ -10,7 +10,20 @@ const tl = new TasksLibrary(lc); // lc is a LollmsClient object
 ```
 
 2. **Summarize Text:**
-
+prototype:
+```javascript
+async summarizeText({
+  text,
+  summaryInstruction = "summarize",
+  docName = "chunk",
+  answerStart = "",
+  maxGenerationSize = 3000,
+  maxSummarySize = 512,
+  callback = null,
+  chunkSummaryPostProcessing = null,
+  summaryMode = "SEQUENTIAL"
+})
+```
 ```javascript
 async function summarizeText(textChunk, summaryLength = 512, summaryInstruction="Summarize the text") {
     return await tl.summarizeText(textChunk, summaryLength, lc.host_address, lc.model_name, lc.temperature, 1000);
