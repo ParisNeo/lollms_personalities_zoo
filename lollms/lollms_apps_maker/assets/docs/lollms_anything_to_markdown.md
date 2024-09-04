@@ -10,6 +10,9 @@ JavaScript library to convert various file types to Markdown.
 
 ## Import
 ```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js"></script>
+
 <script src="/lollms_assets/js/lollms_anything_to_markdown"></script>
 ```
 
