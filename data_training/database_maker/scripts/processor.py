@@ -2,8 +2,6 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.personality import APScript, AIPersonality
-from safe_store import GenericDataLoader
-from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
 from pathlib import Path
 import json
 import re
@@ -113,6 +111,7 @@ class Processor(APScript):
             [],
             callback=callback
         )
+        
         self.data_store = TextVectorizer(
             vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,  # =VectorizationMethod.BM25_VECTORIZER,
             data_visualization_method=VisualizationMethod.PCA,  # VisualizationMethod.PCA,
@@ -145,6 +144,7 @@ class Processor(APScript):
         Returns:
             None
         """
+        from lollmsvectordb.text_document_loader import TextDocumentsLoader
         # Preparing callback
         self.callback = callback
         
@@ -158,7 +158,7 @@ class Processor(APScript):
         document_files = [v for v in data_folder_path.iterdir()]
         self.step_start(f"Loading files")
         for file_path in document_files:
-            document_text = GenericDataLoader.read_file(file_path)
+            document_text = TextDocumentsLoader.read_file(file_path)
             self.data_store.add_document(file_path, document_text, chunk_size=512, overlap_size=128)
         self.step_end(f"Loading files")
         # Index the vector store
