@@ -58,6 +58,8 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"interactive_mode", "type":"bool", "value":False, "help":"Activate this mode to start talking to the AI about snippets of your code. The AI will generate updates depending on your own requirements in an interactive way."},
+                {"name":"project_path", "type":"str", "value":"", "help":"Path to the current project."},
                 {"name":"update_mode", "type":"str", "value":"rewrite", "options":["rewrite","edit"], "help":"The update mode specifies if the AI needs to rewrite the whole code which is a good idea if the code is not long or just update parts of the code which is more suitable for long codes."},
                 {"name":"create_a_plan", "type":"bool", "value":False, "help":"Create a plan for the app before starting."},
                 {"name":"generate_icon", "type":"bool", "value":False, "help":"Generate an icon for the application (requires tti to be active)."},
@@ -189,6 +191,42 @@ class Processor(APScript):
         # This can be expanded to dynamically generate help text based on the current state,
         # available commands, and user context.
         self.set_message_content(self.personality.help)
+        
+    def get_lollms_infos(self):
+        if self.personality_config.use_lollms_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_client_js_info.md","r", errors="ignore") as f:
+                lollms_infos = f.read()
+        else:
+            lollms_infos = ""
+        if self.personality_config.use_lollms_rag_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_rag_info.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.use_lollms_image_gen_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_tti.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+
+        if self.personality_config.use_lollms_localization_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_auto_localizer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.use_lollms_flow_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_flow.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.lollms_anything_to_markdown_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_anything_to_markdown.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.lollms_markdown_renderer:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.use_lollms_tasks_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_taskslib_js_info.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+        return lollms_infos        
 
     def buildPlan(self, context_details, metadata, client:Client):
         self.step_start("Building initial_plan.txt")
@@ -260,6 +298,8 @@ disclaimer: If needed, write a disclaimer. else null
             app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_")
             app_path.mkdir(parents=True, exist_ok=True)
             metadata["app_path"]=str(app_path)
+            self.personality_config.project_path = str(app_path)
+            self.personality_config.save()
             metadata["infos"]=infos
             client.discussion.set_metadata(metadata)
             self.step_end("Building description.yaml")
@@ -286,7 +326,7 @@ model: {self.personality.model.model_name}
 disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else null")} 
 ```
 """,
-                "If the user explicitely proposed a name, use that name",
+                "If the user explicitely proposed a name, use that name. If not, fill in the blacks and imagine the best possible app from the context.",
                 "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
@@ -310,6 +350,8 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             app_path.mkdir(parents=True, exist_ok=True)
             metadata["app_path"]=str(app_path)
             metadata["infos"]=infos
+            self.personality_config.project_path = str(app_path)
+            self.personality_config.save()            
             client.discussion.set_metadata(metadata)
             self.step_end("Building description.yaml")
             return infos
@@ -319,41 +361,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 
     def buildIndex(self, context_details, plan, infos, metadata, client:Client):
         self.step_start("Building index.html")
-        if self.personality_config.use_lollms_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_client_js_info.md","r", errors="ignore") as f:
-                lollms_infos = f.read()
-        else:
-            lollms_infos = ""
-        if self.personality_config.use_lollms_rag_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_rag_info.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-        if self.personality_config.use_lollms_image_gen_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_tti.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-
-        if self.personality_config.use_lollms_localization_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_auto_localizer.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-        if self.personality_config.use_lollms_flow_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_flow.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-        if self.personality_config.lollms_anything_to_markdown_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_anything_to_markdown.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-        if self.personality_config.lollms_markdown_renderer:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-        if self.personality_config.use_lollms_tasks_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_taskslib_js_info.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
-
-
+        lollms_infos = self.get_lollms_infos()
 
         crafted_prompt = self.build_prompt(
             [
@@ -712,86 +720,102 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             None
         """
         self.callback = callback
+        # Load project
         metadata = client.discussion.get_metadata()
+        if "app_path" in metadata and metadata["app_path"] and metadata["app_path"]!="":
+            self.personality_config.project_path = metadata["app_path"]
+            self.personality_config.save()
+        if (not  "app_path" in metadata or not metadata["app_path"] or metadata["app_path"]=="") and self.personality_config.project_path!="":
+            metadata["app_path"] = self.personality_config.project_path
 
-        choices = self.multichoice_question("select the best suited option", [
-                "The user is discussing",
-                "The user is asking to build the webapp",
-                "The user is asking for a modification or reporting a bug in the weapp",
-                "The user is asking for a modification of the information (description, author, vertion etc)",
-                "The user is asking for a modification of the information (description, author, vertion etc)",
-        ], context_details["discussion_messages"])
-        if choices ==0:
+
+        if self.personality_config.interactive_mode:
             extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
 Lollms apps are webapps with a possible fastapi backend. These webapps are created in html/css/javascript and can interact with lollms is the option is activated in the settings.
 Multiple libraries can be activated in the settings of the personality to instruct the personality to use them.
 The lollms libraries suite allows your app to interact with lollms and benefits from its generative capabilities (text to speach, text to image, text to music, text to code etc..)
 The code contains description.yaml that describes the application, the author, the creation date and a short description.
-"""
-            self.answer(context_details+"Extra infos about the process:"+extra_infos)
-        elif choices ==1:
-
-            out = ""
-            out += "You asked me to build an app. I am building the description file."
-            self.set_message_content_invisible_to_ai(out)
-
-            # ----------------------------------------------------------------
-            infos = self.buildDescription(context_details, metadata, client)
-            if infos is None:
-                out += "\n<p style='color:red'>It looks like I failed to build the description.<br>That's the easiest part to do!! If the model wasn't able to do this simple task, I think you better change it, or maybe give it another shot.<br>As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+"""+self.get_lollms_infos()
+            self.answer(context_details, "Extra infos about the process:"+extra_infos)            
+        else:
+            choices = self.multichoice_question("select the best suited option", [
+                    "The user is discussing",
+                    "The user is asking to build the webapp",
+                    "The user is asking for a modification or reporting a bug in the weapp",
+                    "The user is asking for a modification of the information (description, author, vertion etc)",
+                    "The user is asking for a modification of the information (description, author, vertion etc)",
+            ], context_details["discussion_messages"])
+            if choices ==0:
+                extra_infos="""
+The Lollms apps maker is a lollms personality built for making lollms specific apps.
+Lollms apps are webapps with a possible fastapi backend. These webapps are created in html/css/javascript and can interact with lollms is the option is activated in the settings.
+Multiple libraries can be activated in the settings of the personality to instruct the personality to use them.
+The lollms libraries suite allows your app to interact with lollms and benefits from its generative capabilities (text to speach, text to image, text to music, text to code etc..)
+The code contains description.yaml that describes the application, the author, the creation date and a short description.
+"""+self.get_lollms_infos
+                self.answer(context_details, "Extra infos about the process:"+extra_infos)            
+            elif choices ==1:
+                out = ""
+                out += "You asked me to build an app. I am building the description file."
                 self.set_message_content_invisible_to_ai(out)
-                return
-            with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
-                yaml.dump(infos, f, encoding="utf8")
-            out += "\n".join([
-                "\nDescription built successfully !",
-                "Here is the metadata built for this app:",
-                "```yaml",
-                yaml.dump(infos, default_flow_style=False),
-                "```"
-            ])
-            self.set_message_content_invisible_to_ai(out)
-            # ----------------------------------------------------------------
-            if self.personality_config.create_a_plan:
-                out += "\nIn my settings, you have activated planning, so let me build a plan for the application."
-                self.set_message_content_invisible_to_ai(out)
-                plan = self.buildPlan(context_details, metadata, client)
-                if plan:
-                    with open(Path(metadata["app_path"])/"plan.md","w", encoding="utf8") as f:
-                        f.write(plan)
-                    out += f"\nThe plan is ready.\nHere is my plan\n{plan}"
-                    self.set_message_content_invisible_to_ai(out)
-                else:
-                    out += "\n<p style='color:red'>It looks like I failed to build the plan. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+
+                # ----------------------------------------------------------------
+                infos = self.buildDescription(context_details, metadata, client)
+                if infos is None:
+                    out += "\n<p style='color:red'>It looks like I failed to build the description.<br>That's the easiest part to do!! If the model wasn't able to do this simple task, I think you better change it, or maybe give it another shot.<br>As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
                     self.set_message_content_invisible_to_ai(out)
                     return
-            else:
-                plan = None
-            # ----------------------------------------------------------------
-            out +="\nOk, now I'm building the real thing. The code for our application. Please wait as this may take a little time."
-            self.set_message_content_invisible_to_ai(out)
-            code = self.buildIndex(context_details, plan, infos, metadata, client)
-            if code:
-                with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
-                    f.write(code)
-                out +=f"\n<p style='color:green'>Coding done successfully.</p>"
+                with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
+                    yaml.dump(infos, f, encoding="utf8")
+                out += "\n".join([
+                    "\nDescription built successfully !",
+                    "Here is the metadata built for this app:",
+                    "```yaml",
+                    yaml.dump(infos, default_flow_style=False),
+                    "```"
+                ])
                 self.set_message_content_invisible_to_ai(out)
-            else:
-                out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                # ----------------------------------------------------------------
+                if self.personality_config.create_a_plan:
+                    out += "\nIn my settings, you have activated planning, so let me build a plan for the application."
+                    self.set_message_content_invisible_to_ai(out)
+                    plan = self.buildPlan(context_details, metadata, client)
+                    if plan:
+                        with open(Path(metadata["app_path"])/"plan.md","w", encoding="utf8") as f:
+                            f.write(plan)
+                        out += f"\nThe plan is ready.\nHere is my plan\n{plan}"
+                        self.set_message_content_invisible_to_ai(out)
+                    else:
+                        out += "\n<p style='color:red'>It looks like I failed to build the plan. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+                        self.set_message_content_invisible_to_ai(out)
+                        return
+                else:
+                    plan = None
+                # ----------------------------------------------------------------
+                out +="\nOk, now I'm building the real thing. The code for our application. Please wait as this may take a little time."
                 self.set_message_content_invisible_to_ai(out)
-                return
+                code = self.buildIndex(context_details, plan, infos, metadata, client)
+                if code:
+                    with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
+                        f.write(code)
+                    out +=f"\n<p style='color:green'>Coding done successfully.</p>"
+                    self.set_message_content_invisible_to_ai(out)
+                else:
+                    out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                    self.set_message_content_invisible_to_ai(out)
+                    return
 
-            # ----------------------------------------------------------------
-            out += "\nBefore we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
-            self.set_message_content_invisible_to_ai(out)
-            icon_dst = self.generate_icon(metadata, infos, client)
-            icon_url = app_path_to_url(icon_dst)
-            out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
-            out += f"Refresh the apps zoo and you should find this app at category {infos['category']}"
-            self.set_message_content_invisible_to_ai(out)
-            # Show the user everything that was created
-            out = f"""
+                # ----------------------------------------------------------------
+                out += "\nBefore we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
+                self.set_message_content_invisible_to_ai(out)
+                icon_dst = self.generate_icon(metadata, infos, client)
+                icon_url = app_path_to_url(icon_dst)
+                out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
+                out += f"Refresh the apps zoo and you should find this app at category {infos['category']}"
+                self.set_message_content_invisible_to_ai(out)
+                # Show the user everything that was created
+                out = f"""
 <div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-4">Application Created Successfully!</h2>
     <img  src ="{icon_url}" style="width: 200px; height: 200px;">
@@ -815,35 +839,36 @@ The code contains description.yaml that describes the application, the author, t
         <li>Continue development by making changes and committing them to the Git repository.</li>
     </ol>
 </div>
-            """
-            self.ui(out)
-            client.discussion.set_metadata(metadata)
-        elif choices ==2:
-            out = ""
-            self.update_index(context_details, metadata, out)
-        elif choices ==2:
-            out = ""
-            infos = self.updateDescription(context_details, metadata, client)
-            if infos is None:
-                out += "\n<p style='color:red'>It looks like I failed to build the description. That's the easiest part to do. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+                """
+                self.ui(out)
+                client.discussion.set_metadata(metadata)
+            elif choices ==2:
+                out = ""
+                self.update_index(context_details, metadata, out)
+            elif choices ==2:
+                out = ""
+                infos = self.updateDescription(context_details, metadata, client)
+                if infos is None:
+                    out += "\n<p style='color:red'>It looks like I failed to build the description. That's the easiest part to do. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+                    self.set_message_content_invisible_to_ai(out)
+                    return
+                with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
+                    yaml.dump(infos, f, encoding="utf8")
+                out += "\n".join([
+                    "\nDescription built successfully !",
+                    "Here is the metadata built for this app:",
+                    "```yaml",
+                    yaml.dump(infos, default_flow_style=False),
+                    "```"
+                ])
                 self.set_message_content_invisible_to_ai(out)
-                return
-            with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
-                yaml.dump(infos, f, encoding="utf8")
-            out += "\n".join([
-                "\nDescription built successfully !",
-                "Here is the metadata built for this app:",
-                "```yaml",
-                yaml.dump(infos, default_flow_style=False),
-                "```"
-            ])
-            self.set_message_content_invisible_to_ai(out)
 
-        elif choices ==3:
-            out = "I'm generating a new icon based on your request.\n"
-            self.set_message_content_invisible_to_ai(out)
-            out += self.generate_icon(metadata, infos, client)
-            self.set_message_content_invisible_to_ai(out)
+            elif choices ==3:
+                out = "I'm generating a new icon based on your request.\n"
+                self.set_message_content_invisible_to_ai(out)
+                out += self.generate_icon(metadata, infos, client)
+                self.set_message_content_invisible_to_ai(out)
+    
 
 
             
