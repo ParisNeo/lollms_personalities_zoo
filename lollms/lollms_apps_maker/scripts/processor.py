@@ -753,7 +753,7 @@ Lollms apps are webapps with a possible fastapi backend. These webapps are creat
 Multiple libraries can be activated in the settings of the personality to instruct the personality to use them.
 The lollms libraries suite allows your app to interact with lollms and benefits from its generative capabilities (text to speach, text to image, text to music, text to code etc..)
 The code contains description.yaml that describes the application, the author, the creation date and a short description.
-"""+self.get_lollms_infos
+"""+self.get_lollms_infos()
                 self.answer(context_details, "Extra infos about the process:"+extra_infos)            
             elif choices ==1:
                 out = ""
@@ -869,6 +869,3 @@ The code contains description.yaml that describes the application, the author, t
                 out += self.generate_icon(metadata, infos, client)
                 self.set_message_content_invisible_to_ai(out)
     
-
-
-            
