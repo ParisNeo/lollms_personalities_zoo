@@ -416,7 +416,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.set_message_content("The model you are using failed to build the index.html file. Change the prompt a bit and try again.")
             return None
 
-    def update_index(self, context_details, metadata, out:str):
+    def update_index(self, prompt, context_details, metadata, out:str):
         if not metadata.get("app_path", None):
             self.set_message_content("""
 <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
@@ -457,7 +457,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     "The user gives the code the AI should rewrite the code while applying the modifications suggested by the user",
                     "Always write the output in a html markdown tag",
                     self.system_custom_header("context"),
-                    context_details["discussion_messages"],
+                    prompt,
                     lollms_infos,
                     self.system_custom_header("Code"),
                     "index.html",
@@ -745,7 +745,7 @@ The code contains description.yaml that describes the application, the author, t
                     "The user is asking for a modification or reporting a bug in the weapp",
                     "The user is asking for a modification of the information (description, author, vertion etc)",
                     "The user is asking for a modification of the information (description, author, vertion etc)",
-            ], context_details["discussion_messages"])
+            ], prompt)
             if choices ==0:
                 extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
@@ -844,7 +844,7 @@ The code contains description.yaml that describes the application, the author, t
                 client.discussion.set_metadata(metadata)
             elif choices ==2:
                 out = ""
-                self.update_index(context_details, metadata, out)
+                self.update_index(prompt, context_details, metadata, out)
             elif choices ==2:
                 out = ""
                 infos = self.updateDescription(context_details, metadata, client)
