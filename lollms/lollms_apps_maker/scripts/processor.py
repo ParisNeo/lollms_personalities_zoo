@@ -235,7 +235,8 @@ class Processor(APScript):
             "You are Lollms Apps Planner, an expert AI assistant designed to create comprehensive plans for Lollms applications.",
             "Your primary objective is to generate a detailed and structured plan for the single file web app based on the user's description of a web application.",
     	    "Announce the name of the web app.",
-            "re express the user requirements in a better wording.",
+            "Express the user requirements in a better wording.",
+            "Make sure you keep any useful information about libraries to use or code examples.",
             "Plan elements of the user interface.",
             "Plan the use cases",
     	    "Take into consideration that this code is a single html file with css and javascript.",
@@ -275,7 +276,8 @@ disclaimer: If needed, write a disclaimer. else null
 ```
 """,
                 "If the user explicitely proposed a name, use that name",
-                "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
+                "Build the description.yaml file.",
+                "Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
                 self.system_custom_header("Lollms Apps Maker")
