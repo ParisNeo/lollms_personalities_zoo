@@ -242,6 +242,7 @@ class Processor(APScript):
     	    "Take into consideration that this code is a single html file with css and javascript.",
             "Do not ask the user for any additional information. Respond only with the plan.",
             "Answer with the plan without any extra explanation or comments.",
+            "The plan must be a markdown text with headers and organized elements.",
             self.system_custom_header("context"),
             context_details["discussion_messages"],
             self.system_custom_header("Lollms Apps Planner")
@@ -386,10 +387,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
-        if len(self.personality.image_files)>0:
-            code_content = self.generate_with_images(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-        else:
-            code_content = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        code_content = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
         if self.config.debug:
             ASCIIColors.yellow("--- Code file ---")
             ASCIIColors.yellow(code_content)
@@ -752,20 +750,19 @@ The code contains description.yaml that describes the application, the author, t
 """+self.get_lollms_infos()
                 self.answer(context_details, "Extra infos about the process:"+extra_infos)            
             elif choices ==1:
-                out = ""
-                out += "You asked me to build an app. I am building the description file."
+                out = "You asked me to build an app. I am building the description file."
                 self.set_message_content_invisible_to_ai(out)
 
                 # ----------------------------------------------------------------
                 infos = self.buildDescription(context_details, metadata, client)
                 if infos is None:
-                    out += "\n<p style='color:red'>It looks like I failed to build the description.<br>That's the easiest part to do!! If the model wasn't able to do this simple task, I think you better change it, or maybe give it another shot.<br>As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
+                    out = "\n<p style='color:red'>It looks like I failed to build the description.<br>That's the easiest part to do!! If the model wasn't able to do this simple task, I think you better change it, or maybe give it another shot.<br>As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
                     self.set_message_content_invisible_to_ai(out)
                     return
                 with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
                     yaml.dump(infos, f, encoding="utf8")
-                out += "\n".join([
-                    "\nDescription built successfully !",
+                out = "\n".join([
+                    "# Description :",
                     "Here is the metadata built for this app:",
                     "```yaml",
                     yaml.dump(infos, default_flow_style=False),
@@ -774,13 +771,14 @@ The code contains description.yaml that describes the application, the author, t
                 self.set_message_content_invisible_to_ai(out)
                 # ----------------------------------------------------------------
                 if self.personality_config.create_a_plan:
-                    out += "\nIn my settings, you have activated planning, so let me build a plan for the application."
+                    self.new_message("")
+                    out = "In my settings, you have activated planning, so let me build a plan for the application."
                     self.set_message_content_invisible_to_ai(out)
                     plan = self.buildPlan(context_details, metadata, client)
                     if plan:
                         with open(Path(metadata["app_path"])/"plan.md","w", encoding="utf8") as f:
                             f.write(plan)
-                        out += f"\nThe plan is ready.\nHere is my plan\n{plan}"
+                        out += f"\nThe plan is ready.\nHere is my plan:\n\n{plan}"
                         self.set_message_content_invisible_to_ai(out)
                     else:
                         out += "\n<p style='color:red'>It looks like I failed to build the plan. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
@@ -789,7 +787,8 @@ The code contains description.yaml that describes the application, the author, t
                 else:
                     plan = None
                 # ----------------------------------------------------------------
-                out +="\nOk, now I'm building the real thing. The code for our application. Please wait as this may take a little time."
+                self.new_message("")
+                out ="Building the application. Please wait as this may take a little while."
                 self.set_message_content_invisible_to_ai(out)
                 code = self.buildIndex(context_details, plan, infos, metadata, client)
                 if code:
@@ -803,12 +802,13 @@ The code contains description.yaml that describes the application, the author, t
                     return
 
                 # ----------------------------------------------------------------
-                out += "\nBefore we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
+                self.new_message("")
+                out = "Before we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
                 self.set_message_content_invisible_to_ai(out)
                 icon_dst = self.generate_icon(metadata, infos, client)
                 icon_url = app_path_to_url(icon_dst)
                 out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
-                out += f"Refresh the apps zoo and you should find this app at category {infos['category']}"
+                out += f"""<a href="/apps/{infos['category']}/{infos['name']}">Click here to test the application</a>"""
                 self.set_message_content_invisible_to_ai(out)
                 # Show the user everything that was created
                 out = f"""
