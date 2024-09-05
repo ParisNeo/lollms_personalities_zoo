@@ -483,9 +483,9 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 self.step_end("Backing up previous version")
                 while not codes[0]["is_complete"]:
                     if len(self.personality.image_files)>0:
-                        updated_sections = self.generate_with_images(crafted_prompt+updated_sections+"\n"+self.user_full_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+                        updated_sections = self.generate_with_images(crafted_prompt+updated_sections+"\n"+self.system_custom_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
                     else:
-                        updated_sections = self.generate(crafted_prompt+updated_sections+"\n"+self.user_full_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+                        updated_sections = self.generate(crafted_prompt+updated_sections+"\n"+self.system_custom_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header(), temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
                     codes = self.extract_code_blocks(updated_sections)
                     if len(codes) > 0:
