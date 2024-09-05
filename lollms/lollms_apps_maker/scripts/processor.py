@@ -250,7 +250,7 @@ class Processor(APScript):
         if len(self.personality.image_files)>0:
             app_plan = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
         else:
-            app_plan = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
+            app_plan = self.generate(crafted_prompt,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
         # Store plan into context
         metadata["plan"]=app_plan
@@ -387,14 +387,12 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
-        code_content = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
         if self.config.debug:
             ASCIIColors.yellow("--- Code file ---")
-            ASCIIColors.yellow(code_content)
-        codes = self.extract_code_blocks(code_content)
+            ASCIIColors.yellow(code)
         app_path = metadata["app_path"]
-        if len(codes)>0:
-            code = codes[0]["content"]
+        if len(code)>0:
             # Backup the existing index.html file
             index_file_path = Path(metadata["app_path"]) / "index.html"
             if index_file_path.exists():
@@ -461,39 +459,25 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     self.system_custom_header("Lollms Apps Maker")
                 ],5
             )
-            if len(self.personality.image_files)>0:
-                updated_sections = self.generate_with_images(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-            else:
-                updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            if self.config.debug:
+                ASCIIColors.yellow("--- Code file ---")
+                ASCIIColors.yellow(code)
 
-            # Extract code blocks
-            codes = self.extract_code_blocks(updated_sections)
-            if len(codes) > 0:
-                content = codes[0]["content"]    
+            if len(code) > 0:
                 self.step_start("Backing up previous version")       
                 # Stage the current version of index.html
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Backup before update")
                 self.step_end("Backing up previous version")
-                while not codes[0]["is_complete"]:
-                    if len(self.personality.image_files)>0:
-                        updated_sections = self.generate_with_images(crafted_prompt+updated_sections+"\n"+self.system_custom_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-                    else:
-                        updated_sections = self.generate(crafted_prompt+updated_sections+"\n"+self.system_custom_header("system request")+"Continue coding from last line in a html markdown code tag.\n"+self.ai_full_header, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
-
-                    codes = self.extract_code_blocks(updated_sections)
-                    if len(codes) > 0:
-                        content = "\n".join(content.split("\n")[:-1])+codes[0]["content"]    
-                    else:
-                        return None
                 # Write the updated content back to index.html
-                index_file_path.write_text(codes[0]["content"], encoding='utf8')
+                index_file_path.write_text(code, encoding='utf8')
                 
                 # Stage and commit the changes
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Update index.html")
                 
-                out += f"Updated index file:\n```html\n{codes[0]['content']}\n```\n"
+                out += f"Updated index file:\n```html\n{code}\n```\n"
             else:
                 out += "No sections were updated."
 
