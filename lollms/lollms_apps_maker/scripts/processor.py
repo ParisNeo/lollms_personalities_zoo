@@ -432,12 +432,6 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
         out = ""
         self.step_start("Updating index.html")
         
-        if self.personality_config.use_lollms_library:
-            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_client_js_info.md","r", errors="ignore") as f:
-                lollms_infos = f.read()
-        else:
-            lollms_infos = ""
-
         app_path = Path(metadata["app_path"])
         index_file_path = app_path / "index.html"
 
@@ -460,7 +454,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     "Always write the output in a html markdown tag",
                     self.system_custom_header("context"),
                     prompt,
-                    lollms_infos,
+                    self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "index.html",
                     "```html",
