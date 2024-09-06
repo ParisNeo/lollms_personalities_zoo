@@ -148,4 +148,44 @@ async detokenize(tokensList) {
 ```
 
 - The `detokenize` function takes a list of token IDs and sends it to the Lollms API, which returns the corresponding text string.
-Sure, here's the updated documentation with the `updateCode()` function added:
+
+
+Note:
+When generating, use a spinner to show that the system is buzy:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggleable Spinning Strawberry Loader</title>
+    <style>
+        html,body{margin:0;padding:0;height:100%;overflow:hidden}
+        body{display:flex;justify-content:center;align-items:center;background:#fff;font-family:sans-serif}
+        .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);display:none;justify-content:center;align-items:center}
+        .loading{text-align:center;color:#ff69b4}
+        .strawberry{font-size:64px;animation:spin 2s linear infinite}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" class="overlay">
+        <div class="loading">
+            <div class="strawberry">🍓</div>
+            <div style="margin-top:20px">Interrogating LOLLMS strawberry...</div>
+        </div>
+    </div>
+
+    <script>
+        function showLoader() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoader() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        hideLoader()
+    </script>
+</body>
+</html>
+```
