@@ -606,7 +606,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.step_start("Using default icon")
             # Copy icon.png
             icon_src = str(Path(__file__).parent.parent/"assets"/"icon.png")
-            icon_dst = str(app_path/"icon.png")
+            icon_dst = str(app_path/"icon.png")+"\n<br>\n<p>Warning! We are using default icon beceaus icon generation is deactivated in settings.</p>"
             shutil.copy(icon_src, icon_dst)
             
             # Stage and commit the icon
@@ -732,7 +732,7 @@ The code contains description.yaml that describes the application, the author, t
                     "The user is asking to build the webapp",
                     "The user is asking for a modification or reporting a bug in the weapp",
                     "The user is asking for a modification of the information (description, author, vertion etc)",
-                    "The user is asking for a modification of the information (description, author, vertion etc)",
+                    "The user is asking for recreating an icon for the app",
             ], prompt)
             if choices ==0:
                 extra_infos="""
@@ -835,7 +835,7 @@ The code contains description.yaml that describes the application, the author, t
             elif choices ==2:
                 out = ""
                 self.update_index(prompt, context_details, metadata, out)
-            elif choices ==2:
+            elif choices ==3:
                 out = ""
                 infos = self.updateDescription(context_details, metadata, client)
                 if infos is None:
@@ -853,9 +853,9 @@ The code contains description.yaml that describes the application, the author, t
                 ])
                 self.set_message_content_invisible_to_ai(out)
 
-            elif choices ==3:
+            elif choices ==4:
                 out = "I'm generating a new icon based on your request.\n"
                 self.set_message_content_invisible_to_ai(out)
-                out += self.generate_icon(metadata, infos, client)
+                out += self.generate_icon(metadata, metadata["infos"], client)
                 self.set_message_content_invisible_to_ai(out)
     
