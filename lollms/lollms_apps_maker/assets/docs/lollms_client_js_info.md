@@ -97,7 +97,7 @@ if you want to send one or multiple images to the AI then use lc.generate_with_i
 const generated_text = await lc.generate_with_images(prompt, images);
 ```
 
-2. **Generate Code from a Prompt:**
+2. **Generate a single code from a Prompt:**
 When you need to generate code, please use this function that allows a better generation of code, json, yaml etc...
 ```javascript
 // Generate  code
@@ -107,6 +107,19 @@ if (code!=null){
 }
 ```
 
+2. **Generate a list of Codes from a Prompt:**
+When you need to generate a list of codes, please use this function that allows a better generation of multiple codes, json, yaml etc...
+```javascript
+// Generate  code
+const codes = await lc.generateCodes(prompt);
+if (codes.length>0){
+  // Use the code
+  codes.forEach(code => {
+    console.log(code.content);
+  });
+}
+```
+Make sure to explicitely instruct the LLM togenerate the codes in the right order in the prompt.
 #### Tokenization Functions
 
 The `LollmsClient` also provides functions for tokenization and detokenization, enabling you to convert prompts to tokens and vice versa.
