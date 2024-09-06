@@ -226,6 +226,16 @@ class Processor(APScript):
         if self.personality_config.use_lollms_tasks_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_taskslib_js_info.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
+        
+        tk = self.personality.model.tokenize(lollms_infos)
+        ltk = len(tk)
+        if ltk>self.personality.config.ctx_size:
+            ASCIIColors.red("WARNING! The lollms_infos is bigger than the context. The quality will be reduced and the mùodel may fail!!")        
+            self.warning("WARNING! The lollms_infos is bigger than the context. The quality will be reduced and the mùodel may fail!!")
+        elif ltk>self.personality.config.ctx_size-1024:
+            ASCIIColors.red("WARNING! The lollms_infos is filling a huge chunk of the context. You won't have enough space for the generation!!")        
+            self.warning("WARNING! The lollms_infos is filling a huge chunk of the context. You won't have enough space for the generation!!")
+        
         return lollms_infos        
 
     def buildPlan(self, context_details, metadata, client:Client):
