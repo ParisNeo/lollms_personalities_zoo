@@ -17,10 +17,7 @@
 
 4. Or generate image separately:
    ```javascript
-   ttiClient.generateImage('prompt', 'negative prompt', 512, 512)
-     .then(base64Image => {
-       // Use base64Image
-     });
+   const base64Image = await ttiClient.generateImage('prompt', 'negative prompt', 512, 512)
    ```
 
 This library simplifies image generation requests to the LoLLMs backend, handling the API call and image display.
