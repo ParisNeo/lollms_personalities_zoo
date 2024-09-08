@@ -322,7 +322,12 @@ disclaimer: If needed, write a disclaimer. else null
             return None
 
     def updateDescription(self, context_details, metadata, client:Client):
-        old_infos = metadata["infos"]
+        if "app_path" in metadata and  metadata["app_path"] and "infos" in metadata:
+            old_infos = metadata["infos"]
+        elif "app_path" in metadata and  metadata["app_path"] :
+            with open(Path(metadata["app_path"])/"description.yaml", "r") as f:
+                old_infos = yaml.safe_load(f)
+
         self.step_start("Building description.yaml")
         crafted_prompt = self.build_prompt(
             [
@@ -431,23 +436,36 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
     <h3 style="margin-top: 0;">⚠️ No Application Path Found</h3>
     <p>It appears that no application path is present in this discussion. Before attempting to make updates, you need to create a new project first.</p>
+    <p>You can also set a manual application path in the settings of the personality to continue working on that application.</p>                                     
     <p>Please ask about creating a new project, and I'll be happy to guide you through the process.</p>
 </div>
             """)
             return
 
         out = ""
-        self.step_start("Updating index.html")
         
         app_path = Path(metadata["app_path"])
         index_file_path = app_path / "index.html"
 
         # Initialize Git repository if not already initialized
+        self.step_start("Backing up previous version")
+        app_path = Path(metadata["app_path"])
         if not (app_path / ".git").exists():
             repo = git.Repo.init(app_path)
         else:
             repo = git.Repo(app_path)
 
+        # Stage and commit the icon
+        try:
+            repo.index.add([os.path.relpath(index_file_path, app_path)])
+            repo.index.commit("Backing up index.html")        
+        except Exception:
+            pass        
+        self.step_end("Backing up previous version")
+
+
+
+        self.step_start("Updating index.html")
         with open(index_file_path, "r", encoding="utf8") as f:
             original_content = f.read()
 
@@ -473,7 +491,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
                     "Do not add explanations just do the job.",
                     self.system_custom_header("Lollms Apps Maker")
-                ],5
+                ]
             )
             code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
             if self.config.debug:
@@ -481,6 +499,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 ASCIIColors.yellow(code)
 
             if len(code) > 0:
+                self.step_end("Updating index.html")
                 self.step_start("Backing up previous version")       
                 # Stage the current version of index.html
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
@@ -495,6 +514,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 
                 out += f"Updated index file:\n```html\n{code}\n```\n"
             else:
+                self.step_end("Updating index.html", False)
                 out += "No sections were updated."
 
             self.step_end("Updating index.html")
@@ -571,13 +591,100 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.step_end("Updating index.html")
 
 
-    def generate_icon(self, metadata, infos, client):
+    def build_documentation(self, prompt, context_details, metadata, out:str):
+        if not metadata.get("app_path", None):
+            self.set_message_content("""
+<div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+    <h3 style="margin-top: 0;">⚠️ No Application Path Found</h3>
+    <p>It appears that no application path is present in this discussion. Before attempting to make updates, you need to create a new project first.</p>
+    <p>You can also set a manual application path in the settings of the personality to continue working on that application.</p>                                     
+    <p>Please ask about creating a new project, and I'll be happy to guide you through the process.</p>
+</div>
+            """)
+            return
+
+        out = ""
+        
+        app_path = Path(metadata["app_path"])
+        index_file_path = app_path / "index.html"
+        doc_file_path = app_path / "doc.md"
+
+        # Initialize Git repository if not already initialized
+        self.step_start("Backing up previous version")
         app_path = Path(metadata["app_path"])
         if not (app_path / ".git").exists():
             repo = git.Repo.init(app_path)
         else:
             repo = git.Repo(app_path)
 
+        # Stage and commit the icon
+        try:
+            repo.index.add([os.path.relpath(doc_file_path, app_path)])
+            repo.index.commit("Backing up doc.md")        
+        except Exception:
+            pass        
+        self.step_end("Backing up previous version")
+
+
+
+        self.step_start("Updating doc.md")
+        # First read code
+        with open(index_file_path, "r", encoding="utf8") as f:
+            original_content = f.read()
+
+
+        crafted_prompt = self.build_prompt(
+            [
+                self.system_full_header,
+                "You are Lollms Apps Documenter best application maker ever.",
+                "Your objective is to build a documentation for this webapp.",
+                "The user asks for the kind of documentation he wants and you need to write a documentation in markdown format.",
+                "Your sole objective is to satisfy the user",
+                self.system_custom_header("context"),
+                prompt,
+                self.get_lollms_infos(),
+                self.system_custom_header("code to document"),
+                "index.html",
+                "```html",
+                original_content,
+                "```",
+                self.system_custom_header("Very important"),
+                "Answer with the generated documentation without any comment or explanation.",
+                self.system_custom_header("Lollms Apps Documenter")
+            ]
+        )
+        doc = self.generate(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        if self.config.debug:
+            ASCIIColors.yellow("--- Code file ---")
+            ASCIIColors.yellow(doc)
+
+        self.step_end("Updating doc.md")
+        # Write the updated content back to doc.md
+        doc_file_path.write_text(doc, encoding='utf8')
+                
+        out += doc
+
+        self.step_end("Updating doc.md")
+
+        self.set_message_content_invisible_to_ai(out)           
+
+    def generate_icon(self, metadata, infos, client):
+        self.step_start("Backing up previous version")
+        app_path = Path(metadata["app_path"])
+        if not (app_path / ".git").exists():
+            repo = git.Repo.init(app_path)
+        else:
+            repo = git.Repo(app_path)
+
+        #path to the output icon
+        icon_dst = str(app_path/"icon.png")
+        # Stage and commit the icon
+        try:
+            repo.index.add([os.path.relpath(icon_dst, app_path)])
+            repo.index.commit("Add icon.png")        
+        except Exception:
+            pass        
+        self.step_end("Backing up previous version")
         if self.personality_config.generate_icon:
             try:
                 self.step_start("Generating icon")
@@ -593,20 +700,27 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 icon_infos = build_image_from_simple_prompt(crafted_prompt, self, client, production_type="icon")
                 
                 icon_src = str(Path(icon_infos["path"]))
-                icon_dst = str(app_path/"icon.png")
                 shutil.copy(icon_src, icon_dst)
                 self.step_end("Generating icon")
+
+                # Stage and commit the icon
+                self.step_start("Commiting to git")
+                repo.index.add([os.path.relpath(icon_dst, app_path)])
+                repo.index.commit("Add icon.png")        
+                self.step_end("Commiting to git")
             except:
                 self.step_start("Using default icon")
                 # Copy icon.png
                 icon_src = str(Path(__file__).parent.parent/"assets"/"icon.png")
                 icon_dst = str(app_path/"icon.png")
                 shutil.copy(icon_src, icon_dst)
+                self.step_end("Using default icon")
                 
                 # Stage and commit the icon
+                self.step_start("Commiting to git")
                 repo.index.add([os.path.relpath(icon_dst, app_path)])
                 repo.index.commit("Add icon.png")        
-                self.step_end("Using default icon")
+                self.step_end("Commiting to git")
 
         else:
             self.step_start("Using default icon")
@@ -614,11 +728,13 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             icon_src = str(Path(__file__).parent.parent/"assets"/"icon.png")
             icon_dst = str(app_path/"icon.png")+"\n<br>\n<p>Warning! We are using default icon beceaus icon generation is deactivated in settings.</p>"
             shutil.copy(icon_src, icon_dst)
+            self.step_end("Using default icon")
             
             # Stage and commit the icon
+            self.step_start("Commiting to git")
             repo.index.add([os.path.relpath(icon_dst, app_path)])
             repo.index.commit("Add icon.png")        
-            self.step_end("Using default icon")
+            self.step_end("Commiting to git")
         return icon_dst
 
     def create_git_repository(self, infos, metadata):
@@ -739,6 +855,7 @@ The code contains description.yaml that describes the application, the author, t
                     "The user is asking for a modification in the webapp or reporting a bug in the webapp",
                     "The user is asking for the modification of the description file",
                     "The user is asking for recreating an icon for the app",
+                    "The user is asking for building a documentation for the app"
             ], prompt)
             if choices ==0:
                 extra_infos="""
@@ -864,4 +981,8 @@ The code contains description.yaml that describes the application, the author, t
                 self.set_message_content_invisible_to_ai(out)
                 out += self.generate_icon(metadata, metadata["infos"], client)
                 self.set_message_content_invisible_to_ai(out)
+            elif choices ==5:
+                out = "I'm generating a documentation for the app.\n"
+                self.set_message_content_invisible_to_ai(out)
+                self.build_documentation(prompt, context_details, metadata, out)
     
