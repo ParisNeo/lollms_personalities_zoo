@@ -321,7 +321,8 @@ disclaimer: If needed, write a disclaimer. else null
             self.step_end("Building description.yaml", False)
             return None
 
-    def updateDescription(self, context_details, metadata, old_infos, client:Client):
+    def updateDescription(self, context_details, metadata, client:Client):
+        old_infos = metadata["infos"]
         self.step_start("Building description.yaml")
         crafted_prompt = self.build_prompt(
             [
@@ -455,8 +456,10 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             crafted_prompt = self.build_prompt(
                 [
                     self.system_full_header,
-                    "You are Lollms Apps Maker. Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
-                    "The user gives the code the AI should rewrite the code while applying the modifications suggested by the user",
+                    "You are Lollms Apps Maker best application maker ever.",
+                    "Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
+                    "The user gives the code and you should rewrite all the code with modifications suggested by the user.",
+                    "Your sole objective is to satisfy the user",
                     "Always write the output in a html markdown tag",
                     self.system_custom_header("context"),
                     prompt,
@@ -466,6 +469,9 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     "```html",
                     original_content,
                     "```",
+                    self.system_custom_header("Very important"),
+                    "It is mandatory to rewrite the whole code in a single code tag without any comments.",
+                    "Do not add explanations just do the job.",
                     self.system_custom_header("Lollms Apps Maker")
                 ],5
             )
@@ -522,7 +528,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     "Update the code from the user suggestion",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
-                    lollms_infos,
+                    self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "<file_name>index.html</file_name>",
                     "```html",
@@ -729,9 +735,9 @@ The code contains description.yaml that describes the application, the author, t
         else:
             choices = self.multichoice_question("select the best suited option", [
                     "The user is discussing",
-                    "The user is asking to build the webapp",
-                    "The user is asking for a modification or reporting a bug in the weapp",
-                    "The user is asking for a modification of the information (description, author, vertion etc)",
+                    "The user is asking to build a new webapp",
+                    "The user is asking for a modification in the webapp or reporting a bug in the webapp",
+                    "The user is asking for the modification of the description file",
                     "The user is asking for recreating an icon for the app",
             ], prompt)
             if choices ==0:
@@ -802,14 +808,14 @@ The code contains description.yaml that describes the application, the author, t
                 icon_dst = self.generate_icon(metadata, infos, client)
                 icon_url = app_path_to_url(icon_dst)
                 out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
-                out += f"""<a href="/apps/{infos['category']}/{infos['name']}">Click here to test the application</a>"""
+                out += f"""<a href="/apps/{infos['name']}/index.html">Click here to test the application</a>"""
                 self.set_message_content_invisible_to_ai(out)
                 # Show the user everything that was created
                 out = f"""
 <div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-4">Application Created Successfully!</h2>
-    <img  src ="{icon_url}" style="width: 200px; height: 200px;">
-    <p class="mb-4">Your application <span class="font-semibold">{infos['name']}</span> has been created in the following directory:</p>
+    <a href="/apps/{infos['name']}/index.html"><img  src ="{icon_url}" style="width: 200px; height: 200px;"></a>
+    <p class="mb-4">Your application <a href="/apps/{infos['name']}/index.html"><span class="font-semibold">{infos['name']}</span></a> has been created in the following directory:</p>
     <pre class="panel-color p-2 rounded">{metadata["app_path"]}</pre>
     <h3 class="text-xl font-bold mt-6 mb-2">Files created:</h3>
     <ul class="list-disc list-inside">
@@ -832,10 +838,10 @@ The code contains description.yaml that describes the application, the author, t
                 """
                 self.ui(out)
                 client.discussion.set_metadata(metadata)
-            elif choices ==2:
+            elif choices == 2:
                 out = ""
                 self.update_index(prompt, context_details, metadata, out)
-            elif choices ==3:
+            elif choices == 3:
                 out = ""
                 infos = self.updateDescription(context_details, metadata, client)
                 if infos is None:
