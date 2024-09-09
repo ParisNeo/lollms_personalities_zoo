@@ -726,7 +726,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.step_start("Using default icon")
             # Copy icon.png
             icon_src = str(Path(__file__).parent.parent/"assets"/"icon.png")
-            icon_dst = str(app_path/"icon.png")+"\n<br>\n<p>Warning! We are using default icon beceaus icon generation is deactivated in settings.</p>"
+            icon_dst = str(app_path/"icon.png")#+"\n<br>\n<p>Warning! We are using default icon beceaus icon generation is deactivated in settings.</p>"
             shutil.copy(icon_src, icon_dst)
             self.step_end("Using default icon")
             
