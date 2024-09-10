@@ -46,9 +46,6 @@ class Processor(APScript):
                                 {
                                     "name": "idle",
                                     "commands": { # list of commands
-                                        "help":self.help,
-                                        "regenerate_icons":self.regenerate_icons,
-                                        "manual_building":self.manual_building
                                     },
                                     "default": None
                                 },                           
@@ -62,7 +59,7 @@ class Processor(APScript):
         super().install()
         # Install any necessary dependencies for VSCode extension development
         try:
-            subprocess.run(["npm", "install", "-g", "yo", "generator-code"], check=True)
+            subprocess.run(["npm", "install", "-g", "yo", "generator-code"], check=True,shell=True)
             self.personality.info("Successfully installed Yeoman and VSCode Extension Generator.")
         except subprocess.CalledProcessError:
             self.personality.error("Failed to install Yeoman and VSCode Extension Generator. Please make sure Node.js and npm are installed.")
