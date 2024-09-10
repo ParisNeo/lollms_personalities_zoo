@@ -14,7 +14,10 @@ from lollms.functions.prompting.system_prompts import get_system_prompt, get_ran
 from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
 from lollms.client_session import Client
 
-from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
+from lollmsvectordb import VectorDatabase
+from lollmsvectordb.text_document_loader import TextDocumentsLoader
+from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
+
 from typing import Dict, Any
 
 import re
@@ -925,16 +928,19 @@ class Processor(APScript):
             self._data = "\n".join(map((lambda x: f"\n{x}"), text))
             self.step_start("Building data ...")
             try:
-                self.persona_data_vectorizer = TextVectorizer(
-                            self.personality.config.data_vectorization_method, # supported "model_embedding" or "tfidf_vectorizer"
-                            model=self.personality.model, #needed in case of using model_embedding
-                            save_db=True,
-                            database_path=self.data_path/"db.json",
-                            data_visualization_method=VisualizationMethod.PCA,
-                            database_dict=None)
+                if self.personality.config.rag_vectorizer=="semantic":
+                    from lollmsvectordb.lollms_vectorizers.semantic_vectorizer import SemanticVectorizer
+                    vectorizer = SemanticVectorizer(self.lollms.config.rag_vectorizer_model)
+                elif self.personality.config.rag_vectorizer=="tfidf":
+                    from lollmsvectordb.lollms_vectorizers.tfidf_vectorizer import TFIDFVectorizer
+                    vectorizer = TFIDFVectorizer()
+                elif self.personality.config.rag_vectorizer=="openai":
+                    from lollmsvectordb.lollms_vectorizers.openai_vectorizer import OpenAIVectorizer
+                    vectorizer = OpenAIVectorizer(self.personality.config.rag_vectorizer_model, self.personality.config.rag_vectorizer_openai_key)
+
+                self.persona_data_vectorizer = VectorDatabase(self.data_path/"db.sqlite", vectorizer, None if self.lollms.config.rag_vectorizer=="semantic" else self.model if self.model else TikTokenTokenizer(), n_neighbors=self.config.rag_n_chunks)       
                 self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)
-                self.persona_data_vectorizer.index()
-                self.persona_data_vectorizer.save_to_json()
+                self.persona_data_vectorizer.build_index()
                 self.step_end("Building data ...")
             except Exception as ex:
                 trace_exception(ex)

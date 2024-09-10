@@ -137,8 +137,8 @@ self.json({"result": result})
 
 Scripted personalities can query the AI for decision-making:
 
-- `yes_no(question, context="", max_answer_length=50, conditioning="")`: Ask yes/no questions to the LLM
-- `multichoice_question(question, possible_answers, context="", max_answer_length=50, conditioning="")`: Ask multiple-choice questions to LLM
+- `yes_no(question, context="", max_answer_length=50, conditioning="")->bool`: Ask yes/no questions to the LLM
+- `multichoice_question(question, possible_answers, context="", max_answer_length=50, conditioning="")->int`: Ask multiple-choice questions to LLM
 
 Example:
 ```python
@@ -224,8 +224,14 @@ Access settings in your code:
 image_size = self.personality_config.image_size
 style = self.personality_config.style
 ```
+## 6. Generate code
+Use this method:
+```python
+    def generate_code(self, prompt, images=[], max_size = None,  temperature = None, top_k = None, top_p=None, repeat_penalty=None, repeat_last_n=None, callback=None, debug=False ):
+```
+This method generates a code from the prompt. all the other parameters are optional.
 
-## 6. Best Practices <a name="best-practices"></a>
+## 7. Best Practices <a name="best-practices"></a>
 
 1. Use AI querying when decision making is needed.
 2. Use the step system to provide clear progress indicators to users.
@@ -234,6 +240,9 @@ style = self.personality_config.style
 5. Leverage the AI querying methods for dynamic decision-making.
 6. Utilize assets and discussion files for context-aware responses.
 7. Implement the `help` method thoroughly to guide users.
+
+
+
 
 ## 7. Conclusion <a name="conclusion"></a>
 
