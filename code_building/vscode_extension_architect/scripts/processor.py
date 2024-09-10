@@ -59,9 +59,12 @@ class Processor(APScript):
         super().install()
         # Install any necessary dependencies for VSCode extension development
         try:
+            self.personality.ShowBlockingMessage("Installing VSCode Extension Generator")
             subprocess.run(["npm", "install", "-g", "yo", "generator-code"], check=True,shell=True)
             self.personality.info("Successfully installed Yeoman and VSCode Extension Generator.")
+            self.personality.HideBlockingMessage()
         except subprocess.CalledProcessError:
+            self.personality.HideBlockingMessage()
             self.personality.error("Failed to install Yeoman and VSCode Extension Generator. Please make sure Node.js and npm are installed.")
 
     def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable = None, context_details: dict = None):
