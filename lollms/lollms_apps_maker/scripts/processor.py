@@ -65,9 +65,10 @@ class Processor(APScript):
                 {"name":"generate_icon", "type":"bool", "value":False, "help":"Generate an icon for the application (requires tti to be active)."},
                 {"name":"use_lollms_library", "type":"bool", "value":False, "help":"Activate this if the application requires interaction with lollms."},
                 {"name":"use_lollms_tasks_library", "type":"bool", "value":False, "help":"Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
-                {"name":"use_lollms_rag_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
+                {"name":"use_lollms_rag_library", "type":"bool", "value":False, "help":"Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
                 {"name":"use_lollms_image_gen_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application requires image generation."},
                 {"name":"use_lollms_audio_gen_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application requires audio manipulation."},
+                {"name":"use_lollms_speach_library", "type":"bool", "value":False, "help":"Activate this if the application requires audio transdcription."},
 
                 {"name":"use_lollms_localization_library", "type":"bool", "value":False, "help":"Activate this library if you want to automatically localize your application into multiple languages."},
                 {"name":"use_lollms_flow_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms flow library in your application into multiple languages."},
@@ -204,6 +205,11 @@ class Processor(APScript):
 
         if self.personality_config.use_lollms_image_gen_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_tti.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+
+        if self.personality_config.use_lollms_speach_library:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_speach.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
 
 
@@ -920,7 +926,7 @@ The code contains description.yaml that describes the application, the author, t
 
                 # ----------------------------------------------------------------
                 self.new_message("")
-                out = "Before we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you cant in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
+                out = "Before we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
                 self.set_message_content_invisible_to_ai(out)
                 icon_dst = self.generate_icon(metadata, infos, client)
                 icon_url = app_path_to_url(icon_dst)
@@ -931,8 +937,8 @@ The code contains description.yaml that describes the application, the author, t
                 out = f"""
 <div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-4">Application Created Successfully!</h2>
-    <a href="/apps/{infos['name']}/index.html"><img  src ="{icon_url}" style="width: 200px; height: 200px;"></a>
-    <p class="mb-4">Your application <a href="/apps/{infos['name']}/index.html"><span class="font-semibold">{infos['name']}</span></a> has been created in the following directory:</p>
+    <a href="/apps/{infos['name'].replace(' ','_')}/index.html" target="_blank"><img  src ="{icon_url}" style="width: 200px; height: 200px;"></a>
+    <p class="mb-4">Your application <a href="/apps/{infos['name'].replace(' ','_')}/index.html"  target="_blank"><span class="font-semibold">{infos['name']}</span></a> has been created in the following directory:</p>
     <pre class="panel-color p-2 rounded">{metadata["app_path"]}</pre>
     <h3 class="text-xl font-bold mt-6 mb-2">Files created:</h3>
     <ul class="list-disc list-inside">
