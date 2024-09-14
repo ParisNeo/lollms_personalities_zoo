@@ -931,7 +931,7 @@ The code contains description.yaml that describes the application, the author, t
                 icon_dst = self.generate_icon(metadata, infos, client)
                 icon_url = app_path_to_url(icon_dst)
                 out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
-                out += f"""<a href="/apps/{infos['name']}/index.html">Click here to test the application</a>"""
+                out += f"""<a href="/apps/{infos['name'].replace(' ','_')}/index.html">Click here to test the application</a>"""
                 self.set_message_content_invisible_to_ai(out)
                 # Show the user everything that was created
                 out = f"""
