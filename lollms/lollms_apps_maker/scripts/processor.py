@@ -75,6 +75,7 @@ class Processor(APScript):
                 {"name":"lollms_anything_to_markdown_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms anything to markdown library which allows you to read any text type of files and returns it as markdown (useful for RAG)."},
                 {"name":"lollms_markdown_renderer", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms markdown renderer that allows you to render markdown text with support for headers, tables, code as well as converting mermaid code into actual mermaid graphs"},
 
+                {"name":"lollms_theme", "type":"bool", "value":False, "help":"Activate this if you want to use lollms theme"},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -227,6 +228,10 @@ class Processor(APScript):
 
         if self.personality_config.lollms_markdown_renderer:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
+                lollms_infos += f.read()
+
+        if self.personality_config.lollms_theme:
+            with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_theme.md","r", errors="ignore") as f:
                 lollms_infos += f.read()
 
         if self.personality_config.use_lollms_tasks_library:
