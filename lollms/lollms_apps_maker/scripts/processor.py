@@ -409,7 +409,11 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 "```yaml",
                 str(infos),
                 "```"
-                ]) if plan is None else "Plan:\n"+plan,                        
+                ]) if plan is None else "\n".join([
+                "```yaml",
+                str(infos),
+                "```\n"
+                ])+"Plan:\n"+plan,                        
                 lollms_infos,
                 self.system_custom_header("Lollms Apps Maker")
             ],6
@@ -863,7 +867,7 @@ The code contains description.yaml that describes the application, the author, t
             choices = self.multichoice_question("select the best suited option", [
                     "The user is discussing",
                     "The user is asking to build a new webapp",
-                    "The user is asking for a modification in the webapp or reporting a bug in the webapp",
+                    "The user is asking for a modification in the webapp or reporting a bug in the webapp or asking to update the content of index.html",
                     "The user is asking for the modification of the description file",
                     "The user is asking for recreating an icon for the app",
                     "The user is asking for building a documentation for the app"
