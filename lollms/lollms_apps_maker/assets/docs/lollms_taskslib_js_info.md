@@ -29,8 +29,26 @@ async function summarizeText(textChunk, summaryLength = 512, summaryInstruction=
     return await tl.summarizeText(textChunk, summaryLength, lc.host_address, lc.model_name, lc.temperature, 1000);
 }
 ```
+3. **Smart data extraction from A long document:**
+If the input document is very large to process, you can use this method to chunk the document into pieces, extract any relevant information for each piece, then synthesize a final response using what was learned from chunks.
+Make sure you use this if the input text is larger than the 75% of the context size. 
+prototype:
+```javascript
+async smartDataExtraction({
+  text,
+  dataExtractionInstruction = "summarize the current chunk.",
+  finalTaskInstruction = "reformulate with better wording",
+  docName = "chunk",
+  answerStart = "",
+  maxGenerationSize = 3000,
+  maxSummarySize = 512,
+  callback = null,
+  chunkSummaryPostProcessing = null,
+  summaryMode = "SEQUENTIAL"
+})
+``` 
 
-3. **Extract Code Blocks:**
+1. **Extract Code Blocks:**
 
 ```javascript
 const codes = tl.extractCodeBlocks(text);
