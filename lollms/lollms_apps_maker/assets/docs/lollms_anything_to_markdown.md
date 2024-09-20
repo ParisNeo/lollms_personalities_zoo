@@ -9,10 +9,12 @@ JavaScript library to convert various file types to Markdown.
 - Object-oriented design
 
 ## Import
+Make sure you import all these libraries as they are important.
 ```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/pptx2json@0.0.10/index.test.min.js"></script>
 <script src="/lollms_assets/js/lollms_anything_to_markdown"></script>
 ```
 
