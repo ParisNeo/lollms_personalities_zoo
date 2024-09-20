@@ -11,6 +11,7 @@ Quick reference for AI-assisted development of the WebAppLocalizer class.
 ```javascript
 const localizer = new WebAppLocalizer(translations, localStoragePrefix, languageSelector);
 ```
+languageSelector is an element not a string, so you need to create a select element, instantiate it or select it then use it here.
 
 ## Key Methods
 - `setLanguage(lang)`
@@ -27,7 +28,7 @@ const localizer = new WebAppLocalizer(translations, localStoragePrefix, language
         translations: {
             [key]: "Translation"
         },
-        // optional
+        // optional prompt translation
         promptTranslations: {
             [prompt name]: "Translation"
         }
@@ -53,3 +54,24 @@ localizer.formatPrompt([prompt name], {
 })
 ```
 In the translation string use the syntax {variable name}. This will allow using variable string parts when translating.
+for example to translate a prompt to fr:
+```javascript
+const translation={
+    //.. other languages
+    fr:{
+        name: "French",
+        translations: {
+            "elementName1": "Translation1"
+            //... more elements
+        },
+        // optional prompt translation
+        promptTranslations: {
+            "prompt1": "prompt text {variable1} more text {variable2}"
+        }
+    }
+}
+// To translate the prompt
+const localizedPrompt = localizer.formatPrompt("prompt1", {
+    "variable1": "variable 1 value"
+})
+```
