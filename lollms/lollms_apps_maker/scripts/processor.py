@@ -622,7 +622,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
         
         app_path = Path(metadata["app_path"])
         index_file_path = app_path / "index.html"
-        doc_file_path = app_path / "doc.md"
+        doc_file_path = app_path / "README.md"
 
         # Initialize Git repository if not already initialized
         self.step_start("Backing up previous version")
@@ -635,14 +635,14 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
         # Stage and commit the icon
         try:
             repo.index.add([os.path.relpath(doc_file_path, app_path)])
-            repo.index.commit("Backing up doc.md")        
+            repo.index.commit("Backing up README.md")        
         except Exception:
             pass        
         self.step_end("Backing up previous version")
 
 
 
-        self.step_start("Updating doc.md")
+        self.step_start("Updating README.md")
         # First read code
         with open(index_file_path, "r", encoding="utf8") as f:
             original_content = f.read()
@@ -673,15 +673,19 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             ASCIIColors.yellow("--- Code file ---")
             ASCIIColors.yellow(doc)
 
-        self.step_end("Updating doc.md")
-        # Write the updated content back to doc.md
+        self.step_end("Updating README.md")
+        # Write the updated content back to README.md
         doc_file_path.write_text(doc, encoding='utf8')
                 
         out += doc
 
-        self.step_end("Updating doc.md")
+        self.step_end("Updating README.md")
 
-        self.set_message_content_invisible_to_ai(out)           
+        self.set_message_content_invisible_to_ai(out)      
+
+
+    def build_server(self, prompt, context_details, metadata, out:str):
+        pass         
 
     def generate_icon(self, metadata, infos, client):
         self.step_start("Backing up previous version")
@@ -870,9 +874,10 @@ The code contains description.yaml that describes the application, the author, t
                     "The user is asking for a modification in the webapp or reporting a bug in the webapp or asking to update the content of index.html",
                     "The user is asking for the modification of the description file",
                     "The user is asking for recreating an icon for the app",
-                    "The user is asking for building a documentation for the app"
+                    "The user is asking for building a documentation for the app",
+                    "The user is asking for building a server for the app"
             ], prompt)
-            if choices ==0:
+            if choices == 0:
                 extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
 Lollms apps are webapps with a possible fastapi backend. These webapps are created in html/css/javascript and can interact with lollms is the option is activated in the settings.
@@ -1000,4 +1005,8 @@ The code contains description.yaml that describes the application, the author, t
                 out = "I'm generating a documentation for the app.\n"
                 self.set_message_content_invisible_to_ai(out)
                 self.build_documentation(prompt, context_details, metadata, out)
+            elif choices ==6:
+                out = "I'm generating a server for the app.\n"
+                self.set_message_content_invisible_to_ai(out)
+                self.build_server(prompt, context_details, metadata, out)
     
