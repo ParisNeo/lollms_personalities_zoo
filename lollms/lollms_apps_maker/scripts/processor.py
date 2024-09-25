@@ -91,6 +91,8 @@ class Processor(APScript):
         )
         self.application_categories = [
             "Productivity",
+            "Coding",
+            "Project Management",
             "Games",
             "Communication",
             "Entertainment",
