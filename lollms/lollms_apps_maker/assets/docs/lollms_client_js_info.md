@@ -184,7 +184,7 @@ When generating, use a spinner to show that the system is buzy:
 <body>
     <div id="loadingOverlay" class="overlay">
         <div class="loading">
-            <div class="strawberry">🍓</div>
+            <div class="strawberry">🪶</div>
             <div style="margin-top:20px">Interrogating LOLLMS strawberry...</div>
         </div>
     </div>
