@@ -71,14 +71,15 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
+                {"name":"verify_first", "type":"bool", "value":False, "help":"instead of sending all possible functions, ask the AI if it needs a function call to solve the problem."},
+                {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
+                {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
                 {"name":"clean_images_between_sessions", "type":"bool", "value":False, "help":"This will remove images between two prompts"},
 
                 {"name":"show_screenshot_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
                 {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
                 {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
                 
-                {"name":"hide_function_call", "type":"bool", "value":True, "help":"Hides the function call commands."},
-                {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
                 
                 {"name": "enable_build_image_function", "type": "bool", "value": True, "help": "Enable or disable build_image_function"},
                 {"name": "enable_generate_music_function", "type": "bool", "value": True, "help": "Enable or disable generate_music_function"},
@@ -212,38 +213,7 @@ class Processor(APScript):
         pyautogui.click(x, y)
 
 
-
-
-        
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
-        """
-        This function generates code based on the given parameters.
-
-        Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
-            context_details (dict): A dictionary containing the following context details for code generation:
-                - conditionning (str): The conditioning information.
-                - documentation (str): The documentation information.
-                - knowledge (str): The knowledge information.
-                - user_description (str): The user description information.
-                - discussion_messages (str): The discussion messages information.
-                - positive_boost (str): The positive boost information.
-                - negative_boost (str): The negative boost information.
-                - current_language (str): The force language information.
-                - fun_mode (str): The fun mode conditionning text
-                - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
-            client_id: The client ID for code generation.
-            callback (function, optional): The callback function for code generation.
-
-        Returns:
-            None
-        """
-        self.callback = callback
-        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
-        if self.personality_config.clean_images_between_sessions:
-            self.personality.image_files.clear()
+    def function_call(self, context_details, client):
         # TODO: add more functions to call
         self.function_definitions = []
 
@@ -285,6 +255,49 @@ class Processor(APScript):
         
         out = self.interact_with_function_call(context_details, self.function_definitions, hide_function_call=self.personality_config.hide_function_call)
 
-        self.set_message_content(out)
+        self.set_message_content(out)        
+
+        
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+        """
+        This function generates code based on the given parameters.
+
+        Args:
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
+        Returns:
+            None
+        """
+        self.callback = callback
+        # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
+        if self.personality_config.clean_images_between_sessions:
+            self.personality.image_files.clear()
+
+        full_prompt = self.build_prompt_from_context_details(context_details)
+        if self.personality_config.verify_first:
+            if self.yes_no("do you need a function call to answer the last user prompt?", full_prompt):
+                self.function_call(self, context_details, client)
+            else:
+                self.generate(full_prompt)
+        else:
+            self.function_call(self, context_details, client)
+
+
+
 
 
