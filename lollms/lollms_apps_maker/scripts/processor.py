@@ -687,7 +687,172 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 
 
     def build_server(self, prompt, context_details, metadata, out:str):
-        pass         
+        if not metadata.get("app_path", None):
+            self.set_message_content("""
+<div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+    <h3 style="margin-top: 0;">⚠️ No Application Path Found</h3>
+    <p>It appears that no application path is present in this discussion. Before attempting to make updates, you need to create a new project first.</p>
+    <p>You can also set a manual application path in the settings of the personality to continue working on that application.</p>                                     
+    <p>Please ask about creating a new project, and I'll be happy to guide you through the process.</p>
+</div>
+            """)
+            return
+
+        out = ""
+        
+        app_path = Path(metadata["app_path"])
+        index_file_path = app_path / "index.html"
+        server_file_path = app_path / "server.py"
+
+        # Initialize Git repository if not already initialized
+        self.step_start("Backing up previous version")
+        app_path = Path(metadata["app_path"])
+        if not (app_path / ".git").exists():
+            repo = git.Repo.init(app_path)
+        else:
+            repo = git.Repo(app_path)
+
+        # Stage and commit the icon
+        try:
+            repo.index.add([os.path.relpath(index_file_path, app_path)])
+            repo.index.commit("Backing up server.py")        
+        except Exception:
+            pass        
+        self.step_end("Backing up previous version")
+
+
+
+        self.step_start("Updating server.py")
+        with open(index_file_path, "r", encoding="utf8") as f:
+            original_html_content = f.read()
+        with open(server_file_path, "r", encoding="utf8") as f:
+            original_server_content = f.read()
+
+        if self.personality_config.update_mode=="rewrite":
+            crafted_prompt = self.build_prompt(
+                [
+                    self.system_full_header,
+                    "You are Lollms Apps Backend Maker best application backend maker ever.",
+                    "Your objective is to update the python fastapi code to fit with the front end.",
+                    "The user gives the server.py code and you should rewrite all the code with modifications suggested by the user.",
+                    "Your sole objective is to satisfy the user",
+                    "Always write the output in a html markdown tag",
+                    self.system_custom_header("context"),
+                    prompt,
+                    self.get_lollms_infos(),
+                    self.system_custom_header("Code"),
+                    "index.html",
+                    "```html",
+                    original_html_content,
+                    "```",
+                    self.system_custom_header("Code"),
+                    "server.py",
+                    "```python",
+                    original_server_content,
+                    "```",
+                    self.system_custom_header("Very important"),
+                    "It is mandatory to rewrite the whole code in a single code tag without any comments.",
+                    "Do not add explanations just do the job.",
+                    self.system_custom_header("Lollms Apps Maker")
+                ]
+            )
+            code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
+            if self.config.debug:
+                ASCIIColors.yellow("--- Code file ---")
+                ASCIIColors.yellow(code)
+
+            if len(code) > 0:
+                self.step_end("Updating index.html")
+                self.step_start("Backing up previous version")       
+                # Stage the current version of index.html
+                repo.index.add([os.path.relpath(index_file_path, app_path)])
+                repo.index.commit("Backup before update")
+                self.step_end("Backing up previous version")
+                # Write the updated content back to index.html
+                index_file_path.write_text(code, encoding='utf8')
+                
+                # Stage and commit the changes
+                repo.index.add([os.path.relpath(index_file_path, app_path)])
+                repo.index.commit("Update index.html")
+                
+                out += full_response
+            else:
+                self.step_end("Updating index.html", False)
+                out += "No sections were updated."
+
+            self.step_end("Updating index.html")
+
+            self.set_message_content_invisible_to_ai(out)            
+        else:
+            crafted_prompt = self.build_prompt(
+                [
+                    self.system_full_header,
+                    "You are Lollms Apps Maker. Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
+                    "The user gives the code the AI should update the code parts using the following syntax",
+                    "To update existing code:",
+                    "```python",
+                    "# REPLACE",
+                    "# ORIGINAL",
+                    "<old_code>",
+                    "# SET",
+                    "<new_code_snippet>",
+                    "```",
+                    "The ORIGINAL statement (<old_code>) should contain valid code from the orginal code. It should be a full statement and not just a fragment of a statement.",
+                    "The SET statement (<new_code_snippet>) is mandatory. You should put the new lines of code just after it.",
+                    "Make sure if possible to change full statements or functions. The code to SET must be fully working and without placeholders.",
+                    "If there is no ambiguity, just use a single line of code for each (first line to be changed and last line to be changed).",
+                    "When providing code changes, make sure to respect the indentation in Python. Only provide the changes, do not repeat unchanged code. Use comments to indicate the type of change.",
+                    "If too many changes needs to be done, and you think a full rewrite of the code is much more adequate, use this syntax:",
+                    "```python",
+                    "# FULL_REWRITE",
+                    "<new_full_code>",
+                    "```",
+                    "Select the best between full rewrite and replace according to the amount of text to update.",
+                    "Update the code from the user suggestion",
+                    self.system_custom_header("context"),
+                    context_details["discussion_messages"],
+                    self.get_lollms_infos(),
+                    self.system_custom_header("Code"),
+                    "<file_name>server.py</file_name>",
+                    "```html",
+                    original_server_content,
+                    "```",
+                    self.system_custom_header("Lollms Apps Maker")
+                ],24
+            )
+            if len(self.personality.image_files)>0:
+                updated_sections = self.generate_with_images(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            else:
+                updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+
+
+            # Extract code blocks
+            codes = self.extract_code_blocks(updated_sections)
+            if len(codes) > 0:
+                # Stage the current version of index.html
+                repo.index.add([os.path.relpath(index_file_path, app_path)])
+                repo.index.commit("Backup before update")
+
+                for code_block in codes:
+                    out_ = self.update_code(original_server_content, code_block["content"])
+                    if out_["hasQuery"]:
+                        out += f"Updated index file with new code\n"
+                    else:
+                        print(f"Warning: The AI did not manage to update the code!")
+                
+                # Write the updated content back to index.html
+                index_file_path.write_text(out_["updatedCode"], encoding='utf8')
+                
+                # Stage and commit the changes
+                repo.index.add([os.path.relpath(index_file_path, app_path)])
+                repo.index.commit("Update index.html")
+                
+                out += f"Updated index file:\n```html\n{out_['updatedCode']}\n```\n"
+            else:
+                out += "No sections were updated."
+
+            self.step_end("Updating server.py")
+
 
     def generate_icon(self, metadata, infos, client):
         self.step_start("Backing up previous version")
