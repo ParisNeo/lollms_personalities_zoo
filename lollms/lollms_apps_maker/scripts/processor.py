@@ -510,7 +510,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
-            code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
             if self.config.debug:
                 ASCIIColors.yellow("--- Code file ---")
                 ASCIIColors.yellow(code)
@@ -529,7 +529,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Update index.html")
                 
-                out += f"Updated index file:\n```html\n{code}\n```\n"
+                out += full_response
             else:
                 self.step_end("Updating index.html", False)
                 out += "No sections were updated."
