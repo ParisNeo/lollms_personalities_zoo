@@ -377,7 +377,7 @@ Article classified as : {cats[answer]}
     def search_and_zip(self, query,  output =""):
         self.step_start("Performing internet search")
         self.add_chunk_to_message_content("")
-        pages = internet_search(query, self.personality_config.nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
+        pages = internet_search(query, self.personality_config.internet_nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
         if len(pages)==0:
             self.set_message_content("Failed to do internet search!!")
