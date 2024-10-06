@@ -1149,9 +1149,9 @@ The code contains description.yaml that describes the application, the author, t
                 if self.personality_config.build_a_backend:
                     backend_code = self.build_server(context_details, plan, infos, metadata, client)
                     if backend_code:
-                        with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
+                        with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
-                        out +=f"\n<p style='color:green'>Coding done successfully.</p>"
+                        out +=f"\n<p style='color:green'>Backend coding done successfully.</p>"
                         self.set_message_content_invisible_to_ai(out)
                     else:
                         out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
@@ -1163,7 +1163,7 @@ The code contains description.yaml that describes the application, the author, t
                 if code:
                     with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
                         f.write(code)
-                    out +=f"\n<p style='color:green'>Coding done successfully.</p>"
+                    out +=f"\n<p style='color:green'>Front end coding done successfully.</p>"
                     self.set_message_content_invisible_to_ai(out)
                 else:
                     out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"

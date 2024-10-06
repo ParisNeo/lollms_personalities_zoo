@@ -283,7 +283,7 @@ class Processor(APScript):
                 if self.personality_config.rss_scraping_type=="quick":
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
                 else:
-                    content = scrape_and_save(feed['link'])
+                    content = scrape_and_save(feed['link'],self.personality.lollms_paths.personal_outputs_path/"tmp_scraping_file.txt")
 
                     content = self.summarize_text(content,"summarize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
