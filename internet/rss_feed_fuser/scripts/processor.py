@@ -369,7 +369,7 @@ Article classified as : {cats[answer]}
             json.dump(categorized, f,indent=4)
         self.step_end("Categorizing articles")
 
-    def scrape_news(self, command, full_context, callback, context_state, client:Client):
+    def scrape_news(self, command, full_context, client:Client):
         """
         This function will search for latest news, then regroup them by category
         """
