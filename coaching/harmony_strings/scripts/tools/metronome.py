@@ -1,5 +1,9 @@
 import sys
 import time
+import pipmaster as pm
+if not pm.is_installed("PyQt5"):
+    pm.install("PyQt5")
+
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QSlider
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
