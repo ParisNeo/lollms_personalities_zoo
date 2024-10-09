@@ -1,22 +1,16 @@
 import subprocess
-from fastapi import Request
 from pathlib import Path
-from lollms.helpers import ASCIIColors, trace_exception
-from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
+from lollms.helpers import ASCIIColors
+from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, PackageManager, find_next_available_filename, discussion_path_to_url
+from lollms.utilities import PromptReshaper, discussion_path_to_url
 from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
-from lollms.services.tti.sd.lollms_sd import LollmsSD
 import re
-import importlib
-import requests
-from tqdm import tqdm
 import webbrowser
 from typing import Dict, Any, Callable
 from pathlib import Path
 from PIL import Image
-from io import BytesIO
 from lollms.client_session import Client
 
 
