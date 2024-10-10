@@ -452,6 +452,9 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
     def build_server(self, context_details, plan, infos, metadata, client: Client):
         self.step_start("Building server.py")
         lollms_infos = self.get_lollms_infos()
+        lollms_infos += """
+Infos: The client will be running on an server that is not the same as the one we are building so we need to make sure that the client accept cors from all localhost sources.
+        """ 
 
         crafted_prompt = self.build_prompt(
             [
@@ -475,6 +478,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 "```\n"
                 ])+"Plan:\n"+plan,                        
                 lollms_infos,
+                
                 self.system_custom_header("Lollms Apps Maker")
             ],
             6
@@ -504,11 +508,37 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                     trace_exception(ex)
             
             self.step_end("Building server.py")
-            return code
+            crafted_prompt = self.build_prompt(
+                [
+                    self.system_full_header,
+                    "You are Lollms server endpoints documentor. Your objective is to build a json file that describes endpoints in a fastapi service.",
+                    "```python",
+                    str(code),
+                    "```",
+                    "The output json format is:",
+                    "```json",
+                    "{",
+                    '   server_address:"the current server address and port starting with http://",',
+                    "   endpoints:[",
+                    "       {",
+                    '           "path":"/my_endpoint",',
+                    '           "inputs":[{"name":"","type":"","description",""},...],',
+                    '           "outputs":[{"name":"","type":"","description",""},...],',
+                    "       }",
+                    "   ]",
+                    "}",
+                    "```",               
+                    self.system_custom_header("Endpoints documentor")
+                ],
+                6
+            )
+            json_infos = self.generate_code(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+
+            return code, json_infos
         else:
             self.step_end("Building server.py", False)
-            self.set_message_content("The model you are using failed to build the server.py file. Change the prompt a bit and try again.")
-            return None
+            self.set_message_content("The model you are using failed to build the server.py file. Change the prompt a bit and try again or use a smarter model.")
+            return None, None
 
 
     def update_index(self, prompt, context_details, metadata, out:str):
@@ -1147,7 +1177,7 @@ The code contains description.yaml that describes the application, the author, t
                 out ="Building the application. Please wait as this may take a little while."
                 self.set_message_content_invisible_to_ai(out)
                 if self.personality_config.build_a_backend:
-                    backend_code = self.build_server(context_details, plan, infos, metadata, client)
+                    backend_code, json_infos = self.build_server(context_details, plan, infos, metadata, client)
                     if backend_code:
                         with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
@@ -1159,7 +1189,8 @@ The code contains description.yaml that describes the application, the author, t
                         return
                 else:
                     backend_code = None
-                code = self.buildIndex(context_details, plan, infos, metadata, client, backend_code)
+                    json_infos = None
+                code = self.buildIndex(context_details, plan, infos, metadata, client, json_infos)
                 if code:
                     with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
                         f.write(code)
