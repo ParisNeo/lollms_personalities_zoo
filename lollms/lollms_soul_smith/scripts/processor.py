@@ -131,10 +131,10 @@ class Processor(APScript):
     def help(self, prompt="", full_context=""):
         self.personality.InfoMessage(self.personality.help)
 
-    def regenerate_icons(self, prompt="", full_context=""):
+    def regenerate_icons(self, prompt="", full_context="",client:Client=None):
         try:
             index = full_context.index("name:")
-            self.build_icon(full_context,full_context[index:].split("\n")[0].strip())
+            self.build_icon(full_context,full_context[index:].split("\n")[0].strip(),client=client)
         except:
             self.warning("Couldn't find name")
 
@@ -296,7 +296,7 @@ class Processor(APScript):
         return str_data
 
 
-    def build_icon(self, discussion_messages, name, output_text=""):
+    def build_icon(self, discussion_messages, name, output_text="", client:Client=None):
         self.prepare()
         # ----------------------------------------------------------------
         
@@ -504,7 +504,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
-        output_text+= self.build_a_folder_link(self.personality_path,"press this text to access personality path")
+        output_text+= self.build_a_folder_link(self.personality_path, client,"press this text to access personality path")
         self.set_message_content(output_text)
         self.new_message('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui),MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
 
@@ -834,7 +834,7 @@ class Processor(APScript):
         if self.personality_config.generate_icon:
             self.step_start("Building icon")
             try:
-                self.build_icon(previous_discussion_text, name, output_text)
+                self.build_icon(previous_discussion_text, name, output_text, client)
             except Exception as ex:
                 trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")

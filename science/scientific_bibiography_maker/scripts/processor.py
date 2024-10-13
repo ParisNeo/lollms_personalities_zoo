@@ -194,7 +194,8 @@ class Processor(APScript):
                 pdf,
                 pdf.name,
                 articles_checking_text,
-                report
+                report,
+                client
             )
         report = classify_reports(report)
         self.json("Report",report)
@@ -220,7 +221,8 @@ class Processor(APScript):
                         file_name, 
                         document_file_name, 
                         articles_checking_text, 
-                        report):
+                        report,
+                        client):
         fn = str(file_name).replace('\\','/')
         if self.personality_config.read_the_whole_article:
             text = TextDocumentsLoader.read_file(file_name)
@@ -258,7 +260,7 @@ class Processor(APScript):
                 "file_path":str(file_name)
             }
             relevance = f'<p style="color: red;">{relevance}</p>'
-            articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
+            articles_checking_text.append(self.build_a_document_block(f"{title}","",f"<b>Authors</b>: {authors}\n<br><b>File</b>:{self.build_a_file_link(fn, client,document_file_name)}<br><b>Relevance:</b>\n{relevance}<br>"))
             report.append(report_entry)
             self.set_message_content("\n".join(articles_checking_text))
             self.warning("The AI agent didn't respond to the relevance question correctly")
@@ -322,7 +324,7 @@ class Processor(APScript):
             relevance = f'<p style="color: green;">{entry["relevance"]}</p>\n<b>Explanation</b><br>{entry["explanation"]}' 
             text+=self.build_a_document_block(f"{entry['title']}","","\n".join([
                 f"<b>Authors</b>: {entry['authors']}<br>",
-                f"<b>File</b>:{self.build_a_file_link(entry['fn'],entry['document_file_name'])}<br>",
+                f"<b>File</b>:{self.build_a_file_link(entry['fn'],client,entry['document_file_name'])}<br>",
                 f"<b>doi:</b>\n{report['doi']}<br>",
                 f"<b>journal_ref:</b>\n{report['journal_ref']}<br>",
                 f"<b>publication_date:</b>\n{report['publication_date']}<br>",
@@ -346,7 +348,7 @@ class Processor(APScript):
                     "</html>",
                 ])
                 )
-            text += "\n" + self.build_a_file_link(output_file,"Click here to vew the generated html file")
+            text += "\n" + self.build_a_file_link(output_file, client,"Click here to vew the generated html file")
             self.set_message_content(text)
 
         return text
@@ -464,7 +466,8 @@ class Processor(APScript):
                                             local_url, 
                                             document_file_name, 
                                             articles_checking_text, 
-                                            report
+                                            report,
+                                            client
                                         ):
                             self.step_end(f"Processing document {i+1}/{self.personality_config.nb_arxiv_results}: {document_file_name}")
                         else:
@@ -534,7 +537,7 @@ class Processor(APScript):
                                 "```latex",
                                 f"{code_block['content']}",
                                 "```",
-                                self.build_a_file_link(str(output_file).replace(".tex",".pdf"),"Click here to vew the generated PDF file")
+                                self.build_a_file_link(str(output_file).replace(".tex",".pdf"),client,"Click here to vew the generated PDF file")
                             ])
                         )
 

@@ -479,7 +479,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
-        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
+        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client,"press this text to access personality path")
         self.set_message_content(output_text)
         full_page = header+'\n'+ui+"\n"+footer
         print(full_page)

@@ -189,7 +189,7 @@ class Processor(APScript):
             ASCIIColors.yellow("Done URLs recovery")
             self.set_message_content(output)
 
-    def fuse_articles(self, prompt="", full_context=""):
+    def fuse_articles(self, prompt="", full_context="", client=None):
         output_folder = self.personality_config.output_folder
         if output_folder=="":
             self.personality.InfoMessage("output_folder is empty, please open the configurations of the personality and set an output path.\nThis allows me to store the data recovered from the internet so that I can recover in the future if i fail to finish.")
@@ -313,7 +313,7 @@ class Processor(APScript):
             card+=f'''
 </div>
 '''
-            out += self.build_a_folder_link(self.personality_config.output_folder,"Open output folder")
+            out += self.build_a_folder_link(self.personality_config.output_folder, client,"Open output folder")
             out +=card
             self.set_message_content(out)
         out = "<html><header></header><body>"+"\n"+out+"</body><html>"
@@ -369,7 +369,7 @@ Article classified as : {cats[answer]}
         This function will search for latest news, then regroup them by category
         """
         self.recover_all_rss_feeds()
-        self.fuse_articles()
+        self.fuse_articles(client=client)
         self.categorize_news()
 
 

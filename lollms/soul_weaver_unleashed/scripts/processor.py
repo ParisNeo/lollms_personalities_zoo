@@ -390,7 +390,7 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
-        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"),"press this text to access personality path")
+        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client, "press this text to access personality path")
         self.set_message_content(output_text)
         self.ui('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
 
