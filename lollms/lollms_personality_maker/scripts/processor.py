@@ -537,305 +537,86 @@ class Processor(APScript):
 
         # First we create the yaml file
         # ----------------------------------------------------------------
-        self.step_start("Coming up with the personality name")
-        self.add_chunk_to_message_content("")
-        crafted_prompt = self.build_prompt(
-            [
+        self.step_start("Building main yaml")
+        prompt = """Generate a YAML file for an AI chatbot personality using the following template. Replace all text in square brackets [...] with appropriate information for the AI personality you're creating. Maintain proper indentation and YAML syntax.
 
-                self.system_full_header,
-                "personality names maker is a personality name making AI.",
-                "The user describes a personality and the ai should give it an apropriate name",
-                "If the user explicitely proposed a name, personality names maker responds with that name",
-                "personality names maker uses the same language as the one spoken by the user to name the personality.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("instruction"),
-                "What is the appropriate name for this personality?",
-                "Answer only with the personality name without any explanation or comments.",
-                self.system_custom_header("personality names maker")
-            ],5
-        )
-        name = self.generate(crafted_prompt,50,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
-        self.step_end("Coming up with the personality name")
-        name = re.sub(r'[\\/:*?"<>|.]', '', name)
-        ASCIIColors.yellow(f"Name:{name}")
-        Infos_text = ""
-        Infos_text+=f"<b>Name</b>: {name}<br>"
-        # ----------------------------------------------------------------
-        
-        # ----------------------------------------------------------------
-        try:
-            author = "lpm prompted by "+self.personality.config.user_name
-        except:
-            author = "lpm"
-        # ----------------------------------------------------------------
-        Infos_text+=f"<b>Author</b>: {author}<br>"
-        
-        # ----------------------------------------------------------------
-        version = "1.0" 
-        Infos_text+=f"<b>Version</b>: {version}<br>"
-        # ----------------------------------------------------------------
-        
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the category")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"category maker is a personality category guessing AI.",
-                "The user describes a personality and the ai should guess what category the AI fits in best",
-                "If the user explicitely proposed a category, category maker responds with that category",
-                "category maker only answers with the personality category name without any explanation.",
-                f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("instruction"),
-                "What is the appropriate category name for this personality?",
-                "Answer only with the category name without any explanation or comments.",
-                self.system_custom_header("category maker")                
-            ],6
-        )        
-        
-        category = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
-        self.step_end("Coming up with the category")
-        category = re.sub(r'[\\/:*?"<>|.]', '', category)
-        ASCIIColors.yellow(f"Category:{category}")
-        Infos_text+=f"<b>Category</b>: {category}<br>"
-        # ----------------------------------------------------------------
-        
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the language")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"language finder is a personality language guessing AI.",
-                "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("extra information"),
-                "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
-                "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
-                "If the user explicitely states the language that should be used, language finder uses that language",
-                "language finder does not provide the language iso name, just the plain english name of the language such as: french, english, spanish, chinese, arabic etc ...",
-                "language finder only answers with the personality language name without any explanation.",
-                self.system_custom_header("instruction"),
-                "What is the appropriate language for this personality given the context?",
-                "Answer only with the language name without any explanation or comments.",
-                self.system_custom_header("language")
-            ],3
-        )
-        language = self.generate(crafted_prompt,10,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
-        self.step_end("Coming up with the language")
-        language = re.sub(r'[\\/:*?"<>|.]', '', language)
-        ASCIIColors.yellow(f"Language:{language}")
-        Infos_text+=f"<b>Language</b>: {language}<br>"
-        # ----------------------------------------------------------------
-        
-        output_text+=self.build_a_document_block('Infos',"",Infos_text)
-        self.set_message_content(output_text)
-        self.add_chunk_to_message_content("")
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the description")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"description builder is a personality description AI.",
-                "The user describes a personality and the ai should build a better description of the AI",
-                "description builder pays attention to the user description and infer any more details that need to be added while keeping a relatively short description text."
-                "description builder makes sure that no information provided by the user is overseen.",
-                "description builder only answers with the personality description without any explanation.",
-                "discriptions should be short and precise.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("personality name")+f"{name}",
-                self.system_custom_header("instruction"),
-                "Write a comprehensive personality description",
-                "Answer only with the description without any explanation or comments.",
-                self.system_custom_header(f"description in {language}")
-            ],6
-        )
-        description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
-        self.step_end("Coming up with the description")
-        ASCIIColors.yellow(f"Description: {description}")
-        output_text+= self.build_a_document_block('description',"",description)
-        self.set_message_content(output_text)
-        self.add_chunk_to_message_content("")
-        # ----------------------------------------------------------------
-        
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the disclaimer")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"disclaimer builder is a personality disclaimer AI.",
-                "The user describes a personality and the ai should build a disclaimer message to show the users of the personality.",
-                "disclaimer builder pays attention to the user description and infer any more details that need to be in the desclaimer while keeping a relatively short disclaimer text."
-                "disclaimer builder makes sure that harms that can be caused by the ai personality is clearely stated.",
-                "if the personality is harmless or can't be used to cause harm, then disclaimer builder just builds a soft very short assuring disclaimer.",
-                "disclaimer builder only answers with the personality disclaimer without any explanation.",
-                "disclaimers need to be short and precise or if no disclaimer is required return empty text.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("personality name")+f"{name}",
-                self.system_custom_header("instruction"),
-                "Write a comprehensive disclaimer if applicable",
-                "Answer only with the disclaimer without any explanation or comments.",
-                self.system_custom_header(f"disclaimer in {language}")
-            ],7
-        )
-        disclaimer = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
-        self.step_end("Coming up with the disclaimer")
-        ASCIIColors.yellow(f"Disclaimer: {disclaimer}")
-        output_text+=self.build_a_document_block('disclaimer',"",disclaimer)
-        self.set_message_content(output_text)
-        self.add_chunk_to_message_content("")
-        # ----------------------------------------------------------------
+```yaml
+## [Insert AI name] Chatbot conditioning file
+## Author: [Insert author name]
+## Version: [Insert version number]
+## Description:
+## [Insert a brief description of the AI here]
+## talking to.
 
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the conditionning")
-        if self.personality_config.examples_extraction_method=="random":
-            examples = get_random_system_prompt()
-        elif self.personality_config.examples_extraction_method=="rag_based":
-            examples = get_system_prompt(name,3)
-        else:
-            examples = ""
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"system message builder is a personality conditionning AI.",
-                "The user describes a personality and the ai should build a consistant AI system message text.",
-                "system message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short conditionning text."
-                "system message builder only answers with the personality conditionning without any explanation.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("personality name")+f"{name}",
-                self.system_custom_header("personality language")+f"{language}",
-                self.system_custom_header("instruction"),
-                "Write a comprehensive personality system message text",
-                "Answer only with the system message text.",
-                self.system_custom_header("examples") if examples!="" else "",
-                f"{examples}",
-                self.system_custom_header("system message builder")
-            ],5
-        )
-        conditioning = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","")
-        conditioning = conditioning
-        self.step_end("Coming up with the conditionning")
-        ASCIIColors.yellow(f"Conditioning: {conditioning}")
-        output_text+=self.build_a_document_block('conditioning',"",conditioning)
-        self.set_message_content(output_text)
-        self.add_chunk_to_message_content("")
-        # ----------------------------------------------------------------
-        
-        # ----------------------------------------------------------------
-        self.step_start("Coming up with the welcome message")
-        crafted_prompt = self.build_prompt(
-            [
-                self.system_full_header+f"welcome message builder is a personality welcome message building AI.",
-                "The user describes a personality and the ai should build a short AI welcome message.",
-                "welcome message builder pays attention to the user description and infer any more details that need to be in the conditionning while keeping a relatively short welcome message."
-                "welcome message builder only answers with the personality conditionning without any explanation.",
-                "the welcome message needs to be precise yet consize",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
-                self.system_custom_header("personality name")+f"{name}",
-                self.system_custom_header("instruction"),
-                "Write a comprehensive welcome message for the personality",
-                "Answer only with the welcome message text without any explanation or comments.",             
-                f"{self.config.start_header_id_template}personality welcome message in {language}{self.config.end_header_id_template}"
-            ],5
-        )
-        welcome_message = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink).strip().replace("'","").replace('"','').replace(".","").split("\n")[0]
-        self.step_end("Coming up with the welcome message")
-        ASCIIColors.yellow(f"Welcome message: {welcome_message}")
-        output_text+=self.build_a_document_block('Welcome message',"",welcome_message)
-        self.set_message_content(output_text)
-        self.add_chunk_to_message_content("")
+# Credits
+author: [Insert author name]
+version: [Insert version number]
+category: [Insert category (e.g., assistant, roleplay, professional)]
+language: [Insert language (e.g., English, French, Spanish)]
+name: [Insert AI name]
+personality_description: |
+    [Insert a detailed description of the AI's personality here. This can be multiple lines.]
+disclaimer: |
+    [Insert any disclaimer or warning message here. This can be multiple lines.]
 
-        if self.personality_config.generate_prompt_examples:
-            self.step_start("Coming up with prompt examples")
-            crafted_prompt = self.build_prompt(
-                [
-                    self.system_full_header+f"prompt examples builder is a personality welcome message building AI.",
-                    "The user describes a personality and the ai should build a list of prompt examples that can be sent to this ai.",
-                    "prompt examples builder pays attention to the user description and infer any more details that enables him to craft example prompts that a user can give to the AI in depending on its capabilities."
-                    "each prompt example is a text inside a markdown code tag",
-                    "each prompt needs to be acheivable by the AI and it should be short and precise",
-                    self.system_custom_header("context"),
-                    context_details["discussion_messages"],
-                    self.system_custom_header("personality name")+f"{name}",
-                    self.system_custom_header("instruction"),
-                    "Write a comprehensive welcome message for the personality",
-                    "Answer only with the welcome message text without any explanation or comments.",             
-                    self.system_custom_header(f"A list of prompt messages in separate markdow code tags using the language {language}")
-                ],5
-            )
-            prompts_list = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
-            prompts_list_codes = self.extract_code_blocks(prompts_list)
-            if len(prompts_list_codes)>0:
-                prompts_list = []
-                for code in prompts_list_codes:
-                    prompts_list.append(code["content"])
-            else:
-                prompts_list = []
-            self.step_end("Coming up with prompt examples")
-            output_text+=self.build_a_document_block('prompts_list', "", prompts_list)
-            self.set_message_content(output_text)
-            self.add_chunk_to_message_content("")
-        else:
-            prompts_list=[]
-        # ----------------------------------------------------------------
-                         
-        # ----------------------------------------------------------------
-        self.step_start("Building the yaml file")
-        cmt_desc = "\n## ".join(description.split("\n"))
-        desc = "\n    ".join(description.split("\n"))
-        disclaimer = "\n    ".join(disclaimer.split("\n"))
-        conditioning =  "\n    ".join(conditioning.split("\n"))
-        welcome_message =  "\n    ".join(welcome_message.split("\n"))
+# Actual useful stuff
+personality_conditioning: |
+    [Insert the AI's personality conditioning here. This defines how the AI should behave and respond. It can be multiple lines.]
+user_message_prefix: 'user'
+ai_message_prefix: '[Insert AI name in lowercase, replacing spaces with underscores]'
+link_text: '\n'
+welcome_message: |
+    [Insert the welcome message that the AI will use when starting a conversation. This can be multiple lines.]
 
-        yaml_data="\n".join([
-            f"## {name} Chatbot conditionning file",
-            f"## Author: {author}",
-            f"## Version: {version}",
-            f"## Description:",
-            f"## {cmt_desc}",
-            "## talking to.",
-            "",
-            "# Credits",
-            f"author: {author}",
-            f"version: {version}",
-            f"category: {category}",
-            f"language: {language}",
-            f"name: {name}",
-            "personality_description: |",
-            f"    {desc}",
-            "disclaimer: |",
-            f"    {disclaimer}",
-            "",
-            "# Actual useful stuff",
-            "personality_conditioning: |",
-            f"    {conditioning}",
-            f"user_message_prefix: 'user:'",
-            f"ai_message_prefix: '{name.lower().replace(' ','_')}'",
-            "# A text to put between user and chatbot messages",
-            "link_text: '\n'",
-            "welcome_message: |",
-            f"    {welcome_message}",
-            "# Here are default model parameters",
-            f"model_temperature: {self.personality_config.model_temperature} # higher: more creative, lower: more deterministic",
-            "",
-            "model_top_k: 50",
-            "model_top_p: 0.90",
-            "model_repeat_penalty: 1.0",
-            "model_repeat_last_n: 40",
-            "",
-            "# Recommendations",
-            "recommended_binding: ''",
-            "recommended_model: ''",
-            "",
-            "# Here is the list of extensions this personality requires",
-            "dependencies: []",
-            "",
-            "# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model",
-            f"anti_prompts: []",
-            "prompts_list: "+ str(prompts_list)
-        ])
+# Here are default model parameters
+model_temperature: [Insert temperature value, e.g., 0.7] # higher: more creative, lower: more deterministic
+model_top_k: 50
+model_top_p: 0.90
+model_repeat_penalty: 1.0
+model_repeat_last_n: 40
 
+# Recommendations
+recommended_binding: ''
+recommended_model: ''
+
+# Here is the list of extensions this personality requires
+dependencies: []
+
+# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
+anti_prompts: []
+
+# A list of prompts that can be used with this personality
+prompts_list: [
+
+]
+```
+
+Please follow these instructions when filling out the YAML file:
+
+1. Replace all text in square brackets [...] with the appropriate information for your AI personality.
+2. Ensure that the indentation is maintained, especially for multi-line fields (those using the | symbol).
+3. The 'user_message_prefix' is already set to 'user' and should typically be left as is.
+4. For 'ai_message_prefix', use the AI's name in lowercase, replacing any spaces with underscores.
+5. Leave the model parameters (top_k, top_p, repeat_penalty, repeat_last_n) as they are unless you have specific reasons to change them.
+6. The 'recommended_binding', 'recommended_model', 'dependencies', and 'anti_prompts' fields can be left empty (as shown) if not needed.
+7. For the 'prompts_list', you can add prompts that work well with this personality. Each prompt should be on a new line, indented, and starting with a hyphen (-). For example:
+   ```yaml
+   prompts_list: [
+    "Tell me about your favorite hobby.",
+    "What's your opinion on artificial intelligence?",
+    "Describe your ideal day."
+   ]
+   ```
+8. Ensure all YAML syntax is correct, including proper use of colons, pipes, and quotation marks where necessary.
+
+This YAML file will define the personality, behavior, settings, and suggested prompts for your AI chatbot. Please fill it out carefully to create a unique and functional AI personality.
+answer with the yaml inside yaml markdown tag.
+"""
+
+        yaml_data = self.generate_code(prompt)
+        self.step_end("Building main yaml")
+        infos = yaml.safe_load(yaml_data)
+        name = infos["name"]
         self.step_end("Building the yaml file")
         self.step_start("Preparing paths")
         self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_").replace("\n","").replace('"','')
@@ -918,7 +699,7 @@ class Processor(APScript):
             for file in text_files:
                 self.step_start(f"Adding file: {file}")
                 try:
-                    text.append(GenericDataLoader.read_file(file))
+                    text.append(TextDocumentsLoader.read_file(file))
                     self.step_end(f"Adding file: {file}")
                 except Exception as ex:
                     trace_exception(ex)

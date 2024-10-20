@@ -291,11 +291,11 @@ class Processor(APScript):
         full_prompt = self.build_prompt_from_context_details(context_details)
         if self.personality_config.verify_first:
             if self.yes_no("do you need a function call to answer the last user prompt?", full_prompt):
-                self.function_call(self, context_details, client)
+                self.function_call(context_details, client)
             else:
                 self.generate(full_prompt)
         else:
-            self.function_call(self, context_details, client)
+            self.function_call(context_details, client)
 
 
 
