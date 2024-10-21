@@ -9,6 +9,9 @@ from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 import json
+import pipmaster as pm
+if not pm.is_installed("watchdog"):
+    pm.install("watchdog")
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
