@@ -19,7 +19,8 @@
   - [5. Advanced Features ](#5-advanced-features-)
     - [5.1 Text-to-Image Generation ](#51-text-to-image-generation-)
     - [5.2 Settings System ](#52-settings-system-)
-  - [6. Best Practices ](#6-best-practices-)
+  - [6. Generate code](#6-generate-code)
+  - [7. Best Practices ](#7-best-practices-)
   - [7. Conclusion ](#7-conclusion-)
 
 ## 1. Introduction <a name="introduction"></a>
@@ -69,6 +70,10 @@ Scripted personalities offer advanced control and functionality through Python c
 The `Processor` class inherits from `APScript` and defines the behavior of the personality:
 
 ```python
+from lollms.personality import APScript, AIPersonality
+from lollms.client_session import Client
+from lollms.types import MSG_OPERATION_TYPE
+
 class Processor(APScript):
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         # Initialize configuration and states

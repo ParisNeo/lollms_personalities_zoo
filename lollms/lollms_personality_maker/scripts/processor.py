@@ -538,7 +538,7 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Building main yaml")
-        prompt = """Generate a YAML file for an AI chatbot personality using the following template. Replace all text in square brackets [...] with appropriate information for the AI personality you're creating. Maintain proper indentation and YAML syntax.
+        prompt = f"""Generate a YAML file for an AI chatbot personality using the following template. Replace all text in square brackets [...] with appropriate information for the AI personality you're creating. Maintain proper indentation and YAML syntax.
 
 ```yaml
 ## [Insert AI name] Chatbot conditioning file
@@ -611,6 +611,10 @@ Please follow these instructions when filling out the YAML file:
 
 This YAML file will define the personality, behavior, settings, and suggested prompts for your AI chatbot. Please fill it out carefully to create a unique and functional AI personality.
 answer with the yaml inside yaml markdown tag.
+
+Subject of the personality:
+{prompt}
+Generated json:
 """
 
         yaml_data = self.generate_code(prompt)
@@ -633,7 +637,7 @@ answer with the yaml inside yaml markdown tag.
             f.write(yaml_data)
         self.step_end("Saving configuration file")
 
-
+        self.new_message("")
         if self.personality_config.generate_icon:
             self.step_start("Building icon")
             try:
@@ -642,6 +646,7 @@ answer with the yaml inside yaml markdown tag.
                 trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")
             self.step_end("Building icon")
+            self.new_message("")
         else:
             shutil.copy("assets/logo.png",self.assets_path)
             
@@ -651,7 +656,7 @@ answer with the yaml inside yaml markdown tag.
                 self.step_start("Creating custom script")
                 with open(Path(__file__).parent/"Documentation.md","r") as f:
                     custom_script = f.read()
-                code = self.fast_gen(previous_discussion_text+self.system_custom_header("Documentation")+custom_script+"\n"+self.system_custom_header("Instructions")+"Build the script for the personality that satisfies the user request. Build the full file and put its content into a python markdown tag.\nMake sure to use AI querying when needed.\nMake sure the code is complete and handle failure cases."+self.ai_full_header)
+                code = self.fast_gen(previous_discussion_text+self.system_custom_header("Documentation")+custom_script+"\n"+self.system_custom_header("Instructions")+"Build the script for the personality that satisfies the user request. Build the full file and put its content into a python markdown tag.\nMake sure to use AI querying when needed.\nMake sure the code is complete and handle failure cases\nMake sure you implement all the details and use lollms generative capabilities when needed."+self.ai_full_header)
                 codes = self.extract_code_blocks(code)
                 if len(codes)>0:
                     code = codes[0]["content"]
