@@ -188,7 +188,7 @@ Here is my report as a valid json:
 
                 self.step_end(f"Processing {file.name}")
 
-    def read_all_logs(self, prompt="", full_context=""):
+    def read_all_logs(self, prompt="", full_context="", client=None):
         if self.personality_config.output_file_path=="":
             self.personality.info("Please setup output file path first")
             return
@@ -202,10 +202,10 @@ Here is my report as a valid json:
                             self.personality_config.file_types
                         )
 
-    def stop_logs_monitoring(self, prompt="", full_context=""):
+    def stop_logs_monitoring(self, prompt="", full_context="", client=None):
         self.observer.stop()
 
-    def start_logs_monitoring(self, prompt="", full_context=""):
+    def start_logs_monitoring(self, prompt="", full_context="", client=None):
         if self.personality_config.output_file_path=="":
             self.personality.info("Please setup output file path first")
             return
