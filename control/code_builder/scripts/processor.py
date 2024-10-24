@@ -1,273 +1,349 @@
-from lollms.helpers import ASCIIColors
-from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
+# processor.py
+
+from typing import Callable, Dict, Any
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_OPERATION_TYPE
-from typing import Callable, Any
-
-from safe_store.text_vectorizer import TextVectorizer, VectorizationMethod
-import subprocess
+from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
+import json
 from pathlib import Path
-from typing import List
-# Helper functions
+import subprocess
+from ascii_colors import ASCIIColors, trace_exception
+import os, sys
+from lollms.client_session import Client
+
 class Processor(APScript):
-    """
-    A class that processes model inputs and outputs.
-
-    Inherits from APScript.
-    """
-    def __init__(
-                 self, 
-                 personality: AIPersonality,
-                 callback = None,
-                ) -> None:
-        
-        self.callback = None
-        # Example entry
-        #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-        # Supported types:
-        # str, int, float, bool, list
-        # options can be added using : "options":["option1","option2"...]        
-        personality_config_template = ConfigTemplate(
-            [
-                {"name":"project_folder_path","type":"str","value":"", "help":"A path to a folder where to build the project"},
-                {"name":"max_coding_attempts","type":"int","value":10, "help":"The maximum number of iteration over the code before give up"},
-            ]
-            )
+    def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
+        personality_config_template = ConfigTemplate([
+            {"name": "work_folder", "type": "str", "value":"", "help": "The working directory"}
+        ])
         personality_config_vals = BaseConfig.from_template(personality_config_template)
-
-        personality_config = TypedConfig(
-            personality_config_template,
-            personality_config_vals
-        )
+        personality_config = TypedConfig(personality_config_template, personality_config_vals)
+        
         super().__init__(
-                            personality,
-                            personality_config,
-                            [
-                                {
-                                    "name": "idle",
-                                    "commands": { # list of commands
-                                        "help":self.help,
-                                    },
-                                    "default": None
-                                },                           
-                            ],
-                            callback=callback
-                        )
-        self.data_base = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
+            personality,
+            personality_config,
+            states_list=[
+                {
+                    "name": "idle",
+                    "commands": {
+                        "help": self.help,
+                    },
+                    "default": None
+                },
+            ],
+            callback=callback
+        )
+        self.workflow_steps = []
+        self.project_details = None
+        self.project_structure = {}
 
-        
+    def mounted(self):
+        self.step_start("Personality mounted successfully.")
+
+    def selected(self):
+        self.step_start("Personality selected.")
+
     def install(self):
-        super().install()
-        
-        # requirements_file = self.personality.personality_package_path / "requirements.txt"
-        # Install dependencies using pip from requirements.txt
-        # subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
-        ASCIIColors.success("Installed successfully")        
+        self.step_start("Installing necessary dependencies.")
+        self.step_end("Dependencies installed.")
 
     def help(self, prompt="", full_context=""):
-        self.set_message_content(self.personality.help)
-    
-    def add_file(self, path, client, callback=None):
-        """
-        Here we implement the file reception handling
-        """
-        super().add_file(path, client, callback)
+        help_text = (
+            "This personality helps you build Python projects step by step. "
+            "Provide an instruction to get started."
+        )
+        self.set_message_content(help_text)
 
-    from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
-        """
-        This function generates code based on the given parameters.
-
-        Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
-            context_details (dict): A dictionary containing the following context details for code generation:
-                - conditionning (str): The conditioning information.
-                - documentation (str): The documentation information.
-                - knowledge (str): The knowledge information.
-                - user_description (str): The user description information.
-                - discussion_messages (str): The discussion messages information.
-                - positive_boost (str): The positive boost information.
-                - negative_boost (str): The negative boost information.
-                - current_language (str): The force language information.
-                - fun_mode (str): The fun mode conditionning text
-                - user_prefix (str): The AI prefix information.
-                - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
-            client_id: The client ID for code generation.
-            callback (function, optional): The callback function for code generation.
-
-        Returns:
-            None
-        """
-
-        if self.personality_config.project_folder_path=="":
-            self.set_message_content("Before starting to talk to me, please define a project folder path in my configuration settings then we can start building the app.")
-            return
-        
-        project_folder_path = Path(self.personality_config.project_folder_path)
-        self.output=""
+    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable = None,
+                     context_details: Dict[str, Any] = None, client:Client = None):
         self.callback = callback
-        operation = self.multichoice_question(
-                                    "Classify the last prompt from the user.",
-                                    [
-                                        "Not explanation of code, not asking to start building code, not giving update information",
-                                        "Explanation about the code",
-                                        "Asking to start building code",
-                                        "New updates to the previous code"
-                                    ],
-                                    previous_discussion_text)
-        ASCIIColors.yellow(operation)
-        if operation == 0: #Generic stuff
-            ASCIIColors.info("Generating")
-            self.step("Detected a generic communication")
-            out = self.fast_gen(previous_discussion_text)
-            self.set_message_content(out)
-            self.step("Detected a generic communication")
-        elif operation == 1: # Giving information about the software to build
-            ASCIIColors.info("Generating")
-            self.step("Detected a software information")
-            self.step_start("Saving the information to long term memory")
-            title = self.make_title(prompt)
-            self.set_message_content(f"{title}\n")
-            #self.data_base.add_document(title,prompt, add_to_index=True)
-            self.step_end("Saving the information to long term memory")
-            self.step_start(f"Assimilating the Data")
-            out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
-            self.step_end(f"Assimilating the Data")
-            self.set_message_content(out+"\nReady to start building, please say Start building when you think that you have input all data required.")
-        elif operation == 2: #build the software
-            ASCIIColors.info("Generating")
-            self.step("Detected a software build request")
-            self.step_start("Building plan")
-            title = self.make_title(prompt)
-            output = f"### {title}\n"
-            plan = self.fast_gen("\n".join([
-                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}write a plan to build the project provided by the user.",
-                "Create a summary of your plan without writing the code.",
-                "Then present a file structure in the following format:",
-                "```structure",
-                "placeholder: here you place a file for each line, if the file is inside a subfolder, just place the relative path to the file",
-                "```",
-                "example:",
-                "```structure",
-                "calculator/",
-                "├── main.py",
-                "├── README.md",
-                "└── core/",
-                "    └── calc_functions.py",
-                "```",
-                "It is important that the structure gets put inside a  structure markdown block.",
-                context_details["positive_boost"],
-                context_details["negative_boost"],
-                context_details["current_language"],
-                context_details["discussion_messages"],
-                context_details["ai_prefix"],
-            ])).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
-            code_blocks = self.extract_code_blocks(plan)
-            #self.data_base.add_document(title,prompt, add_to_index=True)
-            #self.data_base.add_document("Plan",plan, add_to_index=True)
-            self.step_end("Building plan")
-            self.set_message_content(output+"\n"+"## Plan:\n"+plan+"---")
-            self.new_message("")
-            self.step_start("Building files structure")
-            context_details["discussion_messages"] += "\n"+context_details["ai_prefix"]+plan+"\n"
-            for code_block in code_blocks:
-                if code_block["type"]=="structure":
-                   files:List[Path] = [project_folder_path/file for file in self.parse_directory_structure(code_block["content"])]
-                   for file in files:
-                        if file.suffix=="":
-                           file.mkdir(parents=True, exist_ok=True)
+        self.step_start("Starting project build workflow.")
+
+        # Check if work_folder is set
+        work_folder = self.personality_config.work_folder
+        if not work_folder or work_folder == "":
+            self.step_start("Work folder not set. Please set the work_folder in the personality configuration.")
+            return
+
+        self.work_folder = Path(work_folder)
+        self.work_folder.mkdir(parents=True, exist_ok=True)
+
+        # Parse the instruction
+        self.project_details = self.parse_instruction(prompt)
+        if not self.project_details:
+            self.step_start("Failed to parse the instruction. Please try again with a clearer instruction.")
+            return
+        self.new_message("")
+
+        # Execute the project tasks
+        self.execute_project()
+
+    def parse_instruction(self, prompt: str) -> Dict[str, Any]:
+        formatted_prompt = (
+            "Please provide a JSON representation of the steps to fulfill the following instruction: "
+            f"{prompt}.\n"
+            "The JSON should include a project title (string), project type (string), project_author:(string), platform (string), project description (string), and a list of tasks (array)"
+            "where each task is an object with the following structure:\n"
+            "- task (string): The type of task one of:\n"
+            "   'execute_command': executes a command and returns the response.\n"
+            "   'create_file': creates a file and triggers the generation of its content. Do not write the content in the generated json\n"
+            "   'run_application': executes an application using a command.\n"
+            "- parameters (object): An object containing specific parameters for the task type. The parameters should be:\n"
+            "  - For 'execute_command': command (string)\n"
+            "  - For 'create_file': file_name (string)\n"
+            "  - For 'run_application': command (string)\n"
+            "Make sure to include the JSON delimiters as follows:\n"
+            "```json\n"
+            "YOUR_JSON_HERE\n"
+            "```\n"
+            f"Platform information: {sys.platform}\n"
+            f'User name: {self.config.user_name if self.config.user_name and self.config.user_name!="user" else "Lollms Project Builder"}\n'
+            f"Make sure you make a rigorous setup and plan documentation."
+        )
+        
+        json_str = self.generate_code(formatted_prompt,callback=self.sink)
+        
+        if json_str:
+            try:
+                json_response = json.loads(json_str)
+                formatted_info = (
+                    f"📋 Project Information:\n"
+                    f"{'='*50}\n"
+                    f"🏷️ Title: {json_response.get('project_title', 'N/A')}\n"
+                    f"📁 Type: {json_response.get('project_type', 'N/A')}\n"
+                    f"👤 Author: {json_response.get('project_author', 'N/A')}\n"
+                    f"💻 Platform: {json_response.get('platform', 'N/A')}\n"
+                    f"\n📝 Description:\n{json_response.get('project_description', 'N/A')}\n"
+                    f"\n📋 Tasks:\n{'='*50}\n"
+                )
+
+                for idx, task in enumerate(json_response.get('tasks', []), 1):
+                    task_type = task.get('task', 'N/A')
+                    params = task.get('parameters', {})
+                    
+                    formatted_info += f"\n🔹 Task {idx}: {task_type}\n"
+                    formatted_info += f"  Parameters:\n"
+                    for param_key, param_value in params.items():
+                        formatted_info += f"    - {param_key}: {param_value}\n"
+
+                self.new_message(formatted_info)
+                return json_response
+            except Exception as ex:
+                trace_exception(ex)
+                ASCIIColors.error("Error decoding JSON response or extracting JSON part.")
+                return None
+        
+        return None
+
+    def generate_file_content(self, user_instructions, file_name: str, project_context: Dict[str, Any]) -> str:
+        prompt = (
+            f"User prompt: {user_instructions}"
+            f"Generate the content for the file '{file_name}' in the context of the following project structure:\n"
+            f"{json.dumps(project_context, indent=2)}\n\n"
+            "Please provide the code for this file, ensuring it's compatible with the existing project structure and functions."
+        )
+        return self.generate_code(prompt, callback=self.sink)
+
+    def extract_functions(self, code: str) -> Dict[str, Any]:
+        prompt = (
+            "Extract the functions, classes, and methods from the following code and return them as a JSON object. "
+            "Include the function/class/method names, parameters, and brief descriptions.\n\n"
+            f"Code:\n{code}\n\n"
+            "Return the JSON in the following format:\n"
+            "```json\n"
+            "{\n"
+            "  \"functions\": [\n"
+            "    {\"name\": \"function_name\", \"parameters\": [\"param1\", \"param2\"], \"description\": \"Brief description\"}\n"
+            "  ],\n"
+            "  \"classes\": [\n"
+            "    {\n"
+            "      \"name\": \"ClassName\",\n"
+            "      \"methods\": [\n"
+            "        {\"name\": \"method_name\", \"parameters\": [\"param1\", \"param2\"], \"description\": \"Brief description\"}\n"
+            "      ]\n"
+            "    }\n"
+            "  ]\n"
+            "}\n"
+            "```\n"
+        )
+        json_str = self.generate_code(prompt)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            return {}
+
+    def execute_task(self, context_memory, task: Dict[str, Any]) -> bool:
+        task_type = task.get("task")
+        parameters = task.get("parameters", {})
+
+        if task_type == "execute_command":
+            command = parameters.get("command")
+            if command:
+                self.step_start(f"Executing command: {command}")
+                try:
+                    # For Windows
+                    if os.name == 'nt':
+                        commands = [f'cd /d "{self.work_folder}"', command]
+                        full_command = ' && '.join(commands)
+                        result = subprocess.run(full_command, shell=True, check=True, text=True, capture_output=True)
+                    else:
+                        commands = [f'cd "{self.work_folder}"', command]
+                        full_command = ' && '.join(commands)
+                        result = subprocess.run(full_command, shell=True, check=True, text=True, capture_output=True, executable='/bin/bash')
+                    
+                    # Show output in markdown format
+                    output_md = f"""```
+Command: {command}
+Output:
+{result.stdout if result.stdout and result.stdout!="" else "success"}
+```"""
+                    self.new_message(output_md)
+                    
+                    # Ask AI to analyze the output
+                    analysis_prompt = f"""
+Analyze the following command execution results and determine next steps:
+Command: {command}
+Output: {result.stdout if result.stdout and result.stdout!="" else "success"}
+Error output: {result.stderr if result.stderr and result.stderr!="" else "no errors detected"}
+
+Respond with a JSON containing:
+1. status: "success" or "error"
+2. message: Description of what happened
+Example:
+```json
+{{
+    "status": "success",
+    "message": "Command executed successfully",
+}}
+```
+"""
+                    self.add_chunk_to_message_content("\n")
+                    analysis_response = self.generate_code(analysis_prompt)
+                    try:
+                        analysis = json.loads(analysis_response)
+                        if analysis.get("status") == "success":
+                            self.step_start("Task completed successfully: " + analysis.get("message", ""))
+                            return True
                         else:
-                            # plan = self.fast_gen(self.build_prompt([
-                            #     f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}What other files should you know about in order to be able to build the file {file}",
-                            #     context_details["positive_boost"],
-                            #     context_details["negative_boost"],
-                            #     context_details["current_language"],
-                            #     context_details["discussion_messages"],
-                            #     f"{self.config.start_header_id_template}file:{file}",
-                            #     context_details["ai_prefix"],
-                            # ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
+                            self.step_start(f"Task failed: {analysis.get('message', 'Unknown error')}")
+                            return False
+                    except json.JSONDecodeError:
+                        self.step_start("Failed to parse AI analysis response")
+                        return False
+                    
+                except subprocess.CalledProcessError as e:
+                    error_md = f"""```
+Command: {command}
+Error:
+{e.stderr}
+```"""
+                    self.new_message(error_md)
+                    return False
 
+        elif task_type == "create_file":
+            file_name = parameters.get("file_name")
+            if file_name:
+                self.step_start(f"Generating code for {file_name}")
+                code = self.generate_file_content(context_memory, file_name, self.project_structure)
+                file_path = self.work_folder / file_name
+                
+                try:
+                    with file_path.open('w') as file:
+                        file.write(code)
+                    self.add_chunk_to_message_content(f"Content of file: {file_path} written successfuly\n")
+                    return True
+                except Exception as e:
+                    self.step_start(f"Error writing file: {str(e)}")
+                    return False
 
-                            plan = self.fast_gen(self.build_prompt([
-                                f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Write the code of the file in a single markdown code tag.",
-                                "Don't write the code of other files, just the file requested",
-                                "Don't provide explanations, just build the file and write it",
-                                context_details["positive_boost"],
-                                context_details["negative_boost"],
-                                context_details["current_language"],
-                                context_details["discussion_messages"],
-                                f"{self.config.start_header_id_template}file:{file}",
-                                context_details["ai_prefix"],
-                            ],6)).replace("\n\n","\n").replace("\n\n","\n").replace("\n\n","\n")
-                            code_blocks = self.extract_code_blocks(plan)
-                            for code_block in code_blocks[:1]:
-                                with open(file, "w", encoding="utf-8") as f:
-                                    f.write(code_block["content"])
-                                #self.data_base.add_document(file,code_block["content"], add_to_index=True)
-                            self.add_chunk_to_message_content("\n")
-            self.step_end("Building files structure")
-            self.step_start("preparing environment")
+        elif task_type == "run_application":
+            command = parameters.get("command")
+            if command:
+                self.step_start(f"Running application with command: {command}")
+                try:
+                    # For Windows
+                    if os.name == 'nt':
+                        commands = [f'cd /d "{self.work_folder}"', command]
+                        full_command = ' && '.join(commands)
+                        result = subprocess.run(full_command, shell=True, check=True, text=True, capture_output=True)
+                    else:
+                        commands = [f'cd "{self.work_folder}"', command]
+                        full_command = ' && '.join(commands)
+                        result = subprocess.run(full_command, shell=True, check=True, text=True, capture_output=True, executable='/bin/bash')
+                    
+                    # Show output in markdown format
+                    output_md = f"""```
+Application: {command}
+Output:
+{result.stdout}
+```"""
+                    self.new_message(output_md)
+                    
+                    # Ask AI to analyze the application output
+                    analysis_prompt = f"""
+Analyze the following application execution results:
+Command: {command}
+Output: {result.stdout if result.stdout and result.stdout!="" else "success"}
+Error output: {result.stderr if result.stderr and result.stderr!="" else "no errors detected"}
 
-
-            self.callback = callback
-            """
-            attempt =0
-            while attempt<self.personality_config.max_coding_attempts:
-                self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                code = self.build_python_code(previous_discussion_text+"{self.config.start_header_id_template}Plan:\n"+plan+"\n")
-                if code!="":
-                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                    previous_discussion_text += code
+Respond with a JSON containing:
+1. status: "success" or "error"
+2. message: Description of application behavior
+"""
+                    self.add_chunk_to_message_content("\n")
+                    analysis_response = self.generate_code(analysis_prompt)
                     try:
-                        self.execute_python(code, self.personality_config.project_folder_path, "main.py")
-                        break
-                    except Exception as ex:
-                        self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                        previous_discussion_text += f"{self.config.start_header_id_template} Exception detected:\n{ex}{self.config.separator_template}{self.config.start_header_id_template}request:Fix the bug.\n"
-                        attempt +=1 
-                        self.output += "```exception\n"+str(ex)+"\n```"
-                else:
-                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                    attempt +=1 
-                self.set_message_content(self.output)
-            self.set_message_content(self.output)
-            ASCIIColors.yellow(code)            
-            
-            
-            """
+                        analysis = json.loads(analysis_response)
+                        if analysis.get("status") == "success":
+                            return True
+                        else:
+                            self.step_start(f"Application run failed: {analysis.get('message', 'Unknown error')}")
+                            return False
+                    except json.JSONDecodeError:
+                        self.step_start("Failed to parse AI analysis response")
+                        return False
+                    
+                except subprocess.CalledProcessError as e:
+                    error_md = f"""```
+Application: {command}
+Error:
+{e.stderr}
+```"""
+                    self.new_message(error_md)
+                    return False
 
-        elif operation == 3: # updates to the software
-            ASCIIColors.info("Generating")
-            self.step("Detected a software update request")
-            self.step_start("Saving the information to long term memory")
-            title = self.make_title(prompt)
-            #self.data_base.add_document(title,prompt, add_to_index=True)
-            self.step_end("Saving the information to long term memory")
-            self.step_start(f"Assimilating the Data")
-            out = self.fast_gen(previous_discussion_text+"Here is a reformulation of your request:\n")
-            self.step_end(f"Assimilating the Data")
-            self.set_message_content(out)
-            attempt =0
-            while attempt<self.personality_config.max_coding_attempts:
-                self.step_start(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                code = self.build_python_code(previous_discussion_text)
-                if code!="":
-                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}")
-                    previous_discussion_text += code
-                    try:
-                        self.execute_python(code, self.personality_config.project_folder_path, "main.py")
-                        break
-                    except Exception as ex:
-                        self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                        previous_discussion_text += str(ex)
-                        attempt +=1 
-                        self.output += "```exception\n"+str(ex)+"\n```"
-                else:
-                    self.step_end(f"Building the code. Attempt {attempt+1}/{self.personality_config.max_coding_attempts}", False)
-                    attempt +=1 
-                self.set_message_content(self.output)
-            self.set_message_content(self.output)            
-        return ""
+        elif task_type == "finished":
+            self.step_start("Workflow completed successfully.")
+            return True
 
+        else:
+            self.step_start(f"Unknown task type: {task_type}")
+            return False
+
+
+    def execute_project(self):
+        if not self.project_details:
+            self.step_start("No project details available. Please parse the instruction first.")
+            return
+
+        self.step_start("Executing project tasks...")
+
+        for task in self.project_details.get("tasks", []):
+            success = self.execute_task(self.project_details, task)
+            if not success:
+                self.step_start(f"Failed to execute task: {task['task']}")
+                return
+
+        self.step_start("Project execution completed successfully.")
+        
+if __name__ == "__main__":
+    # This block is for testing the Processor class independently
+    class DummyPersonality:
+        def __init__(self):
+            self.config = type('Config', (), {'work_folder': 'test_work_folder'})()
+
+    dummy_personality = DummyPersonality()
+    processor = Processor(dummy_personality)
+    
+    # Test run_workflow
+    processor.run_workflow("Create a simple Python script that prints 'Hello, World!' and save it as hello.py")
