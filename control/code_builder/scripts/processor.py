@@ -14,7 +14,8 @@ from lollms.client_session import Client
 class Processor(APScript):
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         personality_config_template = ConfigTemplate([
-            {"name": "work_folder", "type": "str", "value":"", "help": "The working directory"}
+            {"name": "work_folder", "type": "str", "value":"", "help": "The working directory"},
+            {"name": "verbose", "type": "bool", "value":False, "help": "If true, you will see all details in the message"}
         ])
         personality_config_vals = BaseConfig.from_template(personality_config_template)
         personality_config = TypedConfig(personality_config_template, personality_config_vals)
@@ -62,7 +63,7 @@ class Processor(APScript):
         # Check if work_folder is set
         work_folder = self.personality_config.work_folder
         if not work_folder or work_folder == "":
-            self.step_start("Work folder not set. Please set the work_folder in the personality configuration.")
+            self.set_message_content("<b>Work folder not set. Please set the work_folder in the personality configuration.</b>")
             return
 
         self.work_folder = Path(work_folder)
@@ -73,7 +74,7 @@ class Processor(APScript):
         if not self.project_details:
             self.step_start("Failed to parse the instruction. Please try again with a clearer instruction.")
             return
-        self.new_message("")
+        self.add_chunk_to_message_content("\n")
 
         # Execute the project tasks
         self.execute_project()
@@ -126,7 +127,7 @@ class Processor(APScript):
                     for param_key, param_value in params.items():
                         formatted_info += f"    - {param_key}: {param_value}\n"
 
-                self.new_message(formatted_info)
+                self.add_chunk_to_message_content(formatted_info)
                 return json_response
             except Exception as ex:
                 trace_exception(ex)
@@ -197,7 +198,7 @@ Command: {command}
 Output:
 {result.stdout if result.stdout and result.stdout!="" else "success"}
 ```"""
-                    self.new_message(output_md)
+                    self.add_chunk_to_message_content(output_md)
                     
                     # Ask AI to analyze the output
                     analysis_prompt = f"""
@@ -218,14 +219,14 @@ Example:
 ```
 """
                     self.add_chunk_to_message_content("\n")
-                    analysis_response = self.generate_code(analysis_prompt)
+                    analysis_response = self.generate_code(analysis_prompt, callback=self.sink)
                     try:
                         analysis = json.loads(analysis_response)
                         if analysis.get("status") == "success":
-                            self.step_start("Task completed successfully: " + analysis.get("message", ""))
+                            self.add_chunk_to_message_content("Task completed successfully: " + analysis.get("message", "")+"\n")
                             return True
                         else:
-                            self.step_start(f"Task failed: {analysis.get('message', 'Unknown error')}")
+                            self.step(f"Task failed: {analysis.get('message', 'Unknown error')}")
                             return False
                     except json.JSONDecodeError:
                         self.step_start("Failed to parse AI analysis response")
@@ -237,7 +238,7 @@ Command: {command}
 Error:
 {e.stderr}
 ```"""
-                    self.new_message(error_md)
+                    self.add_chunk_to_message_content(error_md)
                     return False
 
         elif task_type == "create_file":
@@ -277,7 +278,7 @@ Application: {command}
 Output:
 {result.stdout}
 ```"""
-                    self.new_message(output_md)
+                    self.add_chunk_to_message_content(output_md)
                     
                     # Ask AI to analyze the application output
                     analysis_prompt = f"""
@@ -291,7 +292,7 @@ Respond with a JSON containing:
 2. message: Description of application behavior
 """
                     self.add_chunk_to_message_content("\n")
-                    analysis_response = self.generate_code(analysis_prompt)
+                    analysis_response = self.generate_code(analysis_prompt, callback=self.sink)
                     try:
                         analysis = json.loads(analysis_response)
                         if analysis.get("status") == "success":
@@ -309,7 +310,7 @@ Application: {command}
 Error:
 {e.stderr}
 ```"""
-                    self.new_message(error_md)
+                    self.add_chunk_to_message_content(error_md)
                     return False
 
         elif task_type == "finished":
@@ -331,7 +332,7 @@ Error:
         for task in self.project_details.get("tasks", []):
             success = self.execute_task(self.project_details, task)
             if not success:
-                self.step_start(f"Failed to execute task: {task['task']}")
+                self.step(f"Failed to execute task: {task['task']}")
                 return
 
         self.step_start("Project execution completed successfully.")
