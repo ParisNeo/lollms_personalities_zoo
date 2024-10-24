@@ -13,214 +13,102 @@ from lollms.client_session import Client
 import platform
 import tempfile
 import time
-import uuid
+import subprocess
+import os
+import sys
+import time
+import threading
+import queue
 
-class InteractiveTerminal:
-    def __init__(self, working_directory=None):
-        """Initialize the interactive terminal handler"""
-        self.working_directory= working_directory
-        self.system = platform.system().lower()
-        self.process = None
-        self.terminal_id = str(uuid.uuid4())[:8]  # Unique identifier for this terminal session
-        self.temp_dir = Path(tempfile.gettempdir()) / f"terminal_{self.terminal_id}"
-        self.temp_dir.mkdir(exist_ok=True)
-        
-    def open_terminal(self, working_directory=None):
-        """
-        Opens a new interactive terminal window in the specified working directory
-        
-        Args:
-            working_directory (str or Path, optional): The directory to start in
-        """
-        if working_directory:
-            working_directory = Path(working_directory)
-            if not working_directory.exists():
-                raise FileNotFoundError(f"Directory {working_directory} does not exist")
-        elif self.working_directory:
-            working_directory = self.working_directory
-        else:    
-            working_directory = Path.cwd()
+class CommandExecutor:
+    def __init__(self, work_dir = None, shell='cmd.exe' if os.name == 'nt' else '/bin/bash'):
+        self.work_dir = work_dir
+        self.shell = shell
+        self.process = subprocess.Popen(
+            self.shell,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1  # Line buffered
+        )
 
+        self.stdout_queue = queue.Queue()
+        self.stderr_queue = queue.Queue()
+
+        # Start threads to read stdout and stderr
+        threading.Thread(target=self._enqueue_output, args=(self.process.stdout, self.stdout_queue), daemon=True).start()
+        threading.Thread(target=self._enqueue_output, args=(self.process.stderr, self.stderr_queue), daemon=True).start()
+
+        self.execute_command(f"cd {work_dir}")
+
+    def _enqueue_output(self, stream, queue):
+        for line in iter(stream.readline, ''):
+            queue.put(line)
+        stream.close()
+
+    def execute_command(self, command, timeout=5):
         try:
-            if self.system == 'windows':
-                # Create a starter batch file that will keep the terminal open
-                starter_script = self.temp_dir / "terminal_starter.bat"
-                with open(starter_script, 'w') as f:
-                    f.write('@echo off\n')
-                    f.write(f'cd /d "{working_directory}"\n')
-                    f.write('echo Terminal ready!\n')
-                    f.write('echo Alls commands will be executed here. Please wait\n')
-                    f.write('cd\n')
-                    f.write(':loop\n')
-                    # Check for command file
-                    f.write(f'if exist "{self.temp_dir}\\command.bat" (\n')
-                    f.write(f'  call "{self.temp_dir}\\command.bat"\n')
-                    f.write('ping -n 2 127.0.0.1 > nul\n')
-                    f.write(f'  del "{self.temp_dir}\\command.bat"\n')
-                    f.write(')\n')
-                    f.write('ping -n 2 127.0.0.1 > nul\n')
-                    f.write('goto loop\n')
+            # Send the command to the shell
+            self.process.stdin.write(command + "\n")
+            self.process.stdin.flush()
 
-                # Start the terminal with our starter script
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                
-                self.process = subprocess.Popen(
-                    ['start', 'cmd.exe', '/k', str(starter_script)],
-                    cwd=str(working_directory),
-                    shell=True,
-                    startupinfo=startupinfo
-                )
-
-            else:
-                # Create a starter shell script
-                starter_script = self.temp_dir / "terminal_starter.sh"
-                with open(starter_script, 'w') as f:
-                    f.write('#!/bin/bash\n')
-                    f.write(f'cd "{working_directory}"\n')
-                    f.write('echo "Terminal ready!"\n')
-                    f.write('while true; do\n')
-                    f.write(f'  if [ -f "{self.temp_dir}/command.sh" ]; then\n')
-                    f.write(f'    source "{self.temp_dir}/command.sh"\n')
-                    f.write(f'    rm "{self.temp_dir}/command.sh"\n')
-                    f.write('  fi\n')
-                    f.write('  sleep 1\n')
-                    f.write('done\n')
-
-                # Make the script executable
-                os.chmod(starter_script, 0o755)
-
-                # Find available terminal emulator
-                terminal_cmd = None
-                if os.system('which gnome-terminal') == 0:
-                    terminal_cmd = ['gnome-terminal', '--']
-                elif os.system('which xterm') == 0:
-                    terminal_cmd = ['xterm', '-e']
-                elif os.system('which konsole') == 0:
-                    terminal_cmd = ['konsole', '-e']
-                
-                if terminal_cmd is None:
-                    raise RuntimeError("No suitable terminal emulator found")
-
-                self.process = subprocess.Popen(
-                    terminal_cmd + [str(starter_script)],
-                    cwd=str(working_directory)
-                )
-
-            # Wait a bit for terminal to initialize
-            time.sleep(1)
-            return True
-            
-        except Exception as e:
-            print(f"Error opening terminal: {e}")
-            return False
-
-    def execute_command(self, command, wait_for_output=True, timeout=30):
-        """
-        Executes a command in the terminal and optionally waits for output
-        
-        Args:
-            command (str): The command to execute
-            wait_for_output (bool): Whether to wait for and return command output
-            timeout (int): Maximum time to wait for output in seconds
-            
-        Returns:
-            dict: Contains 'stdout', 'stderr', and 'success' if wait_for_output is True
-        """
-        if not self.process:
-            raise RuntimeError("Terminal is not opened. Call open_terminal() first.")
-
-        try:
-            # Create unique output files for this command
-            stdout_file = self.temp_dir / f"stdout_{time.time()}.txt"
-            stderr_file = self.temp_dir / f"stderr_{time.time()}.txt"
-
-            if self.system == 'windows':
-                command_file = self.temp_dir / "command.bat"
-                with open(command_file, 'w') as f:
-                    f.write('@echo off\n')
-                    f.write(f'{command} > "{stdout_file}" 2> "{stderr_file}"\n')
-            else:
-                command_file = self.temp_dir / "command.sh"
-                with open(command_file, 'w') as f:
-                    f.write('#!/bin/bash\n')
-                    f.write(f'{command} > "{stdout_file}" 2> "{stderr_file}"\n')
-
-            if not wait_for_output:
-                return {'success': True}
-
-            # Wait for command to complete and output files to be created
+            # Collect output and errors
+            output = ''
+            errors = ''
             start_time = time.time()
-            while not stdout_file.exists() or not stderr_file.exists():
-                if time.time() - start_time > timeout:
-                    return {
-                        'stdout': '',
-                        'stderr': 'Command execution timed out',
-                        'success': False
-                    }
+            while time.time() - start_time < timeout:
+                # Fetch stdout
+                while not self.stdout_queue.empty():
+                    line = self.stdout_queue.get()
+                    output += line
+
+                # Fetch stderr
+                while not self.stderr_queue.empty():
+                    line = self.stderr_queue.get()
+                    errors += line
+
+                # Check if the process has terminated
+                if self.process.poll() is not None:
+                    break
+
                 time.sleep(0.1)
 
-            # Read the output
-            time.sleep(0.1)  # Give a small delay to ensure writing is complete
-            try:
-                with open(stdout_file, 'r') as f:
-                    stdout = f.read()
-                with open(stderr_file, 'r') as f:
-                    stderr = f.read()
-            except Exception as e:
-                return {
-                    'stdout': '',
-                    'stderr': f'Error reading output: {str(e)}',
-                    'success': False
-                }
-
-            # Cleanup
-            try:
-                stdout_file.unlink()
-                stderr_file.unlink()
-            except:
-                pass
-
             return {
-                'stdout': stdout,
-                'stderr': stderr,
-                'success': True
+                'stdout': output,
+                'stderr': errors,
+                'returncode': self.process.returncode or 0
             }
-
         except Exception as e:
             return {
                 'stdout': '',
                 'stderr': str(e),
-                'success': False
+                'returncode': -1,
+                'error': 'An error occurred'
             }
 
-    def close(self):
-        """Closes the terminal session and cleans up temporary files"""
-        if self.process:
-            try:
-                if self.system == 'windows':
-                    subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.process.pid)], 
-                                 stderr=subprocess.DEVNULL)
-                else:
-                    self.process.terminate()
-            except:
-                pass
-            finally:
-                self.process = None
+    def get_current_directory(self):
+        if os.name == 'nt':
+            result = self.execute_command('cd')
+        else:
+            result = self.execute_command('pwd')
+        
+        # Extract the actual path from the output
+        path = result['stdout'].strip().split('\n')[-1]
+        return path
 
-        # Cleanup temp directory
+    def create_file(self, filename, content):
         try:
-            import shutil
-            shutil.rmtree(self.temp_dir)
-        except:
-            pass
+            with open(filename, 'w') as f:
+                f.write(content)
+            return {'success': True, 'message': f"File {filename} created successfully"}
+        except Exception as e:
+            return {'success': False, 'message': f"Error creating file {filename}: {str(e)}"}
 
-    def __enter__(self):
-        self.open_terminal()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+    def close(self):
+        self.process.stdin.close()
+        self.process.terminate()
+        self.process.wait(timeout=0.2)
 class Processor(APScript):
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         personality_config_template = ConfigTemplate([
@@ -281,8 +169,7 @@ class Processor(APScript):
 
         # Parse the instruction
         self.project_details = self.parse_instruction(prompt)
-        self.terminal = InteractiveTerminal(self.work_folder)
-        self.terminal.open_terminal()
+        self.terminal = CommandExecutor(self.work_folder)
         if not self.project_details:
             self.step_start("Failed to parse the instruction. Please try again with a clearer instruction.")
             return
@@ -307,6 +194,7 @@ class Processor(APScript):
             "  - For 'create_file': file_name (string)\n"
             "  - For 'run_application': command (string)\n"
             "Make sure to include the JSON delimiters as follows:\n"
+            "The tasks are executed in a consistant shell. The folders can be changed using cd."
             "```json\n"
             "YOUR_JSON_HERE\n"
             "```\n"
@@ -449,17 +337,18 @@ Error:
         elif task_type == "create_file":
             file_name = parameters.get("file_name")
             if file_name:
-                self.step_start(f"Generating code for {file_name}")
+                self.step_start(f"Generating content for {file_name}")
                 if "files_information" not in  context_memory:
                     context_memory["files_information"]={}
                 code = self.generate_file_content(context_memory, file_name, self.project_structure)
-                file_path = self.work_folder / file_name
-                
+                current_dir = self.terminal.get_current_directory()
+                file_path:Path = Path(current_dir) / file_name
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+
                 context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
                 
                 try:
-                    with file_path.open('w') as file:
-                        file.write(code)
+                    self.terminal.create_file(file_path, code)
                     self.add_chunk_to_message_content(f"Content of file: {file_path} written successfuly\n")
                     return True
                 except Exception as e:
@@ -531,10 +420,15 @@ Error:
         self.step_start("Executing project tasks...")
 
         for task in self.project_details.get("tasks", []):
-            success = self.execute_task(self.project_details, task)
-            if not success:
-                self.step(f"Failed to execute task: {task['task']}")
-                return
+            n=0
+            while n<3:
+                success = self.execute_task(self.project_details, task)
+                if not success:
+                    self.add_chunk_to_message_content(f"Failed to execute task: {task['task']}")
+                    self.step(f"Failed to execute task: {task['task']}")
+                    n += 1
+                else:
+                    n=6
 
         self.step_start("Project execution completed successfully.")
         

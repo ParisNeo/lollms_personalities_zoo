@@ -73,7 +73,7 @@ personality_description: "The Code Builder personality is a highly skilled and i
 recommended_binding: ''
 recommended_model: ''
 user_message_prefix: 'User'
-version: 1.0
+version: 2.0
 welcome_message: '"Welcome to Code Builder! I''m here to help you build and execute
   your code. Just provide me with the details of the software you want to create,
   and I''ll take care of the rest. Let''s get coding!"
