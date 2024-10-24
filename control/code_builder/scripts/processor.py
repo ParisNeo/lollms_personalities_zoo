@@ -113,6 +113,8 @@ class Processor(APScript):
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         personality_config_template = ConfigTemplate([
             {"name": "work_folder", "type": "str", "value":"", "help": "The working directory"},
+            {"name": "max_retries", "type": "int", "value":3, "help": "When something fails, retry n times before stopping"},
+            
             {"name": "verbose", "type": "bool", "value":False, "help": "If true, you will see all details in the message"}
         ])
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -421,7 +423,7 @@ Error:
 
         for task in self.project_details.get("tasks", []):
             n=0
-            while n<3:
+            while n<self.personality_config.max_retries:
                 success = self.execute_task(self.project_details, task)
                 if not success:
                     self.add_chunk_to_message_content(f"Failed to execute task: {task['task']}")
