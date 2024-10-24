@@ -1,221 +1,214 @@
-# processor.py
-
-from typing import Callable, Dict, Any
+from lollms.helpers import ASCIIColors
+from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.utilities import PackageManager
 from lollms.types import MSG_OPERATION_TYPE
-from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-import json
-from pathlib import Path
-import subprocess
-from ascii_colors import ASCIIColors, trace_exception
-import os
+from typing import Callable, Any
 
+from pathlib import Path
+from typing import List
+import json
+import subprocess
+from ascii_colors import trace_exception
+# Helper functions
 class Processor(APScript):
-    def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
-        personality_config_template = ConfigTemplate([
-            {"name": "work_folder", "type": "str", "value":"work_folder", "help": "The working directory"}
-        ])
-        personality_config_vals = BaseConfig.from_template(personality_config_template)
-        personality_config = TypedConfig(personality_config_template, personality_config_vals)
+    """
+    A class that processes model inputs and outputs.
+
+    Inherits from APScript.
+    """
+    def __init__(
+                 self, 
+                 personality: AIPersonality,
+                 callback = None,
+                ) -> None:
         
-        super().__init__(
-            personality,
-            personality_config,
-            states_list=[
-                {
-                    "name": "idle",
-                    "commands": {
-                        "help": self.help,
-                    },
-                    "default": None
-                },
-            ],
-            callback=callback
+        self.callback = None
+        # Example entry
+        #       {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
+        # Supported types:
+        # str, int, float, bool, list
+        # options can be added using : "options":["option1","option2"...]        
+        personality_config_template = ConfigTemplate(
+            [
+                {"name":"nb_attempts","type":"int","value":5, "help":"Maximum number of attempts to summon a member"},
+            ]
+            )
+        personality_config_vals = BaseConfig.from_template(personality_config_template)
+
+        personality_config = TypedConfig(
+            personality_config_template,
+            personality_config_vals
         )
-        self.workflow_steps = []
-        self.project_details = None
-        self.project_structure = {}
+        super().__init__(
+                            personality,
+                            personality_config,
+                            [
+                                {
+                                    "name": "idle",
+                                    "commands": { # list of commands
+                                        "help":self.help,
+                                    },
+                                    "default": None
+                                },                           
+                            ],
+                            callback=callback
+                        )
+        
+    def install(self):
+        super().install()
+        
+        # requirements_file = self.personality.personality_package_path / "requirements.txt"
+        # Install dependencies using pip from requirements.txt
+        # subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+        ASCIIColors.success("Installed successfully")        
 
     def mounted(self):
-        self.step_start("Personality mounted successfully.")
+        """
+        triggered when mounted
+        """
+        pass
 
     def selected(self):
-        self.step_start("Personality selected.")
-
-    def install(self):
-        self.step_start("Installing necessary dependencies.")
-        self.step_end("Dependencies installed.")
+        """
+        triggered when mounted
+        """
+        pass
 
     def help(self, prompt="", full_context=""):
-        help_text = (
-            "This personality helps you build Python projects step by step. "
-            "Provide an instruction to get started."
-        )
-        self.set_message_content(help_text)
-
-    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable = None,
-                     context_details: Dict[str, Any] = None):
-        self.callback = callback
-        self.step_start("Starting project build workflow.")
-
-        # Check if work_folder is set
-        work_folder = self.personality.config.work_folder
-        if not work_folder or work_folder == "work_folder":
-            self.step_start("Work folder not set. Please set the work_folder in the personality configuration.")
-            return
-
-        self.work_folder = Path(work_folder)
-        self.work_folder.mkdir(parents=True, exist_ok=True)
-
-        # Parse the instruction
-        self.project_details = self.parse_instruction(prompt)
-        if not self.project_details:
-            self.step_start("Failed to parse the instruction. Please try again with a clearer instruction.")
-            return
-
-        # Execute the project tasks
-        self.execute_project()
-
-    def parse_instruction(self, prompt: str) -> Dict[str, Any]:
-        formatted_prompt = (
-            "Please provide a JSON representation of the steps to fulfill the following instruction: "
-            f"{prompt}. The JSON should include a project title (string), project type (string), and a list of tasks (array), "
-            "where each task is an object with the following structure:\n"
-            "- task (string): The type of task (e.g., 'execute_command', 'write_code', 'run_application').\n"
-            "- parameters (object): An object containing specific parameters for the task type. The parameters should be:\n"
-            "  - For 'execute_command': command (string)\n"
-            "  - For 'write_code': file_name (string)\n"
-            "  - For 'run_application': command (string)\n"
-            "Make sure to include the JSON delimiters as follows:\n"
-            "```json\n"
-            "YOUR_JSON_HERE\n"
-            "```\n"
-        )
-        
-        json_str = self.generate_code(formatted_prompt)
-        
-        if json_str:
-            try:
-                json_response = json.loads(json_str)
-                return json_response
-            except Exception as ex:
-                trace_exception(ex)
-                ASCIIColors.error("Error decoding JSON response or extracting JSON part.")
-                return None
-        
-        return None
-
-    def generate_file_content(self, user_instructions, file_name: str, project_context: Dict[str, Any]) -> str:
-        prompt = (
-            f"User prompt: {user_instructions}"
-            f"Generate the content for the file '{file_name}' in the context of the following project structure:\n"
-            f"{json.dumps(project_context, indent=2)}\n\n"
-            "Please provide the code for this file, ensuring it's compatible with the existing project structure and functions."
-        )
-        return self.generate_code(prompt)
-
-    def extract_functions(self, code: str) -> Dict[str, Any]:
-        prompt = (
-            "Extract the functions, classes, and methods from the following code and return them as a JSON object. "
-            "Include the function/class/method names, parameters, and brief descriptions.\n\n"
-            f"Code:\n{code}\n\n"
-            "Return the JSON in the following format:\n"
-            "```json\n"
-            "{\n"
-            "  \"functions\": [\n"
-            "    {\"name\": \"function_name\", \"parameters\": [\"param1\", \"param2\"], \"description\": \"Brief description\"}\n"
-            "  ],\n"
-            "  \"classes\": [\n"
-            "    {\n"
-            "      \"name\": \"ClassName\",\n"
-            "      \"methods\": [\n"
-            "        {\"name\": \"method_name\", \"parameters\": [\"param1\", \"param2\"], \"description\": \"Brief description\"}\n"
-            "      ]\n"
-            "    }\n"
-            "  ]\n"
-            "}\n"
-            "```\n"
-        )
-        json_str = self.generate_code(prompt)
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError:
-            return {}
-
-    def execute_task(self, user_instructions, task: Dict[str, Any]) -> bool:
-        task_type = task.get("task")
-        parameters = task.get("parameters", {})
-
-        if task_type == "execute_command":
-            command = parameters.get("command")
-            if command:
-                self.step_start(f"Executing command: {command}")
-                try:
-                    result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True, cwd=self.work_folder)
-                    self.step_start(f"Command output: {result.stdout}")
-                    return True
-                except subprocess.CalledProcessError as e:
-                    self.step_start(f"Error executing command: {e.stderr}")
-                    return False
-
-        elif task_type == "write_code":
-            file_name = parameters.get("file_name")
-            if file_name:
-                self.step_start(f"Generating code for {file_name}")
-                code = self.generate_file_content(user_instructions, file_name, self.project_structure)
-                file_path = self.work_folder / file_name
-                with file_path.open('w') as file:
-                    file.write(code)
-                self.step_start(f"Wrote code to {file_path}")
-                
-                # Extract functions and update project structure
-                functions_info = self.extract_functions(code)
-                self.project_structure[file_name] = functions_info
-                self.step_start(f"Updated project structure with {file_name}")
-                return True
-            else:
-                self.step_start("Missing file name")
-                return False
-
-        elif task_type == "run_application":
-            command = parameters.get("command")
-            if command:
-                self.step_start(f"Running application with command: {command}")
-                try:
-                    result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True, cwd=self.work_folder)
-                    self.step_start(f"Application output: {result.stdout}")
-                    return True
-                except subprocess.CalledProcessError as e:
-                    self.step_start(f"Error running application: {e.stderr}")
-                    return False
-
-        else:
-            self.step_start(f"Unknown task type: {task_type}")
-            return False
-
-    def execute_project(self):
-        if not self.project_details:
-            self.step_start("No project details available. Please parse the instruction first.")
-            return
-
-        self.step_start("Executing project tasks...")
-
-        for task in self.project_details.get("tasks", []):
-            success = self.execute_task(self.project_details.get("title", ""), task)
-            if not success:
-                self.step_start(f"Failed to execute task: {task['task']}")
-                return
-
-        self.step_start("Project execution completed successfully.")
-
-if __name__ == "__main__":
-    # This block is for testing the Processor class independently
-    class DummyPersonality:
-        def __init__(self):
-            self.config = type('Config', (), {'work_folder': 'test_work_folder'})()
-
-    dummy_personality = DummyPersonality()
-    processor = Processor(dummy_personality)
+        self.set_message_content(self.personality.help)
     
-    # Test run_workflow
-    processor.run_workflow("Create a simple Python script that prints 'Hello, World!' and save it as hello.py")
+    def add_file(self, path, client, callback=None):
+        """
+        Here we implement the file reception handling
+        """
+        super().add_file(path, client, callback)
+
+    from lollms.client_session import Client
+    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+        """
+        This function generates code based on the given parameters.
+
+        Args:
+            full_prompt (str): The full prompt for code generation.
+            prompt (str): The prompt for code generation.
+            context_details (dict): A dictionary containing the following context details for code generation:
+                - conditionning (str): The conditioning information.
+                - documentation (str): The documentation information.
+                - knowledge (str): The knowledge information.
+                - user_description (str): The user description information.
+                - discussion_messages (str): The discussion messages information.
+                - positive_boost (str): The positive boost information.
+                - negative_boost (str): The negative boost information.
+                - current_language (str): The force language information.
+                - fun_mode (str): The fun mode conditionning text
+                - ai_prefix (str): The AI prefix information.
+            n_predict (int): The number of predictions to generate.
+            client_id: The client ID for code generation.
+            callback (function, optional): The callback function for code generation.
+
+        Returns:
+            None
+        """
+
+        self.callback = callback
+        self.personality.info("Generating")
+        members:List[AIPersonality] = self.personality.app.mounted_personalities
+        output = ""
+        
+        self.step_start("Making plan")
+        attempts = 0
+        done =  False
+        while attempts<self.personality_config.nb_attempts and not done:
+            q_prompt = "\n".join([
+                f"{self.config.start_header_id_template}{self.config.system_message_template}:",
+                "Utilizing the abilities of a select few team members, devise a strategy to address the issue presented by the user. Engage only the indispensable members to contribute to this solution.",
+                "Team members:\n"
+            ]) 
+            collective_infos = ""
+            for i,drone in enumerate(members):
+                if drone.name!=self.personality.name:
+                    collective_infos +=  f"member id: {i}\n"
+                    collective_infos +=  f"member name: {drone.name}\n"
+                    collective_infos +=  f"member description: {drone.personality_description[:126]}...\n"
+            q_prompt += collective_infos
+            answer = ""
+            q_prompt += "\n".join([
+                "Utilizing the abilities of a select few team members, devise a strategy to address the issue presented by the user.",
+                "Engage only the indispensable members to contribute to this solution.",
+                "Answer in form of a valid json text in this format:",
+                "```json",
+                "[",
+                "    {",
+                '        "member_id":id,'
+                '        "task":"task to be done"'
+                "    },",
+                "    {",
+                '        "member_id":id,'
+                '        "task":"task to be done"'
+                "    }",
+                "]",
+                "```",
+                "Do not add any comments to your answer."
+            ])
+            q_prompt += f"{self.config.start_header_id_template}user:{prompt}\n"
+            q_prompt += "\n".join([
+                f"{self.config.start_header_id_template}project_manager_ai:\n"
+            ])
+            answer = self.fast_gen(q_prompt, 1024, show_progress=True)
+            code = self.extract_code_blocks(answer)
+            if len(code)>0:
+                plan = json.loads(code[0]["content"])
+                for member in plan:
+                    output += "<h2>"+members[member["member_id"]].name+"</h2>"
+                    output += "<p>"+member["task"]+"</p>"
+            else:
+                out = self.fast_gen(f"{self.system_full_header}Say the following text in a more entertaining way. Only answer with the enhanced funny text without comments:\nThe model you are using is very dumb. Oh please Remove that model from my head!!\nIt was not capable of building a plan for your prompt as specified by my code.\nPlease try to mount a better model worthy of my skills.\nYou can also try using a different prompt template or changing the temperature and trying again.\nHint: I was tested using gpt4-o which at my last update is the best model out there.\n{self.ai_custom_header('assistant')}")
+                self.set_message_content(out)
+                return
+            q_prompt = prompt
+            self.set_message_content(output)
+            self.step_end("Making plan")
+
+            self.step("Executing plan")
+            for step in plan:
+                member_id = step["member_id"]
+                try:
+                    member_id = int(member_id)
+                except Exception as ex:
+                    self.exception(ex)
+                self.step(members[member_id].name)
+                attempts = 0
+                while attempts<self.personality_config.nb_attempts:
+                    try:
+                        members[member_id].callback=callback
+                        if members[member_id].processor:
+                            q_prompt += f"{self.config.start_header_id_template}sytsem: Starting task by {members[member_id].name}, provide details{self.config.separator_template}{self.config.start_header_id_template}project_manager_ai: "
+                            reformulated_request=self.fast_gen(q_prompt, show_progress=True)
+                            members[member_id].new_message("")
+                            output = ""
+                            self.set_message_content(output)
+                            previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
+                            members[member_id].new_message("")
+                            members[member_id].processor.text_files = self.personality.text_files
+                            members[member_id].processor.image_files = self.personality.image_files
+                            members[member_id].processor.run_workflow(reformulated_request, previous_discussion_text, callback,context_details, client)
+                        else:
+                            previous_discussion_text_= previous_discussion_text.replace(prompt,"\n".join([
+                                f"{self.config.start_header_id_template}user:",
+                                f"{prompt}",
+                                f"{self.config.start_header_id_template}AI name:",
+                                members[member_id].name,
+                                f"{self.config.start_header_id_template}task:",
+                                step["task"],
+                            ]))
+                            members[member_id].new_message("")
+                            output = members[member_id].generate(previous_discussion_text_,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
+                            members[member_id].set_message_content(output)
+                        break
+                    except Exception as ex:
+                        trace_exception(ex)
+                        self.step("Failed. Retrying...")
+                        attempts += 1
+        return answer
+
