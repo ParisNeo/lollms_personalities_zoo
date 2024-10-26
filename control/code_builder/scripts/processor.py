@@ -113,7 +113,10 @@ class Processor(APScript):
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         personality_config_template = ConfigTemplate([
             {"name": "work_folder", "type": "str", "value":"", "help": "The working directory"},
-            {"name": "max_retries", "type": "int", "value":3, "help": "When something fails, retry n times before stopping"},
+            {"name": "save_context_for_recovery", "type": "bool", "value":True, "help": "Saves current context for recovering from previous generation"},
+            {"name": "max_retries", "type": "int", "value":1, "help": "When something fails, retry n times before stopping"},
+            {"name": "build_image_assets", "type": "bool", "value":False, "help": "Build image assets"},
+            {"name": "build_sound_assets", "type": "bool", "value":False, "help": "Build sound assets"},
             
             {"name": "verbose", "type": "bool", "value":False, "help": "If true, you will see all details in the message"}
         ])
@@ -182,53 +185,136 @@ class Processor(APScript):
         self.terminal.close()
 
     def parse_instruction(self, prompt: str) -> Dict[str, Any]:
+        task_types = "execute_command, create_file, run_application"
+        if self.personality.app.tti and self.personality_config.build_image_assets:
+            image_generator = (
+                "   {\n"
+                '       "task_type":"generate_image", generates an image asset for the project\n'
+                '       "file_name":"relative path to the file to be generated"\n'
+                '       "generation_prompt":"A prompt for generating the image"\n'
+                "   },\n"
+            )
+            task_types += ", generate_image"
+        else:
+            image_generator ="Do not use any image assets in the code"
+
+        if self.personality.app.tts and self.personality_config.build_sound_assets:
+            sound_generator = (
+                "   {\n"
+                '       "task_type":"generate_sound", generates a sound or music asset for the project\n'
+                '       "file_name":"relative path to the file to be generated"\n'
+                '       "generation_prompt":"A prompt for generating the sound or music"\n'
+                "   },\n"
+            )
+            task_types += ", generate_sound"
+        else:
+            sound_generator ="Do not use any sound or music assets in the code\n"
+
         formatted_prompt = (
             "Please provide a JSON representation of the steps to fulfill the following instruction: "
             f"{prompt}.\n"
-            "The JSON should include a project title (string), project type (string), project_author:(string), platform (string), project description (string), and a list of tasks (array)"
-            "where each task is an object with the following structure:\n"
-            "- task (string): The type of task one of:\n"
-            "   'execute_command': executes a command and returns the response.\n"
-            "   'create_file': creates a file and triggers the generation of its content. Do not write the content in the generated json\n"
-            "   'run_application': executes an application using a command.\n"
-            "- parameters (object): An object containing specific parameters for the task type. The parameters should be:\n"
-            "  - For 'execute_command': command (string)\n"
-            "  - For 'create_file': file_name (string)\n"
-            "  - For 'run_application': command (string)\n"
-            "Make sure to include the JSON delimiters as follows:\n"
-            "The tasks are executed in a consistant shell. The folders can be changed using cd."
+            "Json structure:"
             "```json\n"
-            "YOUR_JSON_HERE\n"
+            "{\n"
+
+            '"project_title":"A string representing the project title",\n'
+            '"project_type":"A string representing the project type",\n'
+            f'"project_author":"{self.config.user_name if self.config.user_name and self.config.user_name!="user" else "Lollms Project Builder"}",\n'
+            '"project_description":"A string representing the project type",\n'
+            f'"platform":"{sys.platform}",\n'
+            '"tasks":"[\n'
+            "   {\n"
+            '       "task_type":"execute_command", This executes a console command\n'
+            '       "command":"command to execute"\n'
+            "   },\n"
+            "   {\n"
+            '       "task_type":"create_file", This creates a file at a specific path\n'
+            '       "file_name":"relative path to the file",\n'
+            '       "content_description":"If the file is a code file, then write a structure of the file content and detailed funtions/classes/variables so that the file builder builds the full code. If the file is a documentation file, state that it is a documentation file without much detail",\n'
+            "   },\n"
+            "   {\n"
+            '       "task_type":"run_application", This runs an application and returns back the output to check\n'
+            '       "command":"the command to run the application"\n'
+            "   },\n"+image_generator+sound_generator+""
+
+            "]\n"
+            "}\n"
             "```\n"
-            f"Platform information: {sys.platform}\n"
-            f'User name: {self.config.user_name if self.config.user_name and self.config.user_name!="user" else "Lollms Project Builder"}\n'
-            f"Make sure you make a rigorous setup and plan documentation."
+            "Only the following task types are allowed: "+task_types+".\n"
+            "Make sure to include the JSON delimiters and respect the formatting.\n"
+            "The tasks are executed in a consistant shell. The folders can be changed using cd.\n"
+            "Make sure you make a rigorous setup and plan documentation.\n"
         )
-        
+        if self.personality_config.verbose:
+            self.print_prompt("Generating project structure", formatted_prompt)
+
         json_str = self.generate_code(formatted_prompt,callback=self.sink)
         
         if json_str:
             try:
                 json_response = json.loads(json_str)
-                formatted_info = (
-                    f"📋 Project Information:\n"
-                    f"{'='*50}\n"
-                    f"🏷️ Title: {json_response.get('project_title', 'N/A')}\n"
-                    f"📁 Type: {json_response.get('project_type', 'N/A')}\n"
-                    f"👤 Author: {json_response.get('project_author', 'N/A')}\n"
-                    f"💻 Platform: {json_response.get('platform', 'N/A')}\n"
-                    f"\n📝 Description:\n{json_response.get('project_description', 'N/A')}\n"
-                    f"\n📋 Tasks:\n{'='*50}\n"
-                )
+                formatted_info = f'''
+<div class="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+<div class="mb-6">
+<h1 class="text-2xl font-bold text-gray-800 mb-4">📋 Project Information</h1>
+<div class="border-b border-gray-300 mb-4"></div>
 
+<div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="flex items-center">
+        <span class="text-gray-600">🏷️ Title:</span>
+        <span class="ml-2 font-medium">{json_response.get('project_title', 'N/A')}</span>
+    </div>
+    <div class="flex items-center">
+        <span class="text-gray-600">📁 Type:</span>
+        <span class="ml-2 font-medium">{json_response.get('project_type', 'N/A')}</span>
+    </div>
+    <div class="flex items-center">
+        <span class="text-gray-600">👤 Author:</span>
+        <span class="ml-2 font-medium">{json_response.get('project_author', 'N/A')}</span>
+    </div>
+    <div class="flex items-center">
+        <span class="text-gray-600">💻 Platform:</span>
+        <span class="ml-2 font-medium">{json_response.get('platform', 'N/A')}</span>
+    </div>
+</div>
+
+<div class="mb-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-2">📝 Description</h2>
+    <p class="text-gray-700">{json_response.get('project_description', 'N/A')}</p>
+</div>
+
+<div>
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">📋 Tasks</h2>
+    <div class="border-b border-gray-300 mb-4"></div>
+    <div class="space-y-4">'''
+
+                # Add tasks
                 for idx, task in enumerate(json_response.get('tasks', []), 1):
-                    task_type = task.get('task', 'N/A')
-                    params = task.get('parameters', {})
+                    formatted_info += f'''
+<div class="bg-gray-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task {idx}: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Parameters:</h4>
+        <ul class="list-disc pl-6">'''
                     
-                    formatted_info += f"\n🔹 Task {idx}: {task_type}\n"
-                    formatted_info += f"  Parameters:\n"
-                    for param_key, param_value in params.items():
-                        formatted_info += f"    - {param_key}: {param_value}\n"
+                    for param_key, param_value in task.items():
+                        if param_key != "task_type":
+                            formatted_info += f'''
+<li class="text-gray-600"><span class="font-medium">{param_key}:</span> {param_value}</li>'''
+                    
+                    formatted_info += '''
+        </ul>
+    </div>
+</div>'''
+
+                # Close all divs
+                formatted_info += '''
+            </div>
+        </div>
+    </div>
+</div>
+'''
+
 
                 self.add_chunk_to_message_content(formatted_info)
                 return json_response
@@ -277,11 +363,9 @@ class Processor(APScript):
             return {}
 
     def execute_task(self, context_memory, task: Dict[str, Any]) -> bool:
-        task_type = task.get("task")
-        parameters = task.get("parameters", {})
-
+        task_type = task.get("task_type")
         if task_type == "execute_command":
-            command = parameters.get("command")
+            command = task.get("command")
             if command:
                 self.step_start(f"Executing command: {command}")
                 try:
@@ -337,7 +421,7 @@ Error:
                     return False
 
         elif task_type == "create_file":
-            file_name = parameters.get("file_name")
+            file_name = task.get("file_name")
             if file_name:
                 self.step_start(f"Generating content for {file_name}")
                 if "files_information" not in  context_memory:
@@ -347,7 +431,7 @@ Error:
                 file_path:Path = Path(current_dir) / file_name
                 file_path.parent.mkdir(parents=True, exist_ok=True)
 
-                context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
+                # context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
                 
                 try:
                     self.terminal.create_file(file_path, code)
@@ -358,7 +442,7 @@ Error:
                     return False
 
         elif task_type == "run_application":
-            command = parameters.get("command")
+            command = task.get("command")
             if command:
                 self.step_start(f"Running application with command: {command}")
                 try:
@@ -426,8 +510,9 @@ Error:
             while n<self.personality_config.max_retries:
                 success = self.execute_task(self.project_details, task)
                 if not success:
-                    self.add_chunk_to_message_content(f"Failed to execute task: {task['task']}")
-                    self.step(f"Failed to execute task: {task['task']}")
+                    self.add_chunk_to_message_content(f"Failed to execute task: {task['task_type']}")
+                    self.step(f"Failed to execute task: {task['task_type']}")
+                    self.step(f"Thinking...")
                     n += 1
                 else:
                     n=6

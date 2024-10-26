@@ -614,7 +614,7 @@ answer with the yaml inside yaml markdown tag.
 
 Subject of the personality:
 {prompt}
-Generated json:
+Generated yaml:
 """
 
         yaml_data = self.generate_code(prompt)
