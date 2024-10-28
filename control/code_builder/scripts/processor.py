@@ -140,6 +140,7 @@ class Processor(APScript):
         self.workflow_steps = []
         self.project_details = None
         self.project_structure = {}
+        self.current_response = ""
 
     def mounted(self):
         self.step_start("Personality mounted successfully.")
@@ -230,7 +231,7 @@ class Processor(APScript):
             "   {\n"
             '       "task_type":"create_file", This creates a file at a specific path\n'
             '       "file_name":"relative path to the file",\n'
-            '       "content_description":"If the file is a code file, then write a structure of the file content and detailed funtions/classes/variables so that the file builder builds the full code. If the file is a documentation file, state that it is a documentation file without much detail",\n'
+            '       "content_description":"Write a description of the content and its structure in textual description. Do not write any code, just a description. Here you need to write the structure of the file content. If this is a code list very detailed funtion signature, classes, variables with their types in a packed but detailed manner.",\n'
             "   },\n"
             "   {\n"
             '       "task_type":"run_application", This runs an application and returns back the output to check\n'
@@ -253,8 +254,12 @@ class Processor(APScript):
         if json_str:
             try:
                 json_response = json.loads(json_str)
+                json_response["current_task_index"]=0
+                with open(self.work_folder/"project_cfg.json","w") as f:
+                    json.dump(json_response,f,indent=2)
+
                 formatted_info = f'''
-<div class="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+<div class="w-full mx-auto p-6 bg-white rounded-lg shadow-lg">
 <div class="mb-6">
 <h1 class="text-2xl font-bold text-gray-800 mb-4">📋 Project Information</h1>
 <div class="border-b border-gray-300 mb-4"></div>
@@ -300,23 +305,21 @@ class Processor(APScript):
                     for param_key, param_value in task.items():
                         if param_key != "task_type":
                             formatted_info += f'''
-<li class="text-gray-600"><span class="font-medium">{param_key}:</span> {param_value}</li>'''
+<li class="text-gray-600"><span class="font-medium">{param_key}:</span><textarea class="w-full" readonly>{param_value}</textarea></li>'''
                     
                     formatted_info += '''
         </ul>
     </div>
-</div>'''
-
+</div>
+'''
                 # Close all divs
                 formatted_info += '''
-            </div>
-        </div>
-    </div>
+</div>
 </div>
 '''
 
-
-                self.add_chunk_to_message_content(formatted_info)
+                self.current_response  += formatted_info
+                self.ui(self.current_response)
                 return json_response
             except Exception as ex:
                 trace_exception(ex)
@@ -325,12 +328,12 @@ class Processor(APScript):
         
         return None
 
-    def generate_file_content(self, user_instructions, file_name: str, project_context: Dict[str, Any]) -> str:
+    def generate_file_content(self, file_name: str, project_context: Dict[str, Any], extra_information:str=None) -> str:
         prompt = (
-            f"User prompt: {user_instructions}"
             f"Generate the content for the file '{file_name}' in the context of the following project structure:\n"
             f"{json.dumps(project_context, indent=2)}\n\n"
-            "Please provide the code for this file, ensuring it's compatible with the existing project structure and functions."
+            "Please provide the code for this file, ensuring it's compatible with the existing project structure and functions.\n"+
+            (extra_information if extra_information else "")+"\n"
         )
         return self.generate_code(prompt, callback=self.sink)
 
@@ -362,9 +365,97 @@ class Processor(APScript):
         except json.JSONDecodeError:
             return {}
 
-    def execute_task(self, context_memory, task: Dict[str, Any]) -> bool:
-        task_type = task.get("task_type")
-        if task_type == "execute_command":
+
+
+
+    # **************************** Cre ate a file ************************************************************
+    def create_file(self, context_memory, task):
+            file_name = task.get("file_name")
+            if file_name:
+                self.step_start(f"Generating content for {file_name}")
+                code = self.generate_file_content(file_name, context_memory)
+                current_dir = self.terminal.get_current_directory()
+                file_path:Path = Path(current_dir) / file_name
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                # context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
+                
+                try:
+                    self.terminal.create_file(file_path, code)
+                    self.current_response  += f'''
+<div class="bg-green-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+                    Content of file: {file_path} written successfuly
+        </ul>
+    </div>
+</div>
+'''
+                    self.ui(self.current_response)
+                    return True
+                except Exception as e:
+                    self.current_response  += f'''
+<div class="bg-red-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+                    Error writing file: {str(e)}
+        </ul>
+    </div>
+</div>
+'''
+                    self.ui(self.current_response)
+                    return False
+
+    # **************************** edit a file ************************************************************
+    def edit_file(self, context_memory, task, error_info):
+            file_name = task.get("file_name")
+            if file_name:
+                self.step_start(f"Editing {file_name}")
+                with open(self.work_folder/file_name,"r") as f:
+                    code = f.read()
+                data= f"Previous_code:{code}\nError_info:"+error_info+"\n"
+                code = self.generate_file_content(context_memory, file_name, data)
+                current_dir = self.terminal.get_current_directory()
+                file_path:Path = Path(current_dir) / file_name
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                # context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
+                
+                try:
+                    self.terminal.create_file(file_path, code)
+                    self.current_response  += f'''
+<div class="bg-green-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+                    Content of file: {file_path} written successfuly
+        </ul>
+    </div>
+</div>
+'''
+                    self.ui(self.current_response)
+                    return True
+                except Exception as e:
+                    self.current_response  += f'''
+<div class="bg-red-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+                    Error writing file: {str(e)}
+        </ul>
+    </div>
+</div>
+'''
+                    self.ui(self.current_response)
+                    return False
+
+
+    # **************************** Executes a command ************************************************************
+    def exec_command(self, context_memory, task):
             command = task.get("command")
             if command:
                 self.step_start(f"Executing command: {command}")
@@ -372,12 +463,16 @@ class Processor(APScript):
                     result = self.terminal.execute_command(command)
                     
                     # Show output in markdown format
-                    output_md = f"""```
-Command: {command}
-Output:
+                    output_html = f"""
+<b>Command:</b>{command}<br>
+<b>Output:</b><br>
+<textarea class="w-full">
 {result["stdout"] if result and result["stdout"]!="" else "success"}
-```"""
-                    self.add_chunk_to_message_content(output_md)
+</textarea>
+"""
+
+                    self.current_response  += output_html
+                    self.ui(self.current_response)
                     
                     # Ask AI to analyze the output
                     analysis_prompt = f"""
@@ -397,51 +492,61 @@ Example:
 }}
 ```
 """
-                    self.add_chunk_to_message_content("\n")
+                    
                     analysis_response = self.generate_code(analysis_prompt, callback=self.sink)
                     try:
                         analysis = json.loads(analysis_response)
                         if analysis.get("status") == "success":
-                            self.add_chunk_to_message_content("Task completed successfully: " + analysis.get("message", "")+"\n")
+                            self.current_response  += f'''
+<div class="bg-green-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+                    {analysis.get("message", "")}
+        </ul>
+    </div>
+</div>
+'''
+                            self.ui(self.current_response)
+
+                            self.step_end(f"Executing command: {command}")
                             return True
                         else:
                             self.step(f"Task failed: {analysis.get('message', 'Unknown error')}")
+                            self.current_response  += f'''
+<div class="bg-red-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task failed:</h4>
+        <ul class="list-disc pl-6">
+                    {analysis.get("message", 'Unknown error')}
+        </ul>
+    </div>
+</div>
+'''
+                            self.ui(self.current_response)          
+                            self.step_end(f"Executing command: {command}", False)
                             return False
                     except json.JSONDecodeError:
                         self.step_start("Failed to parse AI analysis response")
                         return False
                     
                 except subprocess.CalledProcessError as e:
-                    error_md = f"""```
-Command: {command}
-Error:
+                    error_html = f"""
+<b>Command:</b>{command}<br>
+<b>Error:</b><br>
+<textarea class="w-full" style="background-color: #fdf2f2; padding: 16px; border-radius: 6px; font-family: monospace; color: #cc0000;">
 {e.stderr}
-```"""
-                    self.add_chunk_to_message_content(error_md)
+</textarea>
+"""
+
+                    
+                    self.current_response  += error_html
+                    self.ui(self.current_response)                         
                     return False
 
-        elif task_type == "create_file":
-            file_name = task.get("file_name")
-            if file_name:
-                self.step_start(f"Generating content for {file_name}")
-                if "files_information" not in  context_memory:
-                    context_memory["files_information"]={}
-                code = self.generate_file_content(context_memory, file_name, self.project_structure)
-                current_dir = self.terminal.get_current_directory()
-                file_path:Path = Path(current_dir) / file_name
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
-                
-                try:
-                    self.terminal.create_file(file_path, code)
-                    self.add_chunk_to_message_content(f"Content of file: {file_path} written successfuly\n")
-                    return True
-                except Exception as e:
-                    self.step_start(f"Error writing file: {str(e)}")
-                    return False
-
-        elif task_type == "run_application":
+    def run_application(self, context_memory, task):
             command = task.get("command")
             if command:
                 self.step_start(f"Running application with command: {command}")
@@ -449,12 +554,16 @@ Error:
                     # For Windows
                     result = self.terminal.execute_command(command)
                     # Show output in markdown format
-                    output_md = f"""```
-Application: {command}
-Output:
+                    output_html = f"""
+<b>Application:</b>{command}<br>
+<b>Output:</b><br>
+<textarea class="w-full">
 {result}
-```"""
-                    self.add_chunk_to_message_content(output_md)
+</textarea>
+"""
+
+                    self.current_response  += output_html
+                    self.ui(self.current_response)
                     
                     # Ask AI to analyze the application output
                     analysis_prompt = f"""
@@ -466,28 +575,81 @@ Error output: {result["stderr"] if result["stderr"] and result["stderr"]!="" els
 Respond with a JSON containing:
 1. status: "success" or "error"
 2. message: Description of application behavior
+3. todo: None if success, but if error, then write a list of tasks to do to fix the code before retrying to executre the code. You may need to update multiple files.
+[
+{{
+"task_type":"edit_file", This edits a file at a specific path
+"file_name":"relative path to the file",
+}},
+...
+]
+
 """
                     self.add_chunk_to_message_content("\n")
                     analysis_response = self.generate_code(analysis_prompt, callback=self.sink)
                     try:
                         analysis = json.loads(analysis_response)
                         if analysis.get("status") == "success":
+                            self.current_response  += f'''
+<div class="bg-green-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+        {analysis.get("message", "")}
+        </ul>
+    </div>
+</div>
+'''
+                            self.ui(self.current_response)               
                             return True
                         else:
-                            self.step_start(f"Application run failed: {analysis.get('message', 'Unknown error')}")
+                            self.step_end(f"Running application with command: {command}", False)
+                            self.step(f"Application run failed: {analysis.get('message', 'Unknown error')}")
+                            self.current_response  += f'''
+<div class="bg-red-50 p-4 rounded-lg">
+    <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task: {task.get("task_type","N/A")}</h3>
+    <div class="pl-4">
+        <h4 class="text-gray-700 font-medium mb-2">Task completed successfully:</h4>
+        <ul class="list-disc pl-6">
+        Application run failed: {analysis.get('message', 'Unknown error')}
+        Suggested operations:
+            {analysis.get("todo")}
+        </ul>
+    </div>
+</div>
+'''
+                            self.ui(self.current_response)   
+                            for todo_entry in analysis.get("todo"):
+                                if todo_entry["task_type"]=="edit_file":
+                                    self.edit_file(context_memory, todo_entry, analysis.get('message', 'Unknown error'))
                             return False
                     except json.JSONDecodeError:
                         self.step_start("Failed to parse AI analysis response")
                         return False
                     
                 except subprocess.CalledProcessError as e:
-                    error_md = f"""```
-Application: {command}
+                    error_html = f"""
+Command: {command}
 Error:
+<textarea style="background-color: #fdf2f2; padding: 16px; border-radius: 6px; font-family: monospace; color: #cc0000;">
 {e.stderr}
-```"""
-                    self.add_chunk_to_message_content(error_md)
+</textarea>
+"""
+                    self.current_response  += error_html
+                    self.ui(self.current_response)
                     return False
+
+    def execute_task(self, context_memory, task: Dict[str, Any]) -> bool:
+        task_type = task.get("task_type")
+        if task_type == "execute_command":
+            return self.exec_command(context_memory, task)
+
+        elif task_type == "create_file":
+            return self.create_file(context_memory, task)
+
+        elif task_type == "run_application":
+            return self.run_application(context_memory, task)
 
         elif task_type == "finished":
             self.step_start("Workflow completed successfully.")
@@ -505,17 +667,21 @@ Error:
 
         self.step_start("Executing project tasks...")
 
-        for task in self.project_details.get("tasks", []):
+        for task_index, task in enumerate(self.project_details.get("tasks", [])):
             n=0
             while n<self.personality_config.max_retries:
                 success = self.execute_task(self.project_details, task)
-                if not success:
+                task["status"]="success" if success else "failure"
+                if success:
+                    self.project_details["current_task_index"]=task_index
+                    with open(self.work_folder/"project_cfg.json","w") as f:
+                        json.dump(self.project_details,f,indent=2)
+                    n=self.personality_config.max_retries
+                else:
                     self.add_chunk_to_message_content(f"Failed to execute task: {task['task_type']}")
                     self.step(f"Failed to execute task: {task['task_type']}")
                     self.step(f"Thinking...")
                     n += 1
-                else:
-                    n=6
 
         self.step_start("Project execution completed successfully.")
         
