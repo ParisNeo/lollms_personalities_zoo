@@ -74,8 +74,11 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
 
+                {"name":"language","type":"str","value":"English", "help":"The personality language"},
                 {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
                 {"name":"build_the_scipt","type":"bool","value":True, "help":"Experimental! This requires at least to be using a 128k tokens context LLM"},
+                {"name":"single_shot","type":"bool","value":False, "help":"If true, then the AI personality will be built at a single shot (use this if you are using a high end LLM), if not, then deactivate this"},
+                
                 
                 {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
                 {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
@@ -166,7 +169,7 @@ class Processor(APScript):
             return {"status":True}
         except Exception as ex:
             trace_exception(ex)
-            form_data = await request.form()
+            form_data = data
             ai_icon: Optional[UploadFile] = None
             if 'ai_icon' in form_data:
                 ai_icon = form_data['ai_icon'].file
@@ -301,7 +304,6 @@ class Processor(APScript):
 
         crafted_prompt = self.build_prompt(
             [
-
                 self.system_full_header+f"icon imaginer is a personality icon description AI.",
                 "The user describes a personality and the ai should describe a suitable icon for the ai personality",
                 "icon imaginer tries to express the personality of by describing a suitable eye catching icon",
@@ -315,21 +317,20 @@ class Processor(APScript):
                 f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
                 "Only build short descriptions (less than 77 tokens)",
                 self.system_custom_header("examples") if examples!="" else "",
-                f"{examples}",
-                self.system_custom_header("icon imaginer")
+                f"{examples}"
             ],5
         )
-        sd_prompt = self.generate(crafted_prompt,256,0.1,10,0.98, debug=True, callback=self.sink).strip().split("\n")[0]
+        sd_prompt = self.generate_text(crafted_prompt).strip().split("\n")[0]
         self.step_end("Imagining Icon")
-        ASCIIColors.yellow(f"sd prompt:{sd_prompt}")
-        output_text+=self.build_a_document_block('icon sd_prompt',"",sd_prompt)
-        self.set_message_content(output_text)
+        ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
         self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         
         # ----------------------------------------------------------------
 
         sd_negative_prompt = self.config.default_negative_prompt
+        output_text+=self.build_a_document_block('icon prompt',"",sd_prompt)
+        self.set_message_content(output_text)
         output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.set_message_content(output_text)
         self.add_chunk_to_message_content("")
@@ -381,39 +382,39 @@ class Processor(APScript):
         self.step_end("Painting Icon")
 
         header = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Personality photos</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-            }
-            .flex {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            .button-row {
-                margin-bottom: 20px;
-            }
-            .button-link {
-                background-color: #4CAF50;
-                color: #ffffff;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-            }
-            .button-link:hover {
-                background-color: #3e8e41;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Personality icons</h1>
-        <h2>Please select a photo to be used as the logo</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Personality photos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .flex {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .button-row {
+            margin-bottom: 20px;
+        }
+        .button-link {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button-link:hover {
+            background-color: #3e8e41;
+        }
+    </style>
+</head>
+<body>
+    <h1>Personality icons</h1>
+    <h2>Please select a photo to be used as the logo</h2>
         """
         ui=""
         for i in range(len(files)):
@@ -504,6 +505,74 @@ class Processor(APScript):
         self.new_message(form,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
         pass
 
+
+
+    def generate_personality(self, prompt, single_shot=False):
+        categories = [c.stem.lower() for c in Path(__file__).parent.parent.parent.parent.iterdir() if c.is_dir()]
+        template = {
+            "name": {
+                "prompt": "Based on this request: '{main_prompt}', generate a suitable name for the personality. Answer with just the name without any comments.",
+                "default": ""
+            },
+            "author": {
+                "default": self.personality.config.user_name
+            },
+            "category": {
+                "prompt": "Based on this request: '{main_prompt}', choose the most appropriate category from: "+",".join(categories)+". Answer with just the category without any comments.",
+                "default": "generic"
+            },
+            "language": {
+                "default": self.personality_config.language
+            },
+            "personality_description": {
+                "prompt": "Based on this request: '{main_prompt}', write a brief description of the personality. Keep it under 3 sentences.",
+                "default": ""
+            },
+            "disclaimer": {
+                "prompt": "Based on this request: '{main_prompt}', write a brief disclaimer mentioning any limitations. Keep it under 2 sentences.",
+                "default": ""
+            },
+            "personality_conditioning": {
+                "prompt": """Based on this request: '{main_prompt}', define the personality's system message. The system message describes the personality and how it behaves. The message must be written in """+self.personality_config.language+".",
+                "default": ""
+            },
+            "welcome_message": {
+                "prompt": "Based on this request: '{main_prompt}', create a welcome message introducing the personality's capabilities. Keep it friendly and professional, under 3 sentences. The message must be written in "+self.personality_config.language+".",
+                "default": ""
+            },
+            "model_temperature": {
+                "default": 0.1
+            },
+            "model_top_k": {
+                "default": 50
+            },
+            "model_top_p": {
+                "default": 0.90
+            },
+            "model_repeat_penalty": {
+                "default": 1.0
+            },
+            "model_repeat_last_n": {
+                "default": 40
+            },
+            "dependencies": {
+                "default": []
+            },
+            "anti_prompts": {
+                "default": []
+            },
+            "prompts_list": {
+                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
+                "default": [],
+                "processor": lambda x: x.split('\n')
+            }
+        }
+        response = self.generate_structured_content(prompt, template, single_shot)
+        if response["data"]["category"].strip().lower() not in categories:
+            response["data"]["category"]="generic"
+        return response
+
+
     def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
         """
         This function generates code based on the given parameters.
@@ -538,92 +607,18 @@ class Processor(APScript):
         # First we create the yaml file
         # ----------------------------------------------------------------
         self.step_start("Building main yaml")
-        prompt = f"""Generate a YAML file for an AI chatbot personality using the following template. Replace all text in square brackets [...] with appropriate information for the AI personality you're creating. Maintain proper indentation and YAML syntax.
 
-```yaml
-## [Insert AI name] Chatbot conditioning file
-## Author: [Insert author name]
-## Version: [Insert version number]
-## Description:
-## [Insert a brief description of the AI here]
-## talking to.
+        personality_infos = self.generate_personality(prompt, self.personality_config.single_shot)
+        infos = personality_infos["data"]
+        yaml_data = personality_infos["formatted_string"]
 
-# Credits
-author: [Insert author name]
-version: [Insert version number]
-category: [Insert category (e.g., assistant, roleplay, professional)]
-language: [Insert language (e.g., English, French, Spanish)]
-name: [Insert AI name]
-personality_description: |
-    [Insert a detailed description of the AI's personality here. This can be multiple lines.]
-disclaimer: |
-    [Insert any disclaimer or warning message here. This can be multiple lines.]
 
-# Actual useful stuff
-personality_conditioning: |
-    [Insert the AI's personality conditioning here. This defines how the AI should behave and respond. It can be multiple lines.]
-user_message_prefix: 'user'
-ai_message_prefix: '[Insert AI name in lowercase, replacing spaces with underscores]'
-link_text: '\n'
-welcome_message: |
-    [Insert the welcome message that the AI will use when starting a conversation. This can be multiple lines.]
 
-# Here are default model parameters
-model_temperature: [Insert temperature value, e.g., 0.7] # higher: more creative, lower: more deterministic
-model_top_k: 50
-model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
-
-# Recommendations
-recommended_binding: ''
-recommended_model: ''
-
-# Here is the list of extensions this personality requires
-dependencies: []
-
-# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: []
-
-# A list of prompts that can be used with this personality
-prompts_list: [
-
-]
-```
-
-Please follow these instructions when filling out the YAML file:
-
-1. Replace all text in square brackets [...] with the appropriate information for your AI personality.
-2. Ensure that the indentation is maintained, especially for multi-line fields (those using the | symbol).
-3. The 'user_message_prefix' is already set to 'user' and should typically be left as is.
-4. For 'ai_message_prefix', use the AI's name in lowercase, replacing any spaces with underscores.
-5. Leave the model parameters (top_k, top_p, repeat_penalty, repeat_last_n) as they are unless you have specific reasons to change them.
-6. The 'recommended_binding', 'recommended_model', 'dependencies', and 'anti_prompts' fields can be left empty (as shown) if not needed.
-7. For the 'prompts_list', you can add prompts that work well with this personality. Each prompt should be on a new line, indented, and starting with a hyphen (-). For example:
-   ```yaml
-   prompts_list: [
-    "Tell me about your favorite hobby.",
-    "What's your opinion on artificial intelligence?",
-    "Describe your ideal day."
-   ]
-   ```
-8. Ensure all YAML syntax is correct, including proper use of colons, pipes, and quotation marks where necessary.
-
-This YAML file will define the personality, behavior, settings, and suggested prompts for your AI chatbot. Please fill it out carefully to create a unique and functional AI personality.
-answer with the yaml inside yaml markdown tag.
-
-Subject of the personality:
-{prompt}
-Generated yaml:
-"""
-
-        yaml_data = self.generate_code(prompt)
-        self.step_end("Building main yaml")
-        infos = yaml.safe_load(yaml_data)
+        self.ui(self.generate_html_from_dict(infos))
         name = infos["name"]
         self.step_end("Building the yaml file")
         self.step_start("Preparing paths")
-        self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_").replace("\n","").replace('"','')
+        self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_").replace(",","_").replace("\n","").replace('"','')
         self.personality_path.mkdir(parents=True, exist_ok=True)
         self.assets_path = self.personality_path/"assets"
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -637,7 +632,6 @@ Generated yaml:
             f.write(yaml_data)
         self.step_end("Saving configuration file")
 
-        self.new_message("")
         if self.personality_config.generate_icon:
             self.step_start("Building icon")
             try:
@@ -671,7 +665,7 @@ Generated yaml:
                         if len(codes)>0:
                             code = "\n".join(code.split("\n")[:-1])+codes[0]["content"]
 
-                    with(open(self.scripts_path/"processor.py","w") as f):
+                    with(open(self.scripts_path/"processor.py","w",encoding="utf8", errors='ignore') as f):
                         f.write(codes[0]["content"])
                     self.step_end("Creating custom script")                    
                 else:
