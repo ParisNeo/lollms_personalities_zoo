@@ -396,7 +396,7 @@ class Processor(APScript):
                 self.set_message_content(f"{metadata_infos}")     
             else:
                 styles = None
-            stl = f"{self.config.start_header_id_template}style_choice: {styles}\n" if styles is not None else ""
+            stl = f"{self.system_custom_header('style_choice')} {styles}\n" if styles is not None else ""
             self.step_start("Imagining positive prompt")
             # 1 first ask the model to formulate a query
             past = self.remove_image_links(full_context)
@@ -458,7 +458,7 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += self.add_collapsible_entry("Negative prompt",f"{negative_prompt}",open_by_default=True) 
+            metadata_infos += self.add_collapsible_entry("Negative prompt", f"{negative_prompt}", open_by_default=False) 
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
@@ -474,9 +474,9 @@ class Processor(APScript):
                 ])
 
                 self.print_prompt("Make up a title", prompt)
-                sd_title = self.generate(prompt, self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                sd_title = self.generate_text(prompt, max_size= self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
-                metadata_infos += self.add_collapsible_entry(f"{sd_title}","",open_by_default=True)
+                metadata_infos += self.add_collapsible_entry(f"{sd_title}","",open_by_default=False)
                 self.set_message_content(f"{metadata_infos}")
                 
         else:

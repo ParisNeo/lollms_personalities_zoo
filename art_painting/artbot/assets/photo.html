@@ -1,94 +1,166 @@
-<div class="relative inline-block">
-    <img id="img_{{image_id}}" src="{{image_source}}" width ="{{thumbneil_width}}" height="{{thumbneil_height}}" alt="Artbot generated image" class="cursor-pointer transition-transform duration-300 hover:scale-105" onclick="openFloatingImage('{{image_id}}',infoData_{{image_id}})">
-    <button id="copy_prompt" class="absolute top-2 right-2 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-300 shadow-lg opacity-70 hover:opacity-100" onclick="copy_to_clipboard(infoData_{{image_id}})">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-        </svg>
-    </button>
+<div class="flex justify-center items-center">
+    <div class="relative group">
+        <!-- Image Container with hover effects -->
+        <div class="rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl">
+            <img 
+                id="img_{{image_id}}" 
+                src="{{image_source}}" 
+                width="{{thumbneil_width}}" 
+                height="{{thumbneil_height}}" 
+                alt="Artbot generated image" 
+                class="cursor-pointer transition-all duration-300 hover:brightness-110"
+                onclick="openFloatingImage('{{image_id}}',infoData_{{image_id}})"
+            >
+            <!-- Fancy copy button with tooltip -->
+            <button 
+                id="copy_prompt" 
+                class="absolute top-2 right-2 p-2 bg-blue-500/80 text-white rounded-full hover:bg-blue-600 transition-all duration-300 shadow-lg transform hover:scale-110 group-hover:opacity-100 opacity-0"
+                onclick="copy_to_clipboard(infoData_{{image_id}})"
+                title="Copy Prompt"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                </svg>
+            </button>
+        </div>
+    </div>
 </div>
-
 
 <script>
     const infoData_{{image_id}} = {{__infos__}};
-    const buttonClasses_{{image_id}} = 'px-4 py-2 rounded-md text-white transition-colors duration-300';
-    
-    function copy_to_clipboard(infoData){
-        text = `${infoData["prompt"]}\n${infoData["negative_prompt"]}`;
+    const buttonClasses_{{image_id}} = 'px-4 py-2 rounded-md text-white transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2';
+
+    function copy_to_clipboard(infoData) {
+        const text = `${infoData["prompt"]}\n${infoData["negative_prompt"]}`;
         navigator.clipboard.writeText(text)
-        .then(() => {
-            console.log('Text copied to clipboard successfully!');
-        })
-        .catch((error) => {
-            console.error('Error copying text to clipboard:', error);
-        });
+            .then(() => {
+                showToast('Prompt copied to clipboard!');
+            })
+            .catch((error) => {
+                console.error('Error copying text to clipboard:', error);
+            });
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
     }
 
     function openFloatingImage(imageId, infoData) {
-        const imageElement = document.getElementById(`img_${imageId}`);
-        const imageSource = imageElement.src;
-
         const floatingImageContainer = document.createElement('div');
         floatingImageContainer.id = `floatingImageContainer_${imageId}`;
-        floatingImageContainer.className = 'fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 overflow-y-auto';
+        floatingImageContainer.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4';
 
         const contentContainer = document.createElement('div');
-        contentContainer.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full relative';
+        contentContainer.className = 'bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full relative';
+
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'relative h-[60vh] overflow-auto custom-scrollbar';
+        imageContainer.style.cssText = 'scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.5) transparent;';
 
         const floatingImage = new Image();
-        floatingImage.src = imageSource;
+        floatingImage.src = document.getElementById(`img_${imageId}`).src;
         floatingImage.id = `floatingImage_${imageId}`;
-        floatingImage.className = 'w-full h-auto object-contain rounded-t-lg';
-
+        floatingImage.className = 'w-full h-auto object-contain transition-transform duration-300 hover:cursor-move';
+        
+        imageContainer.appendChild(floatingImage);
+        
+        // Close button with animation
         const closeButton = document.createElement('button');
-        closeButton.className = 'absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200';
+        closeButton.className = 'absolute z-50 top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-300 transform hover:scale-110';
         closeButton.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-        closeButton.addEventListener('click', () => closeFloatingImage(imageId, infoData));
+        closeButton.onclick = () => closeFloatingImage(imageId, infoData);
 
+        // Enhanced buttons bar
         const buttonsBar = document.createElement('div');
-        buttonsBar.className = 'flex justify-center space-x-2 p-4';
+        buttonsBar.className = 'flex justify-center space-x-4 p-6 border-t border-gray-200 dark:border-gray-700';
 
-        const saveButton = createButton('Save Image', 'bg-green-500 hover:bg-green-600', () => saveImage(imageId, infoData));
-        const saveMetadataButton = createButton('Save Metadata', 'bg-blue-500 hover:bg-blue-600', () => saveMetadata(imageId, infoData));
-        const variateButton = createButton('Variate', 'bg-purple-500 hover:bg-purple-600', () => postToPersonality(imageId, infoData, {{client_id}}));
-        const setAsCurrentImageButton = createButton('Set as current image', 'bg-yellow-500 hover:bg-yellow-600', () => setAsCurrentImageButtonFN(imageId, infoData));
+        const buttons = [
+            { text: 'Save Image', class: 'bg-green-500 hover:bg-green-600', handler: () => saveImage(imageId, infoData) },
+            { text: 'Save Metadata', class: 'bg-blue-500 hover:bg-blue-600', handler: () => saveMetadata(imageId, infoData) },
+            { text: 'Variate', class: 'bg-purple-500 hover:bg-purple-600', handler: () => postToPersonality(imageId, infoData, {{client_id}}) },
+            { text: 'Set as Current', class: 'bg-yellow-500 hover:bg-yellow-600', handler: () => setAsCurrentImageButtonFN(imageId, infoData) }
+        ];
 
-        buttonsBar.append(saveButton, saveMetadataButton, variateButton, setAsCurrentImageButton);
+        buttons.forEach(btn => {
+            const button = createButton(btn.text, btn.class, btn.handler);
+            buttonsBar.appendChild(button);
+        });
 
+        // Enhanced info section
         const infosDiv = document.createElement('div');
-        infosDiv.className = 'bg-gray-100 dark:bg-gray-700 p-4 rounded-b-lg max-h-60 overflow-y-auto';
+        infosDiv.className = 'bg-gray-50 dark:bg-gray-700 p-6 rounded-b-2xl max-h-60 overflow-y-auto custom-scrollbar';
 
-        const infosDivTable = document.createElement('table');
-        infosDivTable.className = 'w-full';
+        const infoTable = document.createElement('table');
+        infoTable.className = 'w-full border-collapse';
+        
         for (const [key, value] of Object.entries(infoData)) {
-            const infoParagraph = document.createElement('tr');
-            infoParagraph.innerHTML = `<td class="font-bold pr-2">${key}:</td><td>${value}</td>`;
-            infosDivTable.appendChild(infoParagraph);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="py-2 px-4 font-semibold text-gray-700 dark:text-gray-300">${key}:</td>
+                <td class="py-2 px-4 text-gray-600 dark:text-gray-400">${value}</td>
+            `;
+            infoTable.appendChild(row);
         }
-        infosDiv.appendChild(infosDivTable);
+        infosDiv.appendChild(infoTable);
 
-        contentContainer.append(floatingImage, closeButton, buttonsBar, infosDiv);
+        contentContainer.append(closeButton, imageContainer, buttonsBar, infosDiv);
         floatingImageContainer.appendChild(contentContainer);
         document.body.appendChild(floatingImageContainer);
 
-        floatingImage.addEventListener('wheel', zoomImage);
+        // Enhanced zoom functionality
+        let scale = 1;
+        let panning = false;
+        let pointX = 0;
+        let pointY = 0;
+        let start = { x: 0, y: 0 };
 
-        function zoomImage(event) {
-            event.preventDefault();
-            const currentScale = parseFloat(floatingImage.style.transform.replace('scale(', '').replace(')', '') || '1');
-            const scaleDelta = event.deltaY > 0 ? 0.9 : 1.1;
-            const newScale = currentScale * scaleDelta;
-            floatingImage.style.transform = `scale(${newScale})`;
+        imageContainer.addEventListener('wheel', zoomImage);
+        imageContainer.addEventListener('mousedown', startPan);
+        imageContainer.addEventListener('mousemove', pan);
+        imageContainer.addEventListener('mouseup', endPan);
+
+        function zoomImage(e) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale *= delta;
+            scale = Math.min(Math.max(0.5, scale), 4); // Limit scale between 0.5 and 4
+            floatingImage.style.transform = `scale(${scale})`;
+        }
+
+        function startPan(e) {
+            panning = true;
+            start = { x: e.clientX - pointX, y: e.clientY - pointY };
+        }
+
+        function pan(e) {
+            if (!panning) return;
+            pointX = e.clientX - start.x;
+            pointY = e.clientY - start.y;
+            floatingImage.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+        }
+
+        function endPan(e) {
+            panning = false;
         }
     }
 
+
     function createButton(text, classes, clickHandler) {
         const button = document.createElement('button');
-        button.className = `${buttonClasses_{{image_id}}} ${classes}`;
+        button.className = `${buttonClasses_{{image_id}}} ${classes} shadow-md`;
         button.textContent = text;
         button.addEventListener('click', clickHandler);
         return button;
     }
+
     function setAsCurrentImageButtonFN(imageId, infoData){
         const floatingImage = document.getElementById(`floatingImage_${imageId}`);
         const imageSource = floatingImage.src;
@@ -212,6 +284,25 @@
     function closeFloatingImage(imageId, infoData) {
         const floatingImageContainer = document.getElementById(`floatingImageContainer_${imageId}`);
         floatingImageContainer.remove(); // Remove the floating image container
-    }
+    }    
 </script>
-    
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.7);
+    }
+</style>

@@ -68,4 +68,21 @@ processor_cfg:
   process_model_input: false
   process_model_output: false
 
-prompts_list: [ "Surreal landscape featuring a giant clock melting over a desert, vibrant colors, Dali-inspired, dreamlike atmosphere, intricate details, high resolution.", "Abstract geometric shapes intertwining, bright neon color palette, 3D rendering, high contrast, polished finish, modern digital art, visually striking.", "Art Nouveau style floral pattern, intricate line work, soft pastel colors, seamless repeat, elegant and ornate, suitable for wallpaper design.", "Whimsical forest scene with anthropomorphic animals having a tea party, colorful and playful, illustrated style reminiscent of children's book illustrations.", "Futuristic city skyline at dusk, cyberpunk aesthetics, neon lights reflecting on water, highly detailed, high resolution, dynamic composition.", "Vintage travel poster featuring a tropical island, retro typography, warm color palette, stylized illustration, inviting and nostalgic atmosphere.", "Minimalist black and white portrait of a woman with flowing hair, strong contrast, high detail in facial features, elegant and timeless, suitable for print.", "Cosmic scene depicting a space explorer floating among the stars, vibrant colors, nebula and galaxy backgrounds, science fiction theme, high detail.", "Traditional Japanese garden during autumn, delicate cherry blossoms, serene pond, soft colors, impressionistic style, peaceful and harmonious.", "Fantasy creature concept art, dragon with iridescent scales, dynamic pose, intricate detailing, vibrant colors, high fantasy setting, digital painting." ]
+prompts_list:
+  - "Surreal landscape featuring a [clock_type] melting over a [landscape_type], [color_scheme] colors, Dali-inspired, dreamlike atmosphere, intricate details, high resolution."
+  - "Abstract geometric [shape_type] intertwining, [color_palette] neon colors, 3D rendering, high contrast, [finish_type] finish, modern digital art, visually striking."
+  - "Art Nouveau style [flora_type] pattern, intricate line work, [color_scheme] colors, seamless repeat, elegant and ornate, suitable for [application_type] design."
+  - "Whimsical [environment_type] scene with anthropomorphic [animal_types] having a [activity_type], [mood] and playful, illustrated style reminiscent of [art_style] illustrations."
+  - "Cyberpunk [city_name] streetscape, holographic advertisements reflecting in rain puddles, [color_scheme] neon accents, augmented reality overlays, flying vehicles, high-tech [building_type]."
+  - "Neo-Tokyo inspired cyberpunk market, [vendor_type] selling [product_type], ambient neon glow, steam vents, robotic companions, dense urban architecture."
+  - "Steampunk [vehicle_type] powered by brass gears and steam engines, Victorian-era styling, [metal_type] accents, intricate mechanical details, [weather_condition] atmosphere."
+  - "Steampunk laboratory with [scientist_type] working on [invention_type], copper pipes, pressure gauges, vintage scientific instruments, warm lighting through stained glass."
+  - "[time_period] meets [art_movement] fusion artwork, featuring [subject_matter] in style of [artist_name], [texture_type] textures, [lighting_type] lighting."
+  - "Hyper-realistic [scene_type] with [material_type] surfaces, photorealistic rendering, [time_of_day] lighting, atmospheric perspective, cinematic composition."
+  - "Bio-mechanical [creature_type] in [environment_type], fusion of organic and mechanical elements, [color_scheme] palette, [mood] atmosphere, highly detailed."
+  - "[cultural_style] inspired [architectural_element] with modern technological integration, [material_combination], [lighting_effect], [weather_effect]."
+  - "Fractal-based [concept_type] visualization, [color_gradient] spectrum, mathematical precision, [complexity_level] detail level, [movement_type] flow."
+  - "Style modifiers: [photorealistic | anime | watercolor | oil painting | digital art | pencil sketch | vector art | 3D render | concept art | graffiti | minimalist | baroque | pop art]"
+  - "Lighting modifiers: [golden hour | blue hour | neon | dramatic shadows | soft diffused | harsh contrast | volumetric | ambient | backlit | rim light]"
+  - "Mood modifiers: [ethereal | gritty | serene | chaotic | mysterious | whimsical | dystopian | utopian | melancholic | energetic]"
+
