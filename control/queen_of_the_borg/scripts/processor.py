@@ -4,6 +4,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
+from ascii_colors import trace_exception
 
 from pathlib import Path
 from typing import List
@@ -127,32 +128,25 @@ class Processor(APScript):
         collective:List[AIPersonality] = self.personality.app.mounted_personalities
 
 
-        q_prompt = f"{self.config.start_header_id_template}You are the queen of borg.\nYou have access to the following assimilated drones:\n"
-        collective_infos = ""
-        for i,drone in enumerate(collective):
-            collective_infos +=  f"drone id: {i}\n"
-            collective_infos +=  f"drone name: {drone.name}\n"
-            collective_infos +=  f"drone description: {drone.personality_description[:126]}...\n"
-        q_prompt += collective_infos
         answer = ""
-        q_prompt += f"You are a great leader and you know which drone is most suitable to answer the user request.\n"
-        q_prompt += f"{self.config.start_header_id_template}user:{prompt}\n"
-        q_prompt += f"{self.config.start_header_id_template}Queen of borg: To answer the user I summon the drone with id "
+        q_prompt = f"{self.system_full_header}You are the queen of borgs, you are a great leader and you know which drone is most suitable to answer the user request.\n"
+        q_prompt += f"{self.user_full_header}{prompt}\n"
         attempts = 0
+
 
 
 
         self.step_start("Summoning collective")
         while attempts<self.personality_config.nb_attempts:
             try:
-                selection = int(self.fast_gen(q_prompt, 3, show_progress=True, callback=self.sink).split()[0].split(",")[0])
+                selection = self.multichoice_question('which drone is the best to fulfill the user request?',[f"{drone.name} : {drone.personality_description[:4000]}" for drone in collective],q_prompt)
                 q_prompt += f"{selection}\n"
                 self.step_end("Summoning collective")
                 self.step(f"Selected drone {collective[selection]}")
                 collective[selection].callback=callback
 
+                q_prompt += f"{self.system_full_header}Reformulate the question for the drone.{self.config.separator_template}{self.ai_custom_header(collective[selection].name)}"
                 if collective[selection].processor and collective[selection].name!="Queen of the Borg":
-                    q_prompt += f"{self.config.start_header_id_template}sytsem:Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                     reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                     self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                     previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
@@ -163,15 +157,15 @@ class Processor(APScript):
                     collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
                 else:
                     if collective[selection].name!="Queen of the Borg":
-                        q_prompt += f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}Reformulate the question for the drone.{self.config.separator_template}{self.config.start_header_id_template}Queen of borg: {collective[selection].name},"
                         reformulated_request=self.fast_gen(q_prompt, show_progress=True)
                         self.set_message_content(f"{collective[selection].name}, {reformulated_request}")
                         previous_discussion_text= previous_discussion_text.replace(prompt,reformulated_request)
                         collective[selection].new_message("")
                         collective[selection].set_message_content(f"At your service my queen.\n")
-                    collective[selection].generate(previous_discussion_text,self.personality.config.ctx_size-len(self.personality.model.tokenize(previous_discussion_text)),callback=callback)
+                    collective[selection].generate(previous_discussion_text,callback=callback)
                 break
             except Exception as ex:
+                trace_exception(ex)
                 self.step_end("Summoning collective", False)
                 attempts += 1
         return answer
