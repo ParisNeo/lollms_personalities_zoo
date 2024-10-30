@@ -6,6 +6,7 @@ from typing import Callable, Any
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 from lollmsvectordb.text_chunker import TextChunker
+from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
 import subprocess
 from pathlib import Path
 import json
@@ -91,15 +92,14 @@ class Processor(APScript, FileSystemEventHandler):
     
     def process_file(self, file):
                 self.step_start(f"Processing {file.name}")
-                data = GenericDataLoader.read_file(file)
-                dd = DocumentDecomposer()
-                chunks = dd.decompose_document(
+                data = TextDocumentsLoader.read_file(file)
+                dd = TextChunker()
+                TikTokenTokenizer()
+                chunks = dd.chunk_text(
                                             data,
+                                            TikTokenTokenizer(),
                                             self.personality_config.chunk_size,
                                             self.personality_config.chunk_overlap,
-                                            self.personality.model.tokenize,
-                                            self.personality.model.detokenize,
-                                            return_detokenized=True
                                     )
                 n_chunks = len(chunks)
                 for i, chunk in enumerate(chunks):
