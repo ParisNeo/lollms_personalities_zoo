@@ -561,13 +561,14 @@ class Processor(APScript):
             "anti_prompts": {
                 "default": []
             },
-            "prompts_list": {
+        }
+        if self.personality_config.generate_prompt_examples:
+            template["prompts_list"]={
                 "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to full placed between []. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
                 "default": [],
                 "processor": lambda x: x.split('\n')
             }
-        }
-        if self.personality_config
+            
         response = self.generate_structured_content(prompt, template, single_shot)
         if response["data"]["category"].strip().lower() not in categories:
             response["data"]["category"]="generic"
