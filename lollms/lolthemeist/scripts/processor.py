@@ -76,7 +76,7 @@ The generated CSS will follow LoLLMs' styling conventions and structure."""
         """Generates a suitable theme name based on the description"""
         try:
             prompt = f"Generate a short (2-3 words) theme name based on this description: {theme_description}\nMake it suitable for a filename (no spaces, use underscores).\nOnly return the name, nothing else."
-            theme_name = self.fast_gen(prompt).strip().lower()
+            theme_name = self.fast_gen(prompt, callback=self.sink).strip().lower()
             theme_name = theme_name.replace(" ", "_")
             if self.personality_config.use_theme_prefix:
                 theme_name = f"{self.personality_config.theme_name_prefix}{theme_name}"
@@ -98,13 +98,13 @@ Template structure:
 Generate a complete CSS file following the same structure but with colors and styles matching the description.
 Keep all the selectors and structure, only modify the properties values.
 Maintain compatibility with LoLLMs' UI components.
+Make sure you build the whole file without shortcuts or comments even if nothing is to be changed. 
 """
             css_content = self.generate_code(
                 prompt=prompt,
-                max_size=8000,
-                temperature=0.7,
-                callback=self.callback
+                callback=self.sink
             )
+            self.set_message_content(f"```css\n{css_content}\n```\n")
             return css_content
         except Exception as e:
             self.error(f"Error generating CSS: {str(e)}")
@@ -154,10 +154,9 @@ Maintain compatibility with LoLLMs' UI components.
                 return
             self.step_end(f"Theme saved to: {file_path}")
             # Preview the theme
-            preview = "\n".join(css_content.split("\n")[:20]) + "\n... (continued)"
+            preview = "\n".join(css_content.split("\n"))
             
             response = f"""Theme generated successfully!
-
 Theme name: {theme_name}
 File location: {file_path}
 
@@ -173,4 +172,6 @@ Preview of the generated CSS:
             
     def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable = None, context_details: dict = None, client: Client = None):
         """Entry point for the personality's workflow"""
+        if not self.css_template:
+            self.load_css_template()
         self.generate_theme(prompt, previous_discussion_text, callback, context_details, client)
