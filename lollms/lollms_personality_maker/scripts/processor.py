@@ -17,7 +17,7 @@ from lollms.client_session import Client
 from lollmsvectordb import VectorDatabase
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
-
+from datetime import datetime
 from typing import Dict, Any
 
 import re
@@ -517,6 +517,12 @@ class Processor(APScript):
             "author": {
                 "default": self.personality.config.user_name
             },
+            "creation_date": {
+                "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            },
+            "last_update_date": {
+                "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            },
             "category": {
                 "prompt": "Based on this request: '{main_prompt}', choose the most appropriate category from: "+",".join(categories)+". Answer with just the category without any comments.",
                 "default": "generic"
@@ -568,7 +574,7 @@ class Processor(APScript):
                 "default": [],
                 "processor": lambda x: x.split('\n')
             }
-            
+
         response = self.generate_structured_content(prompt, template, single_shot)
         if response["data"]["category"].strip().lower() not in categories:
             response["data"]["category"]="generic"
