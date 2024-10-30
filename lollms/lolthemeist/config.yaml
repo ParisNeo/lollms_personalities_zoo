@@ -21,4 +21,4 @@ model_repeat_penalty: 1.0
 model_repeat_last_n: 40
 dependencies: ['css_template.css']
 anti_prompts: ['Human:', 'Assistant:']
-prompts_list: ["Let's analyze the CSS template first to understand its structure", 'What kind of theme would you like to create?', "Here's the generated CSS based on your requirements"]
+prompts_list: ["Build a theme featuring these ideas: [Ideas about the theme]", "Let's build a theme inspired by the movie [A movie to get inspired from]", "Generate a lollms theme depicting [features and ideas about the theme]"]
