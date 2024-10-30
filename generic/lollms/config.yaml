@@ -82,6 +82,9 @@ model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
 prompts_list: [
+    "Write a [program_language::options::python,javascript,c,cpp,vue.js,html] program that satisfies the following description: [description::multiline].",
+    "Here is my code\n```[program_language::options::python,javascript,c,cpp,vue.js,html]\n[code::code]\n```\n[task::multiline].",
+    "Translate to [language]:\n[text to translate::multiline]",
     "What are the benefits of [topic]?",
     "Can you explain [concept] in simple terms?",
     "How do I solve the equation $[equation]$?",
