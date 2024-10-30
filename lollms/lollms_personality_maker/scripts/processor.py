@@ -570,7 +570,7 @@ class Processor(APScript):
         }
         if self.personality_config.generate_prompt_examples:
             template["prompts_list"]={
-                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to full placed between []. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
+                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multilines, code)] You can use as many placeholders as needed. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
                 "default": [],
                 "processor": lambda x: x.split('\n')
             }

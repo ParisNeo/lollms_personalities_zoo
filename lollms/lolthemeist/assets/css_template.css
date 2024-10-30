@@ -88,7 +88,7 @@ textarea, input, select {
 }
 
 .message {
-  @apply relative w-full rounded-lg border border-blue-300 dark:border-blue-600 flex flex-col flex-grow flex-wrap overflow-visible p-5 pb-3 text-lg;
+  @apply relative w-full m-2 shadow-lg rounded-lg border border-blue-300 dark:border-blue-600 flex flex-col flex-grow flex-wrap overflow-visible p-5 pb-3 text-lg;
   @apply bg-blue-100 text-blue-900 dark:bg-gradient-to-br dark:from-blue-900 dark:to-blue-800 dark:text-blue-100; /* Added gradient for dark mode */
 }
 
@@ -326,4 +326,15 @@ button:hover {
 
 .subcard-footer-button {
   @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
+}
+
+.interesting-facts{
+  @apply mt-6 mb-6 p-4 bg-white/80 dark:bg-gray-800/80 rounded-lg shadow-lg transform hover:scale-105 
+}
+
+.animated-progressbar-bg{
+  @apply w-full h-24 relative overflow-hidden bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-800 dark:to-purple-800 rounded-full shadow-lg
+}
+.animated-progressbar-fg{
+  @apply absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 dark:from-blue-600 dark:to-purple-600 transition-all duration-300
 }
