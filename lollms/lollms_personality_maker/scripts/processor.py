@@ -285,7 +285,7 @@ class Processor(APScript):
         return str_data
 
 
-    def build_icon(self, discussion_messages, name, output_text="", client:Client = None):
+    def build_icon(self, discussion_messages, name, ui_code="", client:Client = None):
         self.prepare()
         # ----------------------------------------------------------------
         
@@ -320,7 +320,7 @@ class Processor(APScript):
                 f"{examples}"
             ],5
         )
-        sd_prompt = self.generate_text(crafted_prompt).strip().split("\n")[0]
+        sd_prompt = self.generate_text(crafted_prompt, callback=self.sink).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
         self.add_chunk_to_message_content("")
@@ -329,10 +329,8 @@ class Processor(APScript):
         # ----------------------------------------------------------------
 
         sd_negative_prompt = self.config.default_negative_prompt
-        output_text+=self.build_a_document_block('icon prompt',"",sd_prompt)
-        self.set_message_content(output_text)
-        output_text+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
-        self.set_message_content(output_text)
+        ui_code+=self.build_a_document_block('icon prompt',"",sd_prompt)
+        ui_code+= self.build_a_document_block('icon sd_negative_prompt',"",sd_negative_prompt)
         self.add_chunk_to_message_content("")
         self.step_start("Painting Icon")
         try:
@@ -361,7 +359,7 @@ class Processor(APScript):
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
                     self.ui(self.make_selectable_photos(ui))
-                    self.set_message_content(output_text)
+                    self.ui(ui_code)
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
                     shutil.copy("assets/logo.png",self.assets_path)
@@ -480,8 +478,8 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_end("Painting Icon")
         
-        output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client,"press this text to access personality path")
-        self.set_message_content(output_text)
+        ui_code+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client,"press this text to access personality path")
+        self.ui(ui_code)
         full_page = header+'\n'+ui+"\n"+footer
         print(full_page)
         self.ui(ui)
@@ -609,7 +607,6 @@ class Processor(APScript):
 
 
         self.word_callback = callback
-        output_text = ""
         self.callback = callback
 
         # First we create the yaml file
@@ -621,8 +618,8 @@ class Processor(APScript):
         yaml_data = personality_infos["formatted_string"]
 
 
-
-        self.ui(self.generate_html_from_dict(infos))
+        ui_data = self.generate_html_from_dict(infos)
+        self.ui(ui_data)
         name = infos["name"]
         self.step_end("Building the yaml file")
         self.step_start("Preparing paths")
@@ -643,7 +640,7 @@ class Processor(APScript):
         if self.personality_config.generate_icon:
             self.step_start("Building icon")
             try:
-                self.build_icon(previous_discussion_text, name, output_text, client)
+                self.build_icon(previous_discussion_text, name, ui_data, client)
             except Exception as ex:
                 trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")
@@ -744,6 +741,6 @@ class Processor(APScript):
             self.step_end("Creating a voice for the AI")
         
 
-        return output_text
+        return ""
 
 

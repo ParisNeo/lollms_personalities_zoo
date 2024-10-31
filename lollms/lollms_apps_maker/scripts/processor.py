@@ -439,7 +439,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 
                     # Stage the current version of index.html
                     repo.index.add([os.path.relpath(index_file_path, app_path)])
-                    repo.index.commit("Backup before update")
+                    repo.index.commit(f"Backup before update.")
                 except Exception as ex:
                     trace_exception(ex)
             self.step_end("Building index.html")
@@ -1195,6 +1195,10 @@ The code contains description.yaml that describes the application, the author, t
                     with open(Path(metadata["app_path"])/"index.html","w", encoding="utf8") as f:
                         f.write(code)
                     out +=f"\n<p style='color:green'>Front end coding done successfully.</p>"
+                    repo = git.Repo(metadata["app_path"])
+                                    
+                    repo.index.commit(f"Backup before update {self.personality.model.model_name}")
+
                     self.set_message_content_invisible_to_ai(out)
                 else:
                     out +=f"\n<p style='color:red'>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
