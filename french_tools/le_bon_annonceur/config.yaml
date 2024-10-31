@@ -16,4 +16,11 @@ model_repeat_penalty: 1.0
 model_repeat_last_n: 40
 dependencies: []
 anti_prompts: []
-prompts_list: ['1. "Crée une annonce pour un ordinateur portable de marque Dell avec un processeur Intel i7, 8 Go de RAM et un disque dur de 500 Go."', '', '2. "Rédige une annonce pour une voiture de collection Peugeot 205 GTI de 1987 avec 50 000 km au compteur."', '', '3. "Écris une annonce pour un appartement de 3 pièces situé dans le quartier de la Bastille à Paris."', '', '4. "Crée une annonce pour un canapé en cuir marron avec des coussins supplémentaires."', '', '5. "Rédige une annonce pour un vélo de route de marque Specialized, taille M, avec des composants Shimano."']
+prompts_list: [
+    "@<Création d'annonce générique>@Crée une annonce à partir de ces éléments: [informations::multiline]",
+    "@<Annonce appartement>@Écris une annonce pour un appartement de [nombre de pièces::int] pièces situé dans le quartier [nom du quartier].",
+    "@<Annonce voiture>@Rédige une annonce pour une voiture [type de voiture] avec [kilométrage::int] km au compteur.",
+    "@<Annonce meuble>@Crée une annonce pour [description du meuble::multilines].",
+    "@<Annonce PC>@Crée une annonce pour un ordinateur [type::options::portable,fixe] de marque [marque] avec un processeur [processeur], [taille mémoire en Go::int] Go de RAM et un disque dur de [taille disque dure en go:int] Go.",
+    "@<Annonce vélo>@Rédige une annonce pour un vélo de route de marque [marque], taille [taille]. [détials supplémentaires::multiline]"
+    ]
