@@ -320,7 +320,7 @@ class Processor(APScript):
                 f"{examples}"
             ],5
         )
-        sd_prompt = self.generate_text(crafted_prompt, callback=self.sink).strip().split("\n")[0]
+        sd_prompt = self.generate_text(crafted_prompt, callback=self.sink, accept_all_if_no_code_tags_is_present=True).strip().split("\n")[0]
         self.step_end("Imagining Icon")
         ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
         self.add_chunk_to_message_content("")
