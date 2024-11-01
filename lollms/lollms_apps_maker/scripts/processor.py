@@ -1197,7 +1197,10 @@ The code contains description.yaml that describes the application, the author, t
                     with open(index_file_path,"w", encoding="utf8") as f:
                         f.write(code)
                     out +=f"\n<p style='color:green'>Front end coding done successfully.</p>"
-                    repo = git.Repo(metadata["app_path"])
+                    if not (Path(app_path) / ".git").exists():
+                        repo = git.Repo.init(app_path)
+                    else:
+                        repo = git.Repo(app_path)
                     repo.index.add([os.path.relpath(index_file_path, app_path)])
                     repo.index.commit(f"Updated index.html by {self.personality.model.model_name}, in answer to prompt: {prompt}")
 
