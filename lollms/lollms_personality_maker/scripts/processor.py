@@ -358,7 +358,7 @@ class Processor(APScript):
                     escaped_url =  discussion_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
-                    self.ui(self.make_selectable_photos(ui))
+                    ui_code += self.make_selectable_photos(ui)
                     self.ui(ui_code)
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
@@ -568,10 +568,12 @@ class Processor(APScript):
         }
         if self.personality_config.generate_prompt_examples:
             template["prompts_list"]={
-                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multilines, code)] You can use as many placeholders as needed. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
+                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
                 "default": [],
                 "processor": lambda x: x.split('\n')
             }
+        if self.config.debug and not self.personality.processor:
+            ASCIIColors.highlight(prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
         response = self.generate_structured_content(prompt, template, single_shot)
         if response["data"]["category"].strip().lower() not in categories:
