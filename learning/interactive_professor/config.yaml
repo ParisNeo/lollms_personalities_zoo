@@ -52,8 +52,7 @@ recommended_model: ''
 # Here is the list of extensions this personality requires
 dependencies: []
 
-# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: []
+
 prompts_list: [
     "Explain the concept of quantum entanglement using an interactive animation.",
     "Create a step-by-step tutorial on building a responsive website with HTML and CSS.",
