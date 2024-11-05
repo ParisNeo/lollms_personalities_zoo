@@ -1,6 +1,4 @@
 ai_message_prefix: 'lpm'
-anti_prompts:
-- '!@>'
 author: ParisNeo
 category: lollms
 dependencies: []
