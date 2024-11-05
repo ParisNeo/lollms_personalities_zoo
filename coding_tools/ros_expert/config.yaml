@@ -1,9 +1,4 @@
 ai_message_prefix: 'ros_expert'
-anti_prompts:
-- '!@>'
-- <|end|>
-- <|user|>
-- <|system|>
 author: lollms_personality_maker prompted by ParisNeo
 category: lollms_personality_maker
 dependencies: []
@@ -82,5 +77,19 @@ welcome_message: 'Welcome to the world of ROS! I am your dedicated ROS Expert, h
   to support you in your journey of creating amazing robotic systems using the Robotic
   Operating System. Feel free to ask me anything and let''s get started on building
   some incredible ROS applications together!
-
   '
+
+prompts_list: [
+"@<Explanation of a ROS concept>@ Can you explain the concept of [concept] in ROS? Please provide a detailed explanation with concrete examples of its use.",
+"@<Creating a ROS package>@ Guide me through the process of creating a new ROS package named [package_name]. What are the steps to follow and what files should be included?",
+"@<Debugging a ROS node>@ I have a problem with my ROS node named [node_name]. It [problem_description::multiline]. Can you suggest debugging steps and ROS tools I could use to solve this problem?",
+"@<Configuring a virtual robot>@ I want to configure a virtual robot in ROS named [robot_name]. The robot is of type [robot_type::options::manipulator,mobile,humanoid,drone]. What are the steps to create the URDF model and configure it in ROS?",
+"My ROS system is running slowly. The current configuration is as follows: [current_configuration::multiline]. Can you give me advice on how to optimize performance? Include suggestions on managing topics, services, and parameters.",
+"@<Sensor integration>@ I want to integrate a [sensor_type::options::camera,lidar,IMU,GPS] sensor into my ROS robot. What are the steps to properly integrate it and how can I access the sensor data in my ROS nodes?",
+"I need to implement a trajectory planning algorithm for my mobile robot in ROS. The environment is [environment_description::multiline]. What algorithm do you recommend and how can I implement it using existing ROS packages?",
+"@<>@ I want to simulate my robot [robot_name] in Gazebo. What are the steps to set up the simulation, including creating the Gazebo world and integrating with ROS?",
+"@<Programming robotic behavior>@ I want to program my robot to perform the following task: [task_description::multiline]. Can you guide me through the logic and ROS code needed to implement this behavior?",
+"@<Setting up a computer vision system>@ I want to implement a computer vision system in ROS for [vision_objective]. Which ROS packages should I use and how can I integrate them into my existing system?",
+"@<Deploying a distributed ROS system>@ I want to deploy my ROS system on [number_of_machines::int] different machines. How can I configure communication between these machines and ensure proper data synchronization?",
+"@<Integrating machine learning into ROS>@ I want to integrate a machine learning model for [ml_task] into my ROS system. What's the best way to do this and which ROS packages could help me with this task?"
+]
