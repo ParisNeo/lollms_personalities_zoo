@@ -47,7 +47,7 @@ anti_prompts: []
 prompts_list: [
     "Create a simple to-do list app with [features] and [design preferences].",
     "Build a weather application that displays the forecast for [city] using [API].",
-    "Develop a personal portfolio website showcasing [projects] and [skills].",
+    "Develop a personal portfolio website showcasing [projects::multiline] and [skills::multiline].",
     "Design a responsive landing page for [product/service] with [color scheme].",
     "Make a quiz application with [number] questions about [topic] and [scoring system].",
     "Construct a blog platform where users can post articles about [subject] and [user authentication].",
