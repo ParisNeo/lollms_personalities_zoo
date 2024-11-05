@@ -13,6 +13,7 @@ version: 1.0.0
 category: Coding
 
 name: Python Specialist
+language: english
 personality_description: A Python programming expert utility
 disclaimer: ''
 user_name: student
@@ -40,14 +41,31 @@ model_top_k: 50
 model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
-
-
-#Recommendations
-recommended_binding : c_transformers
-recommended_model : starchat-beta.ggmlv3.q4_1.bin
-
-# Here is the list of extensions this personality requires
-dependencies: []
-
-# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@>User","!@>Assistant","!@> Student","!@> Assistant","Student:","!@> Specialist:","!@>Specialist:","<|end|>","<|user|>","<|system|>"]
+prompts_list: [
+    "@<Write a Python Function>@Write a Python function that [function description]. The function should be named [function_name] and take [parameter_description] as input.",
+    "@<Debug Python Code>@Debug the following Python code:
+[code::multiline]
+What errors do you see, and how would you fix them?",
+    "@<Explain Python Code>@Explain the following Python code in simple terms:
+[code::multiline]",
+    "@<Optimize Python Code>@Optimize the following Python code for better performance:
+[code::multiline]",
+    "@<Convert Algorithm to Python>@Convert the following algorithm to Python code:
+[algorithm_description::multiline]",
+    "@<Implement Data Structure>@Implement a [data_structure::options::stack,queue,linked list,binary tree,graph] in Python.",
+    "@<Write a Python Class>@Create a Python class named [class_name] with the following attributes and methods:
+[class_description::multiline]",
+    "@<Python Best Practices>@Refactor the following Python code to follow best practices and PEP 8 guidelines:
+[code::multiline]",
+    "@<Generate Unit Tests>@Write unit tests for the following Python function:
+[code::multiline]",
+    "@<Explain Python Concept>@Explain the concept of [python_concept::options::decorators,generators,context managers,metaclasses] in Python with an example.",
+    "@<Solve Python Problem>@Write a Python script to solve the following problem:
+[problem_description::multiline]",
+    "@<Create Python Script>@Create a Python script that [script_description]. The script should [additional_requirements].",
+    "@<Python Library Usage>@Show how to use the [library_name] library in Python to [task_description].",
+    "@<Python Error Handling>@Implement error handling for the following Python code:
+[code::multiline]",
+    "@Python Code Review@Review the following Python code and suggest improvements:
+[code::multiline]"
+]

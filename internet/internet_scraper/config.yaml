@@ -26,7 +26,7 @@ user_message_prefix: 'User:
 user_name: user
 version: 2.0.0
 welcome_message: 'Welcome to internet scraper. I can search information for you on the internet then summarize the search results. Unlike other personas, I''ll be reading the whole documents with no concession.'
-anti_prompts: ["!@>"]
+
 
 help:  |
   Supported functions:

@@ -44,7 +44,7 @@ recommended_model: ''
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ['!@>']
+
 
 
 # List of commands
@@ -54,7 +54,7 @@ commands:
     icon: 'feather:file'
     help: Starts reading the sent files and trying to find and give vulenerability fixes for it 
 prompts_list: [
-    "Analyze the vulnerability in my code: [insert_code_here]",
+    "@<Vulenerability analysis>@Analyze the vulnerability in my code: [insert_code_here::multiline]",
     "Suggest security improvements for my website: [insert_website_url_here]",
     "What are the latest cyber security threats I should be aware of?",
     "How can I secure my personal data online?",

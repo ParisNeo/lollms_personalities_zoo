@@ -59,8 +59,6 @@ ai_message_prefix: "!@> Assistant:
 # Here is the list of extensions this personality requires
 dependencies: []
 
-# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@>User","!@>Assistant","!@> User","!@> Assistant","User:","!@> lollms:","!@>lollms:"]
 
 # Some personalities need a disclaimer to warn the user of potential harm that can be caused by the AI
 # for example, for medical assistants, it is important to tell the user to be careful and not use medication

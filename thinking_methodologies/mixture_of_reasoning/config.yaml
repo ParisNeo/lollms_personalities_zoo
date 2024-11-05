@@ -59,7 +59,7 @@ recommended_model: ''
 dependencies: []
 
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@>"]
+
 prompts_list: [
     "What are some lesser-known benefits of meditation for mental well-being?",
     "Can you provide an analogy to explain the concept of artificial intelligence in simple terms?",

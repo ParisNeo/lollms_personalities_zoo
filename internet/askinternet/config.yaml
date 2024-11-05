@@ -26,7 +26,6 @@ user_message_prefix: 'User'
 user_name: user
 version: 1.0.0
 welcome_message: 'Hi I am smart internet search tool. Issue your seach query and I''ll search the net for outut then I''ll summarize it.'
-anti_prompts: ["!@> Human", "!@> AskInternet", "!@> Assistant", "!@> Search engine:"]
 
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower more deterministic

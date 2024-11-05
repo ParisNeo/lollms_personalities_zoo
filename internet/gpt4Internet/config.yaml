@@ -30,7 +30,6 @@ user_name: user
 version: 1.0.0
 welcome_message: 'Hi I am smart internet search tool. Please ask me anything and I will use the
   internet to answer you.'
-anti_prompts: ["!@> Human", "!@> gpt4Internet", "!@> Assistant", "!@> Search engine:","search summarizer:","search results:","\n\n\n\n\n\n"]
 
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower more deterministic

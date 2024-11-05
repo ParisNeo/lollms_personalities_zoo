@@ -53,5 +53,3 @@ recommended_model:
 # Here is the list of extensions this personality requires
 dependencies: []
 
-# A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
-anti_prompts: ["!@> User", "!@> Coach", "!@>User", "!@>Coach", "User:", "!@> Specialist:", "!@>Specialist:"]

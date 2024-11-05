@@ -26,7 +26,6 @@ user_message_prefix: 'User:
 user_name: user
 version: 1.0.0
 welcome_message: 'Welcome to text2bullets. This AI can read long docs and simplifies it to bulletpoints. Give it your documents and it will learn to answer you based on them.'
-anti_prompts: ["!@> User", "!@> text2bulletpoints", "!@> Assistant", "!@> Question","!@> Answer","","!@>Instruction:", "!@> Documentation:"]
 
 help:  |
   Supported functions:
