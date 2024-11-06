@@ -165,7 +165,7 @@ Answer in a markdown format without any extra comments following the instruction
                 self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}- {prompt['title']}")
                 analysis = self.fast_gen(prompt_prefix+chunk_prompt+prompt["content"]+self.ai_full_header)
                 try:
-                    self.output_file.write("### "+ prompt['title'] + "\n" + prompt["content"]+"\n"+analysis)
+                    self.output_file.write("### "+ prompt['title'] + "\n" + prompt["content"]+"\n"+analysis+"\n")
                     self.output_file.flush()
 
                     if self.personality_config.save_each_n_chunks>0 and i%self.personality_config.save_each_n_chunks==0:
@@ -176,6 +176,8 @@ Answer in a markdown format without any extra comments following the instruction
                     ASCIIColors.error(ex)
                 self.step_end(f"Processing {file.name} chunk {i+1}/{n_chunks}")
                 self.set_message_content(self.output)
+            self.output_file.write("\n\n")
+            self.output_file.flush()
 
         self.step_end(f"Processing {file.name}")
 
