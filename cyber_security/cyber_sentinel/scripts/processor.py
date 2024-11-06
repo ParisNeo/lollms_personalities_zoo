@@ -4,9 +4,10 @@ from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
 
+
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
 from lollmsvectordb.text_chunker import TextChunker
-from lollmsvectordb.lollms_tokenizers.tiktoken_tokenizer import TikTokenTokenizer
+from lollmsvectordb.database_elements.document import Document
 import subprocess
 from pathlib import Path
 import json
@@ -93,14 +94,18 @@ class Processor(APScript, FileSystemEventHandler):
     def process_file(self, file):
                 self.step_start(f"Processing {file.name}")
                 data = TextDocumentsLoader.read_file(file)
-                dd = TextChunker()
-                TikTokenTokenizer()
-                chunks = dd.chunk_text(
-                                            data,
-                                            TikTokenTokenizer(),
-                                            self.personality_config.chunk_size,
-                                            self.personality_config.chunk_overlap,
-                                    )
+                dd = TextChunker(
+                    self.personality_config.chunk_size,
+                    self.personality_config.chunk_overlap,
+                    model= self.personality.app.model                   
+                )
+                import hashlib
+                hasher = hashlib.md5()
+                hasher.update(data.encode("utf8"))
+                         
+                chunks = dd.get_text_chunks(
+                            data, Document(hasher.hexdigest(), str(file), str(file) )
+                            )
                 n_chunks = len(chunks)
                 for i, chunk in enumerate(chunks):
                     self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}")
@@ -140,9 +145,6 @@ Here is my report as a valid json:
 ["""
                     )
                     try:
-                        str_json = str_json.replace('\n', '').replace('\r', '').strip()
-                        if not str_json.endswith(']'):
-                              str_json +="]"
                         json_output = json.loads(str_json)
                         for entry in json_output:
                             breach_timestamp = entry.get('breach_timestamp','')
@@ -202,10 +204,10 @@ Here is my report as a valid json:
                             self.personality_config.file_types
                         )
 
-    def stop_logs_monitoring(self, prompt="", full_context="", client=None):
+    def stop_logs_monitoring(self,  command="", full_context="", callback=None, context_state="", client=None):
         self.observer.stop()
 
-    def start_logs_monitoring(self, prompt="", full_context="", client=None):
+    def start_logs_monitoring(self,  command="", full_context="", callback=None, context_state="", client=None):
         if self.personality_config.output_file_path=="":
             self.personality.info("Please setup output file path first")
             return
