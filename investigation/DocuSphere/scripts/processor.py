@@ -160,6 +160,7 @@ Act as DocuSphere, a comprehensive document analysis AI that provides insightful
 {self.system_custom_header("text chunk")}
 {chunk.text}
 Answer in a markdown format without any extra comments following the instruction.
+{self.system_custom_header("instructions")}
 """
             for prompt in prompts:
                 self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}- {prompt['title']}")

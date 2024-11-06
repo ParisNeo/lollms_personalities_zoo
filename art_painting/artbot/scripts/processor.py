@@ -474,7 +474,9 @@ class Processor(APScript):
                 ])
 
                 self.print_prompt("Make up a title", prompt)
-                sd_title = self.generate_text(prompt, max_size= self.personality_config.max_generation_prompt_size).strip().replace("</s>","").replace("<s>","")
+                sd_title = self.generate_text(prompt, max_size= self.personality_config.max_generation_prompt_size)
+                if sd_title:
+                    sd_title = sd_title.strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
                 metadata_infos += self.add_collapsible_entry(f"{sd_title}","",open_by_default=False)
                 self.set_message_content(f"{metadata_infos}")
