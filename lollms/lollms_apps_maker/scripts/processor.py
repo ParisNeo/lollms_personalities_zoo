@@ -436,7 +436,6 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                         repo = git.Repo.init(app_path)
                     else:
                         repo = git.Repo(app_path)
-
                     # Stage the current version of index.html
                     repo.index.add([os.path.relpath(index_file_path, app_path)])
                     repo.index.commit(f"Backup before update.")
@@ -561,17 +560,20 @@ Infos: The client will be running on an server that is not the same as the one w
         # Initialize Git repository if not already initialized
         self.step_start("Backing up previous version")
         app_path = Path(metadata["app_path"])
-        if not (app_path / ".git").exists():
-            repo = git.Repo.init(app_path)
-        else:
-            repo = git.Repo(app_path)
-
-        # Stage and commit the icon
         try:
-            repo.index.add([os.path.relpath(index_file_path, app_path)])
-            repo.index.commit("Backing up index.html")        
-        except Exception:
-            pass        
+            if not (app_path / ".git").exists():
+                repo = git.Repo.init(app_path)
+            else:
+                repo = git.Repo(app_path)
+
+            # Stage and commit the icon
+            try:
+                repo.index.add([os.path.relpath(index_file_path, app_path)])
+                repo.index.commit("Backing up index.html")        
+            except Exception:
+                pass        
+        except Exception as ex:
+            self.warning(str(ex))
         self.step_end("Backing up previous version")
 
 
