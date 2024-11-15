@@ -882,13 +882,13 @@ Infos: The client will be running on an server that is not the same as the one w
         # Initialize Git repository if not already initialized
         self.step_start("Backing up previous version")
         app_path = Path(metadata["app_path"])
-        if not (app_path / ".git").exists():
-            repo = git.Repo.init(app_path)
-        else:
-            repo = git.Repo(app_path)
 
         # Stage and commit the icon
         try:
+            if not (app_path / ".git").exists():
+                repo = git.Repo.init(app_path)
+            else:
+                repo = git.Repo(app_path)
             repo.index.add([os.path.relpath(doc_file_path, app_path)])
             repo.index.commit("Backing up README.md")        
         except Exception:
