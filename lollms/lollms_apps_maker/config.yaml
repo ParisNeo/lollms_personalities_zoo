@@ -46,3 +46,4 @@ dependencies: []
 # A list of texts to be used to detect that the model is hallucinating and stop the generation if any one of these is output by the model
 anti_prompts: []
 prompts_list: ['Create a simple web app with an index.html, description.yaml, and icon.png.', 'Generate a description.yaml file for a new web app.', 'Design an icon.png for a web app focused on productivity.', 'List best practices for structuring an index.html file.', 'Provide a sample code snippet for a responsive web app layout.', 'Suggest features for a web app that helps users track their goals.', 'Explain how to integrate CSS styles into the index.html file.', 'Outline the steps to deploy a web app within the lollms system.', 'Create a user-friendly interface design for a web app.', 'What are the essential elements to include in a description.yaml file?']
+help: this personality can make lollms applications out of a simple prompt
