@@ -592,17 +592,18 @@ Infos: The client will be running on an server that is not the same as the one w
                     "The user gives the code and you should rewrite all the code with modifications suggested by the user.",
                     "Your sole objective is to satisfy the user",
                     "Always write the output in a html markdown tag",
-                    self.system_custom_header("context"),
-                    prompt,
                     self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "index.html",
                     "```html",
                     original_content,
                     "```",
+                    self.system_custom_header("context"),
+                    prompt,
                     self.system_custom_header("Very important"),
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
-                    "Do not add explanations just do the job.",
+                    "Before writing the updates list the upgrades you are going to do.",
+                    "The written code must be complete without simplifications or todos.",
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
@@ -760,7 +761,8 @@ Infos: The client will be running on an server that is not the same as the one w
                     "```",
                     self.system_custom_header("Very important"),
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
-                    "Do not add explanations just do the job.",
+                    "Before writing the updates list the upgrades you are going to do.",
+                    "The written code must be complete without simplifications or todos.",
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
