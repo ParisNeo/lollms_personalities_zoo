@@ -97,13 +97,11 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
         Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
             context_details (dict): A dictionary containing the following context details for code generation:
                 - conditionning (str): The conditioning information.
                 - documentation (str): The documentation information.
@@ -115,13 +113,14 @@ class Processor(APScript):
                 - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
             client_id: The client ID for code generation.
             callback (function, optional): The callback function for code generation.
 
         Returns:
             None
         """
+        prompt = context_details["prompt"]
+        previous_discussion_text = context_details["discussion_messages"]
 
         self.callback = callback
         ASCIIColors.info("Generating")
@@ -154,7 +153,8 @@ class Processor(APScript):
                     collective[selection].set_message_content(f"At your service my queen.\n")
                     collective[selection].processor.text_files = self.personality.text_files
                     collective[selection].processor.image_files = self.personality.image_files
-                    collective[selection].processor.run_workflow(reformulated_request, previous_discussion_text, callback, context_details, client)
+                    context_details["prompt"] = reformulated_request
+                    collective[selection].processor.run_workflow(context_details, client, callback)
                 else:
                     if collective[selection].name!="Queen of the Borg":
                         reformulated_request=self.fast_gen(q_prompt, show_progress=True)
