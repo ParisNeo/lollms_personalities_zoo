@@ -599,7 +599,8 @@ Infos: The client will be running on an server that is not the same as the one w
                     "Before writing the updates list the upgrades you are going to do.",
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
                     "Always write the output in a html markdown tag",
-                    "Avoid using placeholders and instead write the fill code.",
+                    "Avoid using placeholders and instead write the whole code.",
+                    "The code will be used to replace the index.html file, so it should be complete.",
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
