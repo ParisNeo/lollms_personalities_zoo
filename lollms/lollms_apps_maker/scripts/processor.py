@@ -322,7 +322,7 @@ disclaimer: If needed, write a disclaimer. else null
             if self.config.debug:
                 ASCIIColors.yellow("--- Description file ---")
                 ASCIIColors.yellow(infos)
-            app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_")
+            app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_").replace("'","_")
             app_path.mkdir(parents=True, exist_ok=True)
             metadata["app_path"]=str(app_path)
             self.personality_config.project_path = str(app_path)
@@ -379,7 +379,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             if self.config.debug:
                 ASCIIColors.yellow("--- Description file ---")
                 ASCIIColors.yellow(infos)
-            app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_")
+            app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_").replace("'","_")
             app_path.mkdir(parents=True, exist_ok=True)
             metadata["app_path"]=str(app_path)
             metadata["infos"]=infos
