@@ -1025,14 +1025,3 @@ Error:
 
         self.step_start("Project execution completed successfully.")
         
-if __name__ == "__main__":
-    # This block is for testing the Processor class independently
-    class DummyPersonality:
-        def __init__(self):
-            self.config = type('Config', (), {'work_folder': 'test_work_folder'})()
-
-    dummy_personality = DummyPersonality()
-    processor = Processor(dummy_personality)
-    
-    # Test run_workflow
-    processor.run_workflow("Create a simple Python script that prints 'Hello, World!' and save it as hello.py")

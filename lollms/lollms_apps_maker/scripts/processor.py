@@ -392,7 +392,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.step_end("Building description.yaml", False)
             return None
 
-    def buildIndex(self, context_details, plan, infos, metadata, client:Client, backend_code=None):
+    def buildIndex(self, context_details, infos, metadata, client:Client, backend_code=None):
         self.step_start("Building index.html")
         lollms_infos = self.get_lollms_infos()
 
@@ -406,23 +406,22 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 "Your sole objective is to build the index.yaml file that does what the user is asking for.",
                 "Do not ask the user for any extra information and only respond with the html content in a html markdown tag.",
                 "Do not leave place holders. The code must be complete and works out of the box.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                self.system_custom_header("description"),
                 "\n".join([
                 "```yaml",
                 str(infos),
                 "```"
-                ]) if plan is None else "\n".join([
-                "```yaml",
-                str(infos),
-                "```\n"
-                ])+"Plan:\n"+plan,                        
+                ]),
+                "Start by building a plan."  if self.personality_config.create_a_plan is None else "",                        
+                lollms_infos,
+                self.system_custom_header("context"),
+                context_details["discussion_messages"],                     
                 lollms_infos,
                 "Backend code:\n"+backend_code if backend_code else "",
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
-        code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+        code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True)
         if self.config.debug:
             ASCIIColors.yellow("--- Code file ---")
             ASCIIColors.yellow(code)
@@ -448,7 +447,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.set_message_content("The model you are using failed to build the index.html file. Change the prompt a bit and try again.")
             return None
 
-    def build_server(self, context_details, plan, infos, metadata, client: Client):
+    def build_server(self, context_details, infos, metadata, client: Client):
         self.step_start("Building server.py")
         lollms_infos = self.get_lollms_infos()
         lollms_infos += """
@@ -465,18 +464,16 @@ Infos: The client will be running on an server that is not the same as the one w
                 "Your sole objective is to build the server.py file that does what the user is asking for.",
                 "Do not ask the user for any extra information and only respond with the Python content in a Python markdown tag.",
                 "Do not leave placeholders. The code must be complete and work out of the box.",
-                self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                self.system_custom_header("description"),
                 "\n".join([
                 "```yaml",
                 str(infos),
                 "```"
-                ]) if plan is None else "\n".join([
-                "```yaml",
-                str(infos),
-                "```\n"
-                ])+"Plan:\n"+plan,                        
+                ]),
+                "Start by building a plan."  if self.personality_config.create_a_plan is None else "",                        
                 lollms_infos,
+                self.system_custom_header("context"),
+                context_details["discussion_messages"],
                 
                 self.system_custom_header("Lollms Apps Maker")
             ],
@@ -592,17 +589,18 @@ Infos: The client will be running on an server that is not the same as the one w
                     "The user gives the code and you should rewrite all the code with modifications suggested by the user.",
                     "Your sole objective is to satisfy the user",
                     "Always write the output in a html markdown tag",
-                    self.system_custom_header("context"),
-                    prompt,
                     self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "index.html",
                     "```html",
                     original_content,
                     "```",
+                    self.system_custom_header("context"),
+                    prompt,
                     self.system_custom_header("Very important"),
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
-                    "Do not add explanations just do the job.",
+                    "Before writing the updates list the upgrades you are going to do.",
+                    "The written code must be complete without simplifications or todos.",
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
@@ -760,7 +758,8 @@ Infos: The client will be running on an server that is not the same as the one w
                     "```",
                     self.system_custom_header("Very important"),
                     "It is mandatory to rewrite the whole code in a single code tag without any comments.",
-                    "Do not add explanations just do the job.",
+                    "Before writing the updates list the upgrades you are going to do.",
+                    "The written code must be complete without simplifications or todos.",
                     self.system_custom_header("Lollms Apps Maker")
                 ]
             )
@@ -1074,13 +1073,11 @@ Infos: The client will be running on an server that is not the same as the one w
         self.step_end("Initializing Git repository")
 
     
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
         Args:
-            full_prompt (str): The full prompt for code generation.
-            prompt (str): The prompt for code generation.
             context_details (dict): A dictionary containing the following context details for code generation:
                 - conditionning (str): The conditioning information.
                 - documentation (str): The documentation information.
@@ -1092,13 +1089,14 @@ Infos: The client will be running on an server that is not the same as the one w
                 - current_language (str): The force language information.
                 - fun_mode (str): The fun mode conditionning text
                 - ai_prefix (str): The AI prefix information.
-            n_predict (int): The number of predictions to generate.
             client_id: The client ID for code generation.
             callback (function, optional): The callback function for code generation.
 
         Returns:
             None
         """
+        prompt = context_details["prompt"]
+        previous_discussion_text = context_details["discussion_messages"]
         self.callback = callback
         # Load project
         metadata = client.discussion.get_metadata()
@@ -1158,28 +1156,11 @@ The code contains description.yaml that describes the application, the author, t
                 ])
                 self.set_message_content_invisible_to_ai(out)
                 # ----------------------------------------------------------------
-                if self.personality_config.create_a_plan:
-                    self.new_message("")
-                    out = "In my settings, you have activated planning, so let me build a plan for the application."
-                    self.set_message_content_invisible_to_ai(out)
-                    plan = self.buildPlan(context_details, metadata, client)
-                    if plan:
-                        with open(Path(metadata["app_path"])/"plan.md","w", encoding="utf8") as f:
-                            f.write(plan)
-                        out += f"\nThe plan is ready.\nHere is my plan:\n\n{plan}"
-                        self.set_message_content_invisible_to_ai(out)
-                    else:
-                        out += "\n<p style='color:red'>It looks like I failed to build the plan. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
-                        self.set_message_content_invisible_to_ai(out)
-                        return
-                else:
-                    plan = None
-                # ----------------------------------------------------------------
                 self.new_message("")
                 out ="Building the application. Please wait as this may take a little while."
                 self.set_message_content_invisible_to_ai(out)
                 if self.personality_config.build_a_backend:
-                    backend_code, json_infos = self.build_server(context_details, plan, infos, metadata, client)
+                    backend_code, json_infos = self.build_server(context_details, infos, metadata, client)
                     if backend_code:
                         with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
@@ -1192,7 +1173,7 @@ The code contains description.yaml that describes the application, the author, t
                 else:
                     backend_code = None
                     json_infos = None
-                code = self.buildIndex(context_details, plan, infos, metadata, client, json_infos)
+                code = self.buildIndex(context_details, infos, metadata, client, json_infos)
                 if code:
                     index_file_path = Path(metadata["app_path"])/"index.html"
                     app_path = metadata["app_path"]
