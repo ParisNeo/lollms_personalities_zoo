@@ -1157,7 +1157,7 @@ The code contains description.yaml that describes the application, the author, t
                 self.set_message_content_invisible_to_ai(out)
                 # ----------------------------------------------------------------
                 self.new_message("")
-                out ="Building the application. Please wait as this may take a little while."
+                out ="Building the application. Please wait as this may take a little while.\n"
                 self.set_message_content_invisible_to_ai(out)
                 if self.personality_config.build_a_backend:
                     backend_code, json_infos = self.build_server(context_details, infos, metadata, client)
