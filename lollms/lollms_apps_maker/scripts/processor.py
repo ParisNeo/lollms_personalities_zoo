@@ -581,29 +581,42 @@ Infos: The client will be running on an server that is not the same as the one w
 
 
         if self.personality_config.update_mode=="rewrite":
-            crafted_prompt = self.build_prompt(
-                [
-                    self.system_full_header,
-                    "You are Lollms Apps Maker best application maker ever.",
-                    "Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
-                    "The user gives the code and an instruction and you should rewrite all the code with modifications suggested by the user.",
-                    self.get_lollms_infos(),
-                    self.system_custom_header("Code"),
-                    "index.html",
-                    "```html",
-                    original_content,
-                    "```",
-                    self.system_custom_header("context"),
-                    prompt,
-                    self.system_custom_header("Very important"),
-                    "Before writing the updates list the upgrades you are going to do.",
-                    "It is mandatory to rewrite the whole code in a single code tag without any comments.",
-                    "Always write the output in a html markdown tag",
-                    "Avoid using placeholders and instead write the whole code.",
-                    "The code will be used to replace the index.html file, so it should be complete.",
-                    self.system_custom_header("Lollms Apps Maker")
-                ]
-            )
+            crafted_prompt = self.build_prompt([
+                self.system_full_header,
+                "You are Lollms Apps Maker best application maker ever.",
+                "Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
+                self.get_lollms_infos(),
+                self.system_custom_header("Code"),
+                "index.html",
+                "```html",
+                original_content,
+                "```",
+                self.system_custom_header("context"),
+                prompt,
+                self.system_custom_header("⚠️ CRITICAL INSTRUCTIONS - READ CAREFULLY ⚠️"),
+                "FORBIDDEN RESPONSES - These will be rejected:",
+                '❌ Using "<!-- Rest of the HTML remains the same -->"',
+                '❌ Using "<!-- Rest of the code stays unchanged -->"',
+                "❌ Including any placeholder comments",
+                "❌ Splitting code into multiple blocks",
+                "❌ Providing partial code",
+                "",
+                "REQUIRED FORMAT:",
+                "1. List planned changes",
+                "2. Provide complete code in ONE BLOCK:",
+                "```html",
+                "<!DOCTYPE html>",
+                "<html>",
+                "[FULL CODE HERE - EVERY SINGLE LINE]",
+                "</html>",
+                "```",
+                "",
+                "⚠️ WARNING: If you use any placeholders or 'remains the same' comments, your response will be invalid and rejected.",
+                "YOU MUST REWRITE THE ENTIRE CODE, EVEN IF ONLY ONE LINE CHANGES.",
+                self.system_custom_header("Lollms Apps Maker")
+            ])
+
+
             code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
             if self.config.debug:
                 ASCIIColors.yellow("--- Code file ---")

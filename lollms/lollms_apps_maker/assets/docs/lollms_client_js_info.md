@@ -106,6 +106,7 @@ if (code!=null){
   // Use the code
 }
 ```
+This is useful to recover structured data like json. Don't forget to give the format of the expected json in the prompt.
 
 2. **Generate a list of Codes from a Prompt:**
 When you need to generate a list of codes, please use this function that allows a better generation of multiple codes, json, yaml etc...
