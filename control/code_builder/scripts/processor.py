@@ -160,8 +160,11 @@ class Processor(APScript):
         )
         self.set_message_content(help_text)
 
-    def run_workflow(self, prompt: str, previous_discussion_text: str = "", callback: Callable = None,
-                     context_details: Dict[str, Any] = None, client:Client = None):
+    def run_workflow(self, context_details: Dict[str, Any] = None, client:Client = None, callback: Callable = None):
+
+        prompt = context_details["prompt"]
+        previous_discussion_text = context_details["discussion_messages"]
+        
         self.callback = callback
         self.step_start("Starting project build workflow.")
 
@@ -187,11 +190,13 @@ class Processor(APScript):
             "The user is asking to do a modification or update to the project",
             "The user is asking to view information about the project",
         ],prompt)
+        
         if output_type==0: 
             # Parse the instruction
             self.project_details = self.plan_project(prompt)
             with open(self.project_details_file, "w") as f:
                 json.dump(self.project_details, f, indent=2)
+                
             self.terminal = CommandExecutor(self.work_folder)
             if not self.project_details:
                 self.step_start("Failed to parse the instruction. Please try again with a clearer instruction.")
@@ -251,12 +256,23 @@ class Processor(APScript):
             "Json structure:\n"
             "```json\n"
             "{\n"
+            '"user_prompt":"Rewrite the user request here use multilines",\n'
             '"project_title":"A string representing the project title",\n'
             '"project_type":"A string representing the project type",\n'
             f'"project_author":"{self.config.user_name if self.config.user_name and self.config.user_name!="user" else "Lollms Project Builder"}",\n'
             '"project_description":"A string representing the project type",\n'
             f'"platform":"{sys.platform}",\n'
-            f'"structure":"a simple structure of the project",\n'
+            '"structure":[,\n'
+            '   "folder1":[\n'
+            '       "file1":"description",\n'
+            '       "file2":"description",\n'
+            '       "subfolder1":[\n'
+            '       ...\n'
+            '       ],\n'
+            '       "file1":"description",\n'
+            '   ...\n'
+            '   ]'
+            '],\n'
             '"tasks":"[ A list of tasks to do in order to fulfill the user request\n'
             "   {\n"
             '       "task_type":"execute_command", This executes a console command\n'
@@ -265,7 +281,7 @@ class Processor(APScript):
             "   {\n"
             '       "task_type":"create_file", This creates a file at a specific path\n'
             '       "file_name":"relative path to the file",\n'
-            '       "content_description": " Single line string. Write a description of the content and its structure in textual description. For code files, do not write any code, just the full signature of contructors, methods and variables with typing if needed. The objective is for this to be sufficient to build other files that use this file as import. So it is important to be specific",\n'
+            '       "content_description": "Single line string. Write a description of the content and its structure in textual description. For code files, do not write any code, just the full signature of contructors, methods and variables with typing if needed. The objective is for this to be sufficient to build other files that use this file as import. So it is important to be specific",\n'
             "   },\n"
             "   {\n"
             '       "task_type":"run_application", This runs an application and returns back the output to check\n'
@@ -284,18 +300,21 @@ class Processor(APScript):
         if self.personality_config.verbose:
             self.print_prompt("Generating project structure", formatted_prompt)
 
-        json_str = self.generate_code(formatted_prompt,callback=self.sink)
-        if self.personality_config.verbose:
-            self.print_prompt("Json generation",json_str)
-        
-        if json_str:
-            try:
-                json_response = json.loads(json_str)
-                json_response["current_task_index"]=0
-                with open(self.work_folder/"project_cfg.json","w") as f:
-                    json.dump(json_response,f,indent=2)
+        try_number = 0
+        while(try_number<3):
+            try_number+=1
+            json_str = self.generate_code(formatted_prompt,callback=self.sink)
+            if self.personality_config.verbose:
+                self.print_prompt("Json generation",json_str)
+            
+            if json_str:
+                try:
+                    json_response = json.loads(json_str)
+                    json_response["current_task_index"]=0
+                    with open(self.work_folder/"project_cfg.json","w") as f:
+                        json.dump(json_response,f,indent=2)
 
-                formatted_info = f'''
+                    formatted_info = f'''
 <div class="w-full mx-auto p-6 bg-white rounded-lg shadow-lg">
 <div class="mb-6">
 <h1 class="text-2xl font-bold text-gray-800 mb-4">📋 Project Information</h1>
@@ -333,40 +352,38 @@ class Processor(APScript):
     <div class="border-b border-gray-300 mb-4"></div>
     <div class="space-y-4">'''
 
-                # Add tasks
-                for idx, task in enumerate(json_response.get('tasks', []), 1):
-                    formatted_info += f'''
+                    # Add tasks
+                    for idx, task in enumerate(json_response.get('tasks', []), 1):
+                        formatted_info += f'''
 <div class="bg-gray-50 p-4 rounded-lg">
     <h3 class="text-lg font-medium text-gray-800 mb-2">🔹 Task {idx}: {task.get("task_type","N/A")}</h3>
     <div class="pl-4">
         <h4 class="text-gray-700 font-medium mb-2">Parameters:</h4>
         <ul class="list-disc pl-6">'''
-                    
-                    for param_key, param_value in task.items():
-                        if param_key != "task_type":
-                            formatted_info += f'''
+                        
+                        for param_key, param_value in task.items():
+                            if param_key != "task_type":
+                                formatted_info += f'''
 <li class="text-gray-600"><span class="font-medium">{param_key}:</span><textarea class="w-full" readonly>{param_value}</textarea></li>'''
-                    
-                    formatted_info += '''
+                        
+                        formatted_info += '''
         </ul>
     </div>
 </div>
-'''
-                # Close all divs
-                formatted_info += '''
+    '''
+                    # Close all divs
+                    formatted_info += '''
 </div>
 </div>
-'''
+    '''
 
-                self.current_response  += formatted_info
-                self.ui(self.current_response)
-                return json_response
-            except Exception as ex:
-                trace_exception(ex)
-                ASCIIColors.error("Error decoding JSON response or extracting JSON part.")
-                return None
-        
-        return None
+                    self.current_response  += formatted_info
+                    self.ui(self.current_response)
+                    return json_response
+                except Exception as ex:
+                    trace_exception(ex)
+                    ASCIIColors.error("Error decoding JSON response or extracting JSON part.")
+            
 
 
     def read_doc_file(self, file_path, max_length=2048):
@@ -668,13 +685,15 @@ class Processor(APScript):
 
 
     def generate_file_content(self, file_name: str, project_context: Dict[str, Any], extra_information:str=None) -> str:
-        prompt = (
-            f"Generate the content for the file '{file_name}' in the context of the following project structure:\n"
-            f"{json.dumps(project_context, indent=2)}\n\n"
-            "If the file is a code, make sure that it is compatible with the existing project structure and functions.\n"
-            f"If this is a README.md file, then Make sure you describe the project and make detailed documentation. Use badges and licence {self.personality_config.license}.\n"
-            (extra_information if extra_information else "")+"\n"
-        )
+        prompt = "\n".join(
+            [
+            f"Generate the content for the file '{file_name}' in the context of the following project structure:",
+            f"{json.dumps(project_context, indent=2)}",
+            "If the file is a code, make sure that it is compatible with the existing project structure and functions.",
+            f"If this is a README.md file, then Make sure you describe the project and make detailed documentation. Use badges and licence {self.personality_config.license}.",
+            (extra_information if extra_information else "")              
+            ]
+        )+"\n"  
         return self.generate_code(prompt, callback=self.sink)
 
     def extract_functions(self, code: str) -> Dict[str, Any]:
@@ -717,7 +736,7 @@ class Processor(APScript):
                 current_dir = self.terminal.get_current_directory()
                 file_path:Path = Path(current_dir) / file_name
                 file_path.parent.mkdir(parents=True, exist_ok=True)
-                # context_memory["files_information"][file_name]= self.generate(f"list all elements of this file in a textual simplified manner:\n{code}", callback=self.sink)
+                context_memory["files_information"][file_name]= self.generate(f"list all elements anf functions of this file in a textual simplified manner:\n{code}", callback=self.sink)
                 
                 try:
                     self.terminal.create_file(file_path, code)
