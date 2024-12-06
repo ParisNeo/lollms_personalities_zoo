@@ -79,7 +79,7 @@ class Processor(APScript):
             model_answer = [f'answer_{model_to_test["binding"]}_{model_to_test["model"]}']
             return self.yes_no("Are these two answers similar?",f"prompt:\n{prompt}\nanswer 1:\n{true_answer}\nanswer 2:\n{model_answer}")
     
-    def start_testing(self, prompt="", full_context=""):
+    def start_testing(self, prompt="", full_context="", client=None):
         self.new_message("")
         msg =[]
         if self.personality_config.test_file_path=="":
