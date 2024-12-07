@@ -37,8 +37,8 @@ class Processor(APScript):
                 {"name":"system_message","type":"text","value":"Act as a helpful AI.", "help":"System message to use for all questions"},
                 {"name":"test_file_path","type":"str","value":"", "help":"Path tp the test file to use"},
                 {"name":"output_file_path","type":"str","value":"", "help":"Path tp the output file to create"},
-                {"name":"models_to_test","type":"str","value":"open_ai/gpt-4o,open_ai/gpt-4-turbo-preview", "help":"List of coma separated models to test in format binding_name/model_name"},
-                {"name":"master_model","type":"str","value":"open_ai/gpt-4o", "help":"A single powerful model in format binding_name/model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
+                {"name":"models_to_test","type":"str","value":"open_ai::gpt-4o,open_ai::gpt-4-turbo-preview", "help":"List of coma separated models to test in format binding_name::model_name"},
+                {"name":"master_model","type":"str","value":"open_ai::gpt-4o", "help":"A single powerful model in format binding_name::model_name which is going to judge the other models based on the human test file. This model will just compare the output of the model and the human provided answer."},
             ]
             )
         personality_config_vals = BaseConfig.from_template(personality_config_template)
@@ -85,14 +85,20 @@ class Processor(APScript):
         if self.personality_config.test_file_path=="":
             msg.append("Please set the test file path to be used in my settings first then try again. I need that file to test the AIs")
         if self.personality_config.models_to_test=="":
-            msg.append("Please set the list of models to be tested first (in form binding_name/model_name) It is case sensitive so be careful.")
+            msg.append("Please set the list of models to be tested first (in form binding_name::model_name) It is case sensitive so be careful.")
         self.set_message_content("\n".join(msg))
         if len(msg)>0:
             return
-        master_model={
-                        "binding":self.personality_config.master_model.split('::')[0].strip(),
-                        "model": self.personality_config.master_model.split('::')[1].strip()
-                      }
+        model_parts = self.personality_config.master_model.split('::')
+        if len(model_parts)==2:
+            master_model={
+                            "binding":model_parts[0].strip(),
+                            "model": model_parts[1].strip()
+                        }
+        else:
+            self.personality.app.error("The master model Name is wrong. Please make sure it has the format : binding_name::model_name")
+            self.new_message("<b>The master model Name is wrong. Please make sure it has the format : binding_name::model_name</b>")
+            return
         raw_models_list = self.personality_config.models_to_test.split(",")
         models_list = [{"binding": entry.split('::')[0].strip(), "model": entry.split('::')[1].strip()} for entry in raw_models_list]
         with open(self.personality_config.test_file_path,"r",encoding="utf-8", errors="ignore") as f:
@@ -106,18 +112,18 @@ class Processor(APScript):
             nb_prompts = len(prompts)
             for prompt_id, prompt in enumerate(prompts):
                 self.step_start(f'Testing prompt {prompt_id+1}/{nb_prompts} for model {model["model"]}')
-                reworked_prompt = f"{self.config.start_header_id_template}{self.config.system_message_template}:{self.personality_config.system_message}{self.config.separator_template}{self.config.start_header_id_template}assistant:Hi I am assistant and I am here to help you.{self.config.separator_template}{self.config.start_header_id_template}prompt:{prompt['prompt']}{self.config.separator_template}{self.config.start_header_id_template}assistant:"
+                reworked_prompt = f"{self.system_full_header}{self.ai_custom_header('assistant')}Hi I am assistant and I am here to help you.{self.ai_custom_header('prompt')}{prompt['prompt']}{self.config.separator_template}{self.ai_custom_header('assistant')}"
                 answer = self.fast_gen(reworked_prompt, callback=self.sink)
                 prompt[f'answer_{model["binding"]}_{model["model"]}']={
                     "answer":answer,
                     "val":0
                 }
                 self.step_end(f'Testing prompt {prompt_id+1}/{nb_prompts} for model {model["model"]}')
-            self.step_end(f'Started testing model {model["binding"]}/{model["model"]}')
+            self.step_end(f'Started testing model {model["binding"]}::{model["model"]}')
 
-        self.step_start(f'Loading master model {master_model["binding"]}/{master_model["model"]}')
+        self.step_start(f'Loading master model {master_model["binding"]}::{master_model["model"]}')
         self.select_model(master_model["binding"], master_model["model"])
-        self.step_end(f'Loading master model {master_model["binding"]}/{master_model["model"]}')
+        self.step_end(f'Loading master model {master_model["binding"]}::{master_model["model"]}')
         self.step_start(f'Judging models')
         for prompt_entry in prompts:
             prompt = prompt_entry["prompt"]
@@ -131,7 +137,7 @@ class Processor(APScript):
                         break
         self.step_end(f'Judging models')
 
-        self.step(f'Back to model {model["binding"]}/{model["model"]}')
+        self.step(f'Back to model {model["binding"]}::{model["model"]}')
         self.select_model(previous_binding, previous_model)
         self.step_start(f'Giving a mark for each AI')
         results={
