@@ -59,6 +59,8 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 {"name":"build_a_backend", "type":"bool", "value":False, "help":"Builds a backend server.py. Required if a serverside code is required"},
+                {"name":"server_port_number", "type":"int", "value":8000, "help":"If a backend is active, use this port number"},
+                
                 {"name":"interactive_mode", "type":"bool", "value":False, "help":"Activate this mode to start talking to the AI about snippets of your code. The AI will generate updates depending on your own requirements in an interactive way."},
                 {"name":"project_path", "type":"str", "value":"", "help":"Path to the current project."},
                 {"name":"update_mode", "type":"str", "value":"rewrite", "options":["rewrite","edit"], "help":"The update mode specifies if the AI needs to rewrite the whole code which is a good idea if the code is not long or just update parts of the code which is more suitable for long codes."},
@@ -392,9 +394,14 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
             self.step_end("Building description.yaml", False)
             return None
 
-    def buildIndex(self, context_details, infos, metadata, client:Client, backend_code=None):
+    def build_index(self, context_details, infos, metadata, client:Client):
         self.step_start("Building index.html")
         lollms_infos = self.get_lollms_infos()
+        if self.personality_config.build_a_backend:
+            backend_endpoints = self.system_custom_header("Backend endpoints") + self.extract_endpoints(metadata) + "\nUse axios for endpoint calling."
+        else:
+            backend_endpoints = ""
+
 
         crafted_prompt = self.build_prompt(
             [
@@ -417,7 +424,8 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],                     
                 lollms_infos,
-                "Backend code:\n"+backend_code if backend_code else "",
+                backend_endpoints,
+
                 self.system_custom_header("Lollms Apps Maker")
             ],6
         )
@@ -450,8 +458,8 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
     def build_server(self, context_details, infos, metadata, client: Client):
         self.step_start("Building server.py")
         lollms_infos = self.get_lollms_infos()
-        lollms_infos += """
-Infos: The client will be running on an server that is not the same as the one we are building so we need to make sure that the client accept cors from all localhost sources.
+        lollms_infos += f"""
+Infos: The client will be running on an server that is not the same as the one we are building so we need to make sure that the client accept cors from all localhost sources. Also, use localhost as hostname and {self.personality_config.server_port_number} as port number.
         """ 
 
         crafted_prompt = self.build_prompt(
@@ -504,37 +512,12 @@ Infos: The client will be running on an server that is not the same as the one w
                     trace_exception(ex)
             
             self.step_end("Building server.py")
-            crafted_prompt = self.build_prompt(
-                [
-                    self.system_full_header,
-                    "You are Lollms server endpoints documentor. Your objective is to build a json file that describes endpoints in a fastapi service.",
-                    "```python",
-                    str(code),
-                    "```",
-                    "The output json format is:",
-                    "```json",
-                    "{",
-                    '   server_address:"the current server address and port starting with http://",',
-                    "   endpoints:[",
-                    "       {",
-                    '           "path":"/my_endpoint",',
-                    '           "inputs":[{"name":"","type":"","description",""},...],',
-                    '           "outputs":[{"name":"","type":"","description",""},...],',
-                    "       }",
-                    "   ]",
-                    "}",
-                    "```",               
-                    self.system_custom_header("Endpoints documentor")
-                ],
-                6
-            )
-            json_infos = self.generate_code(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
 
-            return code, json_infos
+            return code
         else:
             self.step_end("Building server.py", False)
             self.set_message_content("The model you are using failed to build the server.py file. Change the prompt a bit and try again or use a smarter model.")
-            return None, None
+            return None
 
 
     def update_index(self, prompt, context_details, metadata, out:str):
@@ -579,6 +562,10 @@ Infos: The client will be running on an server that is not the same as the one w
         with open(index_file_path, "r", encoding="utf8") as f:
             original_content = f.read()
 
+        if self.personality_config.build_a_backend:
+            backend_endpoints = self.system_custom_header("Backend endpoints") + self.extract_endpoints(metadata) + "\nUse axios for endpoint calling."
+        else:
+            backend_endpoints = ""
 
         if self.personality_config.update_mode=="rewrite":
             crafted_prompt = self.build_prompt([
@@ -586,6 +573,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 "You are Lollms Apps Maker best application maker ever.",
                 "Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
                 self.get_lollms_infos(),
+                backend_endpoints,
                 self.system_custom_header("Code"),
                 "index.html",
                 "```html",
@@ -618,6 +606,7 @@ Infos: The client will be running on an server that is not the same as the one w
 
 
             code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
+            self.add_chunk_to_message_content("\n")
             if self.config.debug:
                 ASCIIColors.yellow("--- Code file ---")
                 ASCIIColors.yellow(code)
@@ -777,6 +766,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 ]
             )
             code, full_response = self.generate_code(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
+            self.add_chunk_to_message_content("\n")
             if self.config.debug:
                 ASCIIColors.yellow("--- Code file ---")
                 ASCIIColors.yellow(code)
@@ -844,6 +834,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 updated_sections = self.generate_with_images(crafted_prompt, self.personality.image_files, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
             else:
                 updated_sections = self.generate(crafted_prompt, temperature=0.1, top_k=10, top_p=0.98, debug=True, callback=self.sink)
+            self.add_chunk_to_message_content("\n")
 
             # Extract code blocks
             codes = self.extract_code_blocks(updated_sections)
@@ -872,6 +863,15 @@ Infos: The client will be running on an server that is not the same as the one w
 
             self.step_end("Updating server.py")
 
+    def extract_endpoints(self, metadata):
+        app_path = Path(metadata["app_path"])
+        server_file_path = app_path / "server.py"
+        code = server_file_path.read_text("utf-8")
+        self.step_end("EXPORTING server endpoints and their input/output format")   
+        server_description = self.generate(self.system_full_header+"You are backend summarizer. You extract from the backend code all endpoints and you also return the server address, port number and information about CORS. The endpoints description must contain a representation of all endpoints and their input/output formats. "+self.ai_custom_header("Code")+"\n```python\n"+code+"\n```\n"+self.ai_custom_header("endpoints description"))     
+        self.step_end("EXPORTING server endpoints and their input/output format")
+        self.add_chunk_to_message_content("\n")
+        return server_description
 
     def build_documentation(self, prompt, context_details, metadata, out:str):
         if not metadata.get("app_path", None):
@@ -1130,15 +1130,20 @@ The code contains description.yaml that describes the application, the author, t
 """+self.get_lollms_infos()
             self.answer(context_details, "Extra infos about the process:"+extra_infos)            
         else:
-            choices = self.multichoice_question("select the best suited option", [
+            options=[
                     "The user is discussing",
                     "The user is asking to build a new webapp",
-                    "The user is asking for a modification in the webapp or reporting a bug in the webapp or asking to update the content of index.html",
+                    "The user is asking for a modification that requires modifying both backend and frontend" if self.personality_config.build_a_backend else "empty place holder (never select this)",
+                    "The user is asking for a modification in the webapp backend or server.py file" if self.personality_config.build_a_backend else "empty place holder (never select this)",
+                    "The user is asking for a modification in the webapp frontend (index.html)",
                     "The user is asking for the modification of the description file",
                     "The user is asking for recreating an icon for the app",
                     "The user is asking for building a documentation for the app",
                     "The user is asking for building a server for the app"
-            ], prompt)
+            ]
+            choices = self.multichoice_question("select the best suited option", options, prompt)
+            if choices>=0 and choices<len(options):
+                self.step(options[choices])
             if choices == 0:
                 extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
@@ -1173,7 +1178,7 @@ The code contains description.yaml that describes the application, the author, t
                 out ="Building the application. Please wait as this may take a little while.\n"
                 self.set_message_content_invisible_to_ai(out)
                 if self.personality_config.build_a_backend:
-                    backend_code, json_infos = self.build_server(context_details, infos, metadata, client)
+                    backend_code = self.build_server(context_details, infos, metadata, client)
                     if backend_code:
                         with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
@@ -1185,8 +1190,7 @@ The code contains description.yaml that describes the application, the author, t
                         return
                 else:
                     backend_code = None
-                    json_infos = None
-                code = self.buildIndex(context_details, infos, metadata, client, json_infos)
+                code = self.build_index(context_details, infos, metadata, client)
                 if code:
                     index_file_path = Path(metadata["app_path"])/"index.html"
                     app_path = metadata["app_path"]
@@ -1208,11 +1212,14 @@ The code contains description.yaml that describes the application, the author, t
 
                 # ----------------------------------------------------------------
                 self.new_message("")
-                out = "Before we end, let's build an icon. I'll use the default icon if you did not specify build icon in my settings. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
-                self.set_message_content_invisible_to_ai(out)
-                icon_dst = self.generate_icon(metadata, infos, client)
-                icon_url = app_path_to_url(icon_dst)
-                out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
+                if self.personality_config.generate_icon:
+                    out = "Before we end, let's build an icon."
+                    self.set_message_content_invisible_to_ai(out)
+                    icon_dst = self.generate_icon(metadata, infos, client)
+                    icon_url = app_path_to_url(icon_dst)
+                    out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
+                else:
+                    out +="I'll use the default icon as you did not activate icon generation. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
                 out += f"""<a href="/apps/{infos['name'].replace(' ','_')}/index.html">Click here to test the application</a>"""
                 self.set_message_content_invisible_to_ai(out)
                 # Show the user everything that was created
@@ -1245,8 +1252,16 @@ The code contains description.yaml that describes the application, the author, t
                 client.discussion.set_metadata(metadata)
             elif choices == 2:
                 out = ""
+                self.update_server(prompt, context_details, metadata, out)
+                
                 self.update_index(prompt, context_details, metadata, out)
             elif choices == 3:
+                out = ""
+                self.update_server(prompt, context_details, metadata, out)
+            elif choices == 4:
+                out = ""
+                self.update_index(prompt, context_details, metadata, out)
+            elif choices == 5:
                 out = ""
                 infos = self.updateDescription(context_details, metadata, client)
                 if infos is None:
@@ -1264,16 +1279,16 @@ The code contains description.yaml that describes the application, the author, t
                 ])
                 self.set_message_content_invisible_to_ai(out)
 
-            elif choices ==4:
+            elif choices ==6:
                 out = "I'm generating a new icon based on your request.\n"
                 self.set_message_content_invisible_to_ai(out)
                 out += self.generate_icon(metadata, metadata["infos"], client)
                 self.set_message_content_invisible_to_ai(out)
-            elif choices ==5:
+            elif choices ==7:
                 out = "I'm generating a documentation for the app.\n"
                 self.set_message_content_invisible_to_ai(out)
                 self.build_documentation(prompt, context_details, metadata, out)
-            elif choices ==6:
+            elif choices ==8:
                 out = "I'm generating a server for the app.\n"
                 self.set_message_content_invisible_to_ai(out)
                 self.update_server(prompt, context_details, metadata, out)

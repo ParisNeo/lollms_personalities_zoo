@@ -107,7 +107,7 @@ class Processor(APScript):
         previous_binding = self.personality.config["binding_name"]
         previous_model = self.personality.config["model_name"]
         for model in models_list:
-            self.step_start(f'Started testing model {model["binding"]}/{model["model"]}')
+            self.step_start(f'Started testing model {model["binding"]}::{model["model"]}')
             self.select_model(model["binding"], model["model"])
             nb_prompts = len(prompts)
             for prompt_id, prompt in enumerate(prompts):
