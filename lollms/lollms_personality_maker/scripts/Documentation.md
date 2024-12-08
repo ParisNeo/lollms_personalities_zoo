@@ -105,14 +105,14 @@ class Processor(APScript):
 - `selected()`: Triggered when the personality is selected
 - `install()`: Sets up necessary dependencies
 - `help(prompt="", full_context="")`: Provides help information
-- `run_workflow(prompt, previous_discussion_text, callback, context_details, client)`: Main method for executing the personality's workflow
+- `run_workflow(context_details, client, callback)`: Main method for executing the personality's workflow
 
 ### 4.3 Workflow Execution <a name="workflow-execution"></a>
 
 The `run_workflow` method is the core of a scripted personality. It handles user input and orchestrates the personality's response:
 
 ```python
-def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
     self.callback = callback
     full_prompt = self.build_prompt_from_context_details(context_details)
     out = self.fast_gen(full_prompt)
