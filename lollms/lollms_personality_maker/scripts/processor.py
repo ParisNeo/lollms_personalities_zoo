@@ -723,6 +723,9 @@ class Processor(APScript):
                 elif self.personality.config.rag_vectorizer=="openai":
                     from lollmsvectordb.lollms_vectorizers.openai_vectorizer import OpenAIVectorizer
                     vectorizer = OpenAIVectorizer(self.personality.config.rag_vectorizer_model, self.personality.config.rag_vectorizer_openai_key)
+                elif self.personality.config.rag_vectorizer == "ollama":
+                    from lollmsvectordb.lollms_vectorizers.ollama_vectorizer import OllamaVectorizer
+                    v = OllamaVectorizer(self.personality.config.rag_vectorizer_model, self.personality.config.rag_service_url)
 
                 self.persona_data_vectorizer = VectorDatabase(self.data_path/"db.sqlite", vectorizer, None if self.lollms.config.rag_vectorizer=="semantic" else self.model if self.model else TikTokenTokenizer(), n_neighbors=self.config.rag_n_chunks)       
                 self.persona_data_vectorizer.add_document("persona_data", self._data, 512, 0)

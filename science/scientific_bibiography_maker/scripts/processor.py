@@ -105,7 +105,10 @@ class Processor(APScript):
         elif self.config.rag_vectorizer == "openai":
             from lollmsvectordb.lollms_vectorizers.openai_vectorizer import OpenAIVectorizer
             v = OpenAIVectorizer(self.config.rag_vectorizer_openai_key)        
-
+        elif self.personality.config.rag_vectorizer == "ollama":
+            from lollmsvectordb.lollms_vectorizers.ollama_vectorizer import OllamaVectorizer
+            v = OllamaVectorizer(self.personality.config.rag_vectorizer_model, self.personality.config.rag_service_url)
+            
         self.persona_data_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
         self.set_message_content_documents_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
         self.abstract_vectorizer = VectorDatabase("", v, TikTokenTokenizer(), self.config.rag_chunk_size, self.config.rag_overlap)
