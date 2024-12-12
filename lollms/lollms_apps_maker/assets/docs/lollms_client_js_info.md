@@ -48,6 +48,7 @@ Supported generation modes:
 ELF_GENERATION_FORMAT.LOLLMS : The default one that uses the lollms backend (key is optional)
 ELF_GENERATION_FORMAT.OPENAI : Uses openai API as backend and requires a key
 ELF_GENERATION_FORMAT.OLLAMA : Uses ollama API as backend (key is optional)
+ELF_GENERATION_FORMAT.VLLM : Uses vllm API as backend (key is optional)
 
 -1. **Change settings**
 - **updateSettings(settings)**: Updates multiple settings of the LollmsClient instance at once.

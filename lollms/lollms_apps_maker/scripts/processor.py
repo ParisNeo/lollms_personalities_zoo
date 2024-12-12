@@ -58,15 +58,15 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
-                {"name":"build_a_backend", "type":"bool", "value":False, "help":"Builds a backend server.py. Required if a serverside code is required"},
-                {"name":"server_port_number", "type":"int", "value":8000, "help":"If a backend is active, use this port number"},
-                
-                {"name":"interactive_mode", "type":"bool", "value":False, "help":"Activate this mode to start talking to the AI about snippets of your code. The AI will generate updates depending on your own requirements in an interactive way."},
                 {"name":"project_path", "type":"str", "value":"", "help":"Path to the current project."},
+                {"name":"server_port_number", "type":"int", "value":8000, "help":"If a backend is active, use this port number"},                
                 {"name":"update_mode", "type":"str", "value":"rewrite", "options":["rewrite","edit"], "help":"The update mode specifies if the AI needs to rewrite the whole code which is a good idea if the code is not long or just update parts of the code which is more suitable for long codes."},
+                {"name":"interactive_mode", "type":"bool", "value":False, "help":"Activate this mode to start talking to the AI about snippets of your code. The AI will generate updates depending on your own requirements in an interactive way."},
+                {"name":"build_a_backend", "type":"bool", "value":False, "help":"Builds a backend server.py. Required if a serverside code is required"},
                 {"name":"create_a_plan", "type":"bool", "value":False, "help":"Create a plan for the app before starting."},
                 {"name":"generate_icon", "type":"bool", "value":False, "help":"Generate an icon for the application (requires tti to be active)."},
                 {"name":"use_lollms_library", "type":"bool", "value":False, "help":"Activate this if the application requires interaction with lollms."},
+                {"name":"force_lollms_multisupport", "type":"bool", "value":False, "help":"If active, the app created should add a setting panel that allows setting lollms settings like the server to be used etc."},
                 {"name":"use_lollms_tasks_library", "type":"bool", "value":False, "help":"Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
                 {"name":"use_lollms_rag_library", "type":"bool", "value":False, "help":"Activate this if the application needs to use text code extraction, text summary, yes no question answering, multi choice question answering etc."},
                 {"name":"use_lollms_image_gen_library", "type":"bool", "value":False, "help":"(not ready yet) Activate this if the application requires image generation."},
@@ -79,6 +79,8 @@ class Processor(APScript):
                 {"name":"lollms_markdown_renderer", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms markdown renderer that allows you to render markdown text with support for headers, tables, code as well as converting mermaid code into actual mermaid graphs"},
 
                 {"name":"lollms_theme", "type":"bool", "value":False, "help":"Activate this if you want to use lollms theme"},
+                {"name":"use_vue_js", "type":"bool", "value":False, "help":"If active instructs the AI to use vue.js"},
+                {"name":"use_tailwind_css", "type":"bool", "value":False, "help":"Use tailwindcss for styling the ui"},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -202,42 +204,53 @@ class Processor(APScript):
     def get_lollms_infos(self):
         if self.personality_config.use_lollms_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_client_js_info.md","r", errors="ignore") as f:
-                lollms_infos = f.read()
+                lollms_infos = f.read() + "\n"
         else:
             lollms_infos = ""
+        
+        
+        if self.personality_config.force_lollms_multisupport:
+            lollms_infos += f"{self.system_custom_header('important instruction')}Make sure to add a settings pannel that allows the user to select the lollms host and the ELF_GENERATION_FORMAT.\n"
+
         if self.personality_config.use_lollms_rag_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_rag_info.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
         if self.personality_config.use_lollms_image_gen_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_tti.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
 
         if self.personality_config.use_lollms_speach_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_speach.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
 
         if self.personality_config.use_lollms_localization_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_auto_localizer.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
         if self.personality_config.use_lollms_flow_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_flow.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
         if self.personality_config.lollms_anything_to_markdown_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_anything_to_markdown.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
         if self.personality_config.lollms_markdown_renderer:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_markdown_renderer.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
 
         if self.personality_config.lollms_theme:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_theme.md","r", errors="ignore") as f:
-                lollms_infos += f.read()
+                lollms_infos += f.read() + "\n"
+        if self.personality_config.use_vue_js:
+            lollms_infos += f"{self.system_custom_header('important instruction')}Please use vue3.\n"
+        if self.personality_config.use_tailwind_css:
+            lollms_infos += f"{self.system_custom_header('important instruction')}Please use tailwindcss for styling.\n"
+
+        
 
         if self.personality_config.use_lollms_tasks_library:
             with open(Path(__file__).parent.parent/"assets"/"docs"/"lollms_taskslib_js_info.md","r", errors="ignore") as f:
@@ -419,7 +432,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 str(infos),
                 "```"
                 ]),
-                "Start by building a plan."  if self.personality_config.create_a_plan is None else "",                        
+                "Start by building a plan then write the full index.html file without any further explanations."  if self.personality_config.create_a_plan is None else "Write the full index.html file without any further explanations.",                        
                 lollms_infos,
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],                     
