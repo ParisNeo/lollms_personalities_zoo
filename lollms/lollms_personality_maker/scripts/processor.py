@@ -73,7 +73,6 @@ class Processor(APScript):
             self.sd_models = ["Not installeed"]
         personality_config_template = ConfigTemplate(
             [
-
                 {"name":"language","type":"str","value":"English", "help":"The personality language"},
                 {"name":"single_shot","type":"bool","value":False, "help":"If true, then the AI personality will be built at a single shot (use this if you are using a high end LLM), if not, then deactivate this"},
                 {"name":"examples_extraction_method","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
