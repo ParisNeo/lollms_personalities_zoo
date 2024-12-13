@@ -223,7 +223,7 @@ class Processor(APScript):
             if self.personality_config.make_song_in_suno_ai:
                 self.function_definitions.append(open_and_fill_suno_function())
 
-            out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
+            out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call, separate_output=True)
             self.set_message_content(out)
         else:
             if len(self.personality.image_files)>0:
