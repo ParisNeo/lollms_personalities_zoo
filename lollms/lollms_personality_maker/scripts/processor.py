@@ -615,6 +615,7 @@ class Processor(APScript):
         self.step_start("Building main yaml")
 
         personality_infos = self.generate_personality(prompt, self.personality_config.single_shot)
+        self.new_message("")
         infos = personality_infos["data"]
         yaml_data = personality_infos["formatted_string"]
 
