@@ -321,6 +321,8 @@ class Processor(APScript):
         )
         sd_prompt = self.generate_text(crafted_prompt, callback=self.sink, accept_all_if_no_code_tags_is_present=True).strip().split("\n")[0]
         self.step_end("Imagining Icon")
+        self.set_message_content(sd_prompt)
+        self.new_message("")
         ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
         self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
@@ -341,7 +343,6 @@ class Processor(APScript):
                     file, infos = self.personality.app.tti.paint(
                                     sd_prompt, 
                                     sd_negative_prompt,
-                                    [],
                                     width = 512,
                                     height = 512,
                                     restore_faces = True,
