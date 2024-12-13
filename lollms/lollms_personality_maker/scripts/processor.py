@@ -615,15 +615,14 @@ class Processor(APScript):
         self.step_start("Building main yaml")
 
         personality_infos = self.generate_personality(prompt, self.personality_config.single_shot)
-        self.new_message("")
         infos = personality_infos["data"]
         yaml_data = personality_infos["formatted_string"]
-
 
         ui_data = self.generate_html_from_dict(infos)
         self.ui(ui_data)
         name = infos["name"]
         self.step_end("Building the yaml file")
+        self.new_message("")
         self.step_start("Preparing paths")
         self.personality_path:Path = self.personality.lollms_paths.custom_personalities_path/name.lower().replace(" ","_").replace(",","_").replace("\n","").replace('"','')
         self.personality_path.mkdir(parents=True, exist_ok=True)
@@ -643,10 +642,12 @@ class Processor(APScript):
             self.step_start("Building icon")
             try:
                 self.build_icon(previous_discussion_text, name, ui_data, client)
+                self.step_end("Building icon")
             except Exception as ex:
                 trace_exception(ex)
                 ASCIIColors.red("failed to generate icons.\nUsing default icon")
-            self.step_end("Building icon")
+                self.step_end("Building icon", False)
+                self.personality.error("failed to generate icons.\nUsing default icon")
             self.new_message("")
         else:
             shutil.copy("assets/logo.png",self.assets_path)
