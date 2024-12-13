@@ -75,22 +75,22 @@ class Processor(APScript):
             [
 
                 {"name":"language","type":"str","value":"English", "help":"The personality language"},
-                {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},
-                {"name":"build_the_scipt","type":"bool","value":True, "help":"Experimental! This requires at least to be using a 128k tokens context LLM"},
                 {"name":"single_shot","type":"bool","value":False, "help":"If true, then the AI personality will be built at a single shot (use this if you are using a high end LLM), if not, then deactivate this"},
-                
-                
-                {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
-                {"name":"optimize_prompt","type":"bool","value":False, "help":"This is an extra layer to build a more comprehensive conditionning of the AI"},
-                {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
-                {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
-                {"name":"model_temperature","type":"float","value":0.1, "help":"The temperature of generation using this personality (lower = more deterministic, higher = more creative, very high may lead to halucinations (make sure to keep it between 0 and 1))"},
-
-                {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
-                {"name":"num_images","type":"int","value":1, "help":"Number of icons to generate"},
                 {"name":"examples_extraction_method","type":"str","value":"random","options":["random", "rag_based", "None"], "help":"The generation AI has access to a list of examples of prompts that were crafted and fine tuned by a combination of AI and the main dev of the project. You can select which method lpm uses to search  those data, (none, or random or rag based where he searches examples that looks like the persona to build)"},
                 {"name":"number_of_examples_to_recover","type":"int","value":3, "help":"How many example should we give the AI"},
                 {"name":"generate_prompt_examples","type":"bool","value":True, "help":"Generates prompt examples for the personality"},
+
+                {"name":"data_folder_path","type":"str","value":"", "help":"A path to a folder containing data to feed the AI. Supported file types are: txt,pdf,docx,pptx"},
+                {"name":"audio_sample_path","type":"str","value":"", "help":"A path to an audio file containing some voice sample to set as the AI's voice. Supported file types are: wav, mp3"},
+                {"name":"generate_icon","type":"bool","value":True, "help":"generates an icon for the persona. if deactivated, the persona will have the same icon as lollms"},
+                {"name":"num_images","type":"int","value":1, "help":"Number of icons to generate"},
+                
+                {"name":"make_scripted","type":"bool","value":False, "help":"Makes a scriptred AI that can perform operations using python script"},                
+                {"name":"build_the_scipt","type":"bool","value":True, "help":"Experimental! This requires at least to be using a 128k tokens context LLM"},
+                {"name":"script_version","type":"str","value":"3.0", "options":["2.0","3.0"], "help":"The personality can be of v2 (no function calls) or v3 (function calls are baked in)"},
+                
+                {"name":"model_temperature","type":"float","value":0.1, "help":"The temperature of generation using this personality (lower = more deterministic, higher = more creative, very high may lead to halucinations (make sure to keep it between 0 and 1))"},
+
 
 
             ]
