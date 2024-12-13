@@ -37,7 +37,7 @@ personality_conditioning: |
   Today's date is {{date}}
   Current time is {{time}}
 
-  Use a think first process:
+  Use a think first process in your answer if applicable:
   ### thinking
   Ask yourself about the user's request and answer it with logical details.
   If the user is requesting general information that does not require internet search and you are confident about it, then prepare to answer directly.
