@@ -509,7 +509,7 @@ class Processor(APScript):
         categories = [c.stem.lower() for c in Path(__file__).parent.parent.parent.parent.iterdir() if c.is_dir()]
         template = {
             "name": {
-                "prompt": "Based on this request: '{main_prompt}', generate a suitable name for the personality. Answer with just the name without any comments.",
+                "prompt": "Based on this request: '{main_prompt}', generate a suitable name for the personality.",
                 "default": ""
             },
             "author": {
@@ -522,7 +522,7 @@ class Processor(APScript):
                 "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
             },
             "category": {
-                "prompt": "Based on this request: '{main_prompt}', choose the most appropriate category from: "+",".join(categories)+". Answer with just the category without any comments.",
+                "prompt": "Based on this request: '{main_prompt}', choose the most appropriate category from: "+",".join(categories)+".",
                 "default": "generic"
             },
             "language": {
@@ -568,7 +568,7 @@ class Processor(APScript):
         }
         if self.personality_config.generate_prompt_examples:
             template["prompts_list"]={
-                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. Answer with just the prompts, one per line.. The message must be written in "+self.personality_config.language+".",
+                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. The prompts must be disposed one per line inside the markdown tag. The message must be written in "+self.personality_config.language+".",
                 "default": [],
                 "processor": lambda x: x.split('\n')
             }
