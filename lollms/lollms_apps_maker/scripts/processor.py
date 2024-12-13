@@ -1144,17 +1144,17 @@ The code contains description.yaml that describes the application, the author, t
             self.answer(context_details, "Extra infos about the process:"+extra_infos)            
         else:
             options=[
-                    "The user is discussing",
+                    "The user is engaging in casual discussion about the webapp",
                     "The user is asking to build a new webapp",
                     "The user is asking for a modification that requires modifying both backend and frontend" if self.personality_config.build_a_backend else "empty place holder (never select this)",
                     "The user is asking for a modification in the webapp backend or server.py file" if self.personality_config.build_a_backend else "empty place holder (never select this)",
-                    "The user is asking for a modification in the webapp frontend (index.html)",
-                    "The user is asking for the modification of the description file",
-                    "The user is asking for recreating an icon for the app",
-                    "The user is asking for building a documentation for the app",
-                    "The user is asking for building a server for the app"
+                    "The user is asking for modifications or feature additions to the existing webapp frontend (index.html)",
+                    "The user is requesting changes to the app's metadata or configuration file",
+                    "The user is asking for design or recreation of the app's icon or logo",
+                    "The user is requesting the creation or update of documentation for the app",
+                    "The user is asking to implement or modify the backend server functionality for the app"
             ]
-            choices = self.multichoice_question("select the best suited option", options, prompt)
+            choices = self.multichoice_question("Based on the user's request, select the most appropriate affirmation about the request given that you build and edit webapps.", options, self.system_custom_header("user") + prompt)
             if choices>=0 and choices<len(options):
                 self.step(options[choices])
             if choices == 0:
