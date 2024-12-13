@@ -65,7 +65,6 @@ class Processor(APScript):
                 {"name":"activate_function_call", "type":"bool", "value":False, "help":"This will activate function call"},
                 {"name":"make_song_in_suno_ai", "type":"bool", "value":False, "help":"This will build the song in suno. ai after writing it"},
                 {"name":"make_song_in_udio", "type":"bool", "value":False, "help":"This will build the song in udio. ai after writing it"},
-                {"name":"activate_function_call", "type":"bool", "value":False, "help":"This will activate function call"},
                 {"name":"clean_images_between_sessions", "type":"bool", "value":False, "help":"This will remove images between two prompts"},
 
                 {"name":"hide_function_call", "type":"bool", "value":False, "help":"Hides the function call commands."},
