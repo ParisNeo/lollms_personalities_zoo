@@ -18,7 +18,7 @@ from lollms.functions.take_a_photo import take_a_photo_function
 from lollms.functions.generate_image import build_image_function
 from lollms.functions.peripherals import move_mouse_to_position_function, press_mouse_button_function, type_text_function
 from lollms.functions.timers import set_timer_with_alert_function
-from lollms.functions.music_gen import open_and_fill_udio_function
+from lollms.functions.music_gen import open_and_fill_udio_function, open_and_fill_suno_function
 
 from typing import Callable, Any
 from functools import partial
@@ -62,12 +62,12 @@ class Processor(APScript):
         personality_config_template = ConfigTemplate(
             [
                 # Boolean configuration for enabling scripted AI
+                {"name":"activate_function_call", "type":"bool", "value":False, "help":"This will activate function call"},
+                {"name":"make_song_in_suno_ai", "type":"bool", "value":False, "help":"This will build the song in suno. ai after writing it"},
+                {"name":"make_song_in_udio", "type":"bool", "value":False, "help":"This will build the song in udio. ai after writing it"},
+                {"name":"activate_function_call", "type":"bool", "value":False, "help":"This will activate function call"},
                 {"name":"clean_images_between_sessions", "type":"bool", "value":False, "help":"This will remove images between two prompts"},
 
-                {"name":"show_screenshot_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the screenshot function is called"},
-                {"name":"take_photo_ui", "type":"bool", "value":False, "help":"When taking a screenshot, if this is true then a ui will be show when the take photo function is called"},
-                {"name":"use_single_photo_at_a_time", "type":"bool", "value":True, "help":"This will avoid accumulating photos over time. The AI will only see last photo"},
-                
                 {"name":"hide_function_call", "type":"bool", "value":False, "help":"Hides the function call commands."},
                 {"name":"allow_infinete_operations", "type":"bool", "value":True, "help":"If checked, the AI will be able to do much more complex operations that involve multi steps interactions"},
                 # String configuration with options
@@ -215,12 +215,22 @@ class Processor(APScript):
         if self.personality_config.clean_images_between_sessions:
             self.personality.image_files.clear()
         # TODO: add more functions to call
-        self.function_definitions = [
-            build_image_function(self, client),
-            open_and_fill_udio_function()
-        ]
-        out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
+        if self.personality_config.activate_function_call:
+            self.function_definitions = [
+                build_image_function(self, client),
+            ]
+            if self.personality_config.make_song_in_udio:
+                self.function_definitions.append(open_and_fill_udio_function())
+            if self.personality_config.make_song_in_suno_ai:
+                self.function_definitions.append(open_and_fill_suno_function())
 
-        self.set_message_content(out)
+            out = self.interact_with_function_call(context_details, self.function_definitions,hide_function_call=self.personality_config.hide_function_call)
+            self.set_message_content(out)
+        else:
+            if len(self.personality.image_files)>0:
+                self.fast_gen_with_images(previous_discussion_text, self.personality.image_files)
+            else:
+                self.fast_gen(previous_discussion_text)
+
 
 
