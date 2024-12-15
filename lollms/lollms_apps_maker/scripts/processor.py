@@ -58,6 +58,10 @@ class Processor(APScript):
         # An 'options' entry can be added for types like string, to provide a dropdown of possible values.
         personality_config_template = ConfigTemplate(
             [
+                {"name":"lollms_theme", "type":"bool", "value":False, "help":"Activate this if you want to use lollms theme"},
+                {"name":"use_vue_js", "type":"bool", "value":False, "help":"If active instructs the AI to use vue.js"},
+                {"name":"use_tailwind_css", "type":"bool", "value":False, "help":"Use tailwindcss for styling the ui"},
+
                 {"name":"project_path", "type":"str", "value":"", "help":"Path to the current project."},
                 {"name":"server_port_number", "type":"int", "value":8000, "help":"If a backend is active, use this port number"},                
                 {"name":"update_mode", "type":"str", "value":"rewrite", "options":["rewrite","edit"], "help":"The update mode specifies if the AI needs to rewrite the whole code which is a good idea if the code is not long or just update parts of the code which is more suitable for long codes."},
@@ -78,9 +82,6 @@ class Processor(APScript):
                 {"name":"lollms_anything_to_markdown_library", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms anything to markdown library which allows you to read any text type of files and returns it as markdown (useful for RAG)."},
                 {"name":"lollms_markdown_renderer", "type":"bool", "value":False, "help":"Activate this library if you want to use lollms markdown renderer that allows you to render markdown text with support for headers, tables, code as well as converting mermaid code into actual mermaid graphs"},
 
-                {"name":"lollms_theme", "type":"bool", "value":False, "help":"Activate this if you want to use lollms theme"},
-                {"name":"use_vue_js", "type":"bool", "value":False, "help":"If active instructs the AI to use vue.js"},
-                {"name":"use_tailwind_css", "type":"bool", "value":False, "help":"Use tailwindcss for styling the ui"},
                 # Boolean configuration for enabling scripted AI
                 #{"name":"make_scripted", "type":"bool", "value":False, "help":"Enables a scripted AI that can perform operations using python scripts."},
                 
@@ -302,36 +303,29 @@ class Processor(APScript):
         crafted_prompt = self.build_prompt(
             [
                 self.system_full_header,
-                "you are Lollms Apps Maker. Your objective is to build the description.yaml file for a specific lollms application.",
+                "Your objective is to build the description.yaml file for a specific lollms application.",
                 "The user describes a web application and the ai should build the yaml file and return it inside a yaml markdown tag",
-                f"""
-```yaml
-name: Give a name to the application using the user provided information
-description: Here you can make a detailed description of the application. do not use : or lists, just plain text in a single paragraph.
-version: 1.0
-author: make the user the author
-category: give a suitable category name from {self.application_categories}
-model: {self.personality.model.model_name}
-disclaimer: If needed, write a disclaimer. else null
-```
-""",
                 "If the user explicitely proposed a name, use that name",
                 "Build the description.yaml file.",
                 "Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
-                self.system_custom_header("Lollms Apps Maker")
-            ],6
+            ],7
         )
-        if len(self.personality.image_files)>0:
-            app_description = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
-        else:
-            app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
-        
-        codes = self.extract_code_blocks(app_description)
-        if len(codes)>0:
-            ASCIIColors.info(codes[0]["content"])
-            infos = yaml.safe_load(codes[0]["content"].encode('utf-8').decode('ascii', 'ignore'))
+        template =f"""```yaml
+name: [Give a name to the application using the user provided information]
+description: [Here you can make a detailed description of the application. do not use : or lists, just plain text in a single paragraph.]
+version: 1.0
+author: [make the user the author]
+category: [give a suitable category name from {self.application_categories}]
+model: {self.personality.model.model_name}
+disclaimer: [If needed, write a disclaimer. else null]
+```
+"""
+        code = self.generate_code(crafted_prompt, self.personality.image_files, template, "yaml", callback=self.sink)
+        if len(code)>0:
+            ASCIIColors.info(code)
+            infos = yaml.safe_load(code)
             infos["creation_date"]=datetime.now().isoformat()
             infos["last_update_date"]=datetime.now().isoformat()
             if self.config.debug:
@@ -363,49 +357,38 @@ disclaimer: If needed, write a disclaimer. else null
                 self.system_full_header,
                 "you are Lollms Apps Maker. Your objective is to build the description.yaml file for a specific lollms application.",
                 "The user is acsking to modify the description file of the web application and the ai should build the yaml file and return it inside a yaml markdown tag",
-                f"""
-```yaml
-name: {old_infos.get("name", "the name of the app")}
-description: {old_infos.get("description", "the description of the app")}
-version: {old_infos.get("version", "the version of the app (if not specified by the user it should be 1.0)")}
-author: {old_infos.get("author", "the author of the app (if not specified by the user it should be the user name)")}
-category: {old_infos.get("category", "the category of the app")}
-model: {self.personality.model.model_name}
-disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else null")} 
-```
-""",
                 "If the user explicitely proposed a name, use that name. If not, fill in the blacks and imagine the best possible app from the context.",
                 "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
-                self.system_custom_header("Lollms Apps Maker")
-            ],6
+            ],7
         )
-        
-        if len(self.personality.image_files)>0:
-            app_description = self.generate_with_images(crafted_prompt, self.personality.image_files,512,0.1,10,0.98, debug=True, callback=self.sink)
-        else:
-            app_description = self.generate(crafted_prompt,512,0.1,10,0.98, debug=True, callback=self.sink)
-        codes = self.extract_code_blocks(app_description)
-        if len(codes)>0:
-            infos = yaml.safe_load(codes[0]["content"].encode('utf-8').decode('ascii', 'ignore'))
-            infos["creation_date"]=old_infos["creation_date"]
-            infos["last_update_date"]=datetime.now().isoformat()
-            if self.config.debug:
-                ASCIIColors.yellow("--- Description file ---")
-                ASCIIColors.yellow(infos)
-            app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_").replace("'","_")
-            app_path.mkdir(parents=True, exist_ok=True)
-            metadata["app_path"]=str(app_path)
-            metadata["infos"]=infos
-            self.personality_config.project_path = str(app_path)
-            self.personality_config.save()            
-            client.discussion.set_metadata(metadata)
-            self.step_end("Building description.yaml")
-            return infos
-        else:
-            self.step_end("Building description.yaml", False)
-            return None
+        template= f"""```yaml
+name: {old_infos.get("name", "[the name of the app]")}
+description: {old_infos.get("description", "[the description of the app]")}
+version: {old_infos.get("version", "[the version of the app (if not specified by the user it should be 1.0)]")}
+author: {old_infos.get("author", "[the author of the app (if not specified by the user it should be the user name)]")}
+category: {old_infos.get("category", "[the category of the app]")}
+model: {self.personality.model.model_name}
+disclaimer: {old_infos.get("disclaimer", "[If needed, write a disclaimer. else null]")} 
+```
+"""
+        code = self.generate_code(crafted_prompt, self.personality.image_files, template, "yaml")
+        infos = yaml.safe_load(code)
+        infos["creation_date"]=old_infos["creation_date"]
+        infos["last_update_date"]=datetime.now().isoformat()
+        if self.config.debug:
+            ASCIIColors.yellow("--- Description file ---")
+            ASCIIColors.yellow(infos)
+        app_path = self.personality.lollms_paths.apps_zoo_path/infos["name"].replace(" ","_").replace("'","_")
+        app_path.mkdir(parents=True, exist_ok=True)
+        metadata["app_path"]=str(app_path)
+        metadata["infos"]=infos
+        self.personality_config.project_path = str(app_path)
+        self.personality_config.save()            
+        client.discussion.set_metadata(metadata)
+        self.step_end("Building description.yaml")
+        return infos
 
     def build_index(self, context_details, infos, metadata, client:Client):
         self.step_start("Building index.html")
@@ -418,8 +401,7 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
 
         crafted_prompt = self.build_prompt(
             [
-                self.system_full_header,
-                "you are Lollms Apps Maker. Your objective is to build the index.html file for a specific lollms application.",
+                "Your objective is to build the index.html file for a specific lollms application.",
                 "The user describes a web application and the ai should build a single html code to fullfill the application requirements.",
                 "Make sure the application is visually appealing and try to use reactive design with tailwindcss",
                 "The output must be in a html markdown code tag",
@@ -433,16 +415,14 @@ disclaimer: {old_infos.get("disclaimer", "If needed, write a disclaimer. else nu
                 "```"
                 ]),
                 "Start by building a plan then write the full index.html file without any further explanations."  if self.personality_config.create_a_plan is None else "Write the full index.html file without any further explanations.",                        
-                lollms_infos,
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],                     
                 lollms_infos,
                 backend_endpoints,
-
-                self.system_custom_header("Lollms Apps Maker")
             ],6
         )
-        code = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True)
+
+        code = self.generate_code(crafted_prompt, self.personality.image_files, "[The html code]", language="html", temperature=0.1, top_k=10, top_p=0.98, debug=True)
         if self.config.debug:
             ASCIIColors.yellow("--- Code file ---")
             ASCIIColors.yellow(code)
@@ -1144,20 +1124,20 @@ The code contains description.yaml that describes the application, the author, t
             self.answer(context_details, "Extra infos about the process:"+extra_infos)            
         else:
             options=[
-                    "The user is engaging in casual discussion about the webapp",
-                    "The user is asking to build a new webapp",
-                    "The user is asking for a modification that requires modifying both backend and frontend" if self.personality_config.build_a_backend else "empty place holder (never select this)",
-                    "The user is asking for a modification in the webapp backend or server.py file" if self.personality_config.build_a_backend else "empty place holder (never select this)",
-                    "The user is asking for modifications or feature additions to the existing webapp frontend (index.html)",
-                    "The user is requesting changes to the app's metadata or configuration file",
-                    "The user is asking for design or recreation of the app's icon or logo",
-                    "The user is requesting the creation or update of documentation for the app",
-                    "The user is asking to implement or modify the backend server functionality for the app"
+                    "The context content is engaging in casual discussion about the webapp or a generic unrelated thought",
+                    "asking to build a new webapp",
+                    "asking for a modification that requires modifying both backend and frontend" if self.personality_config.build_a_backend else "empty place holder (never select this)",
+                    "asking for a modification in the webapp backend or server.py file" if self.personality_config.build_a_backend else "empty place holder (never select this)",
+                    "asking for modifications or feature additions to the existing webapp frontend (index.html)",
+                    "requesting changes to the app's metadata or configuration file",
+                    "asking for design or recreation of the app's icon or logo",
+                    "requesting the creation or update of documentation for the app",
+                    "asking to implement or modify the backend server functionality for the app"
             ]
-            choices = self.multichoice_question("Based on the user's request, select the most appropriate affirmation about the request given that you build and edit webapps.", options, self.system_custom_header("user") + prompt)
-            if choices>=0 and choices<len(options):
-                self.step(options[choices])
-            if choices == 0:
+            choice = self.multichoice_question("Based on the context content, select the most appropriate affirmation about the context given that you build and edit webapps.", options, prompt)
+            if choice>=0 and choice<len(options):
+                self.step(options[choice])
+            if choice == 0:
                 extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
 Lollms apps are webapps with a possible fastapi backend. These webapps are created in html/css/javascript and can interact with lollms is the option is activated in the settings.
@@ -1166,7 +1146,7 @@ The lollms libraries suite allows your app to interact with lollms and benefits 
 The code contains description.yaml that describes the application, the author, the creation date and a short description.
 """+self.get_lollms_infos()
                 self.answer(context_details, "Extra infos about the process:"+extra_infos)            
-            elif choices ==1:
+            elif choice ==1:
                 out = "You asked me to build an app. I am building the description file."
                 self.set_message_content_invisible_to_ai(out)
 
@@ -1263,18 +1243,18 @@ The code contains description.yaml that describes the application, the author, t
                 """
                 self.ui(out)
                 client.discussion.set_metadata(metadata)
-            elif choices == 2:
+            elif choice == 2:
                 out = ""
                 self.update_server(prompt, context_details, metadata, out)
                 
                 self.update_index(prompt, context_details, metadata, out)
-            elif choices == 3:
+            elif choice == 3:
                 out = ""
                 self.update_server(prompt, context_details, metadata, out)
-            elif choices == 4:
+            elif choice == 4:
                 out = ""
                 self.update_index(prompt, context_details, metadata, out)
-            elif choices == 5:
+            elif choice == 5:
                 out = ""
                 infos = self.updateDescription(context_details, metadata, client)
                 if infos is None:
@@ -1292,16 +1272,16 @@ The code contains description.yaml that describes the application, the author, t
                 ])
                 self.set_message_content_invisible_to_ai(out)
 
-            elif choices ==6:
+            elif choice ==6:
                 out = "I'm generating a new icon based on your request.\n"
                 self.set_message_content_invisible_to_ai(out)
                 out += self.generate_icon(metadata, metadata["infos"], client)
                 self.set_message_content_invisible_to_ai(out)
-            elif choices ==7:
+            elif choice ==7:
                 out = "I'm generating a documentation for the app.\n"
                 self.set_message_content_invisible_to_ai(out)
                 self.build_documentation(prompt, context_details, metadata, out)
-            elif choices ==8:
+            elif choice ==8:
                 out = "I'm generating a server for the app.\n"
                 self.set_message_content_invisible_to_ai(out)
                 self.update_server(prompt, context_details, metadata, out)

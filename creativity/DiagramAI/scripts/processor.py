@@ -3,7 +3,6 @@ from email.mime import image
 from datetime import datetime
 import subprocess
 from pathlib import Path
-from tkinter import Label
 from xml.etree.ElementTree import Comment
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
@@ -12,11 +11,8 @@ from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull
 import re
 import importlib
-import requests
+import sys
 from typing import Callable, Any
-from tqdm import tqdm
-import webbrowser
-import conda.cli
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -62,24 +58,39 @@ class Processor(APScript):
 
     def install(self):
         super().install()
-        # self.personality.InfoMessage("Please install [tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add it to the path.")
         requirements_file = self.personality.personality_package_path / "requirements.txt"
+        
         try:
-            self.personality.ShowBlockingMessage("Installing graphviz ...")
-            conda.cli.main("install", "-c","aconda-forge::pydot", "-y")
-            conda.cli.main("install", "-c","conda-forge", "python-graphviz", "-y")
-            #conda.cli.main("install","anaconda::graphviz" "-y")
-
-            # Install dependencies using pip from requirements.txt
-            subprocess.run(["pip", "install", "--upgrade", "-r", str(requirements_file)])      
+            self.personality.ShowBlockingMessage("Installing dependencies...")
+            
+            # Install graphviz using pip
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "graphviz"], check=True)
+            
+            # Install other dependencies from requirements.txt
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "-r", str(requirements_file)], check=True)
+            
             ASCIIColors.info("Loading graphviz and PIL")
             import graphviz
             from PIL import Image
             from io import BytesIO
+            
             self.personality.HideBlockingMessage()
+            ASCIIColors.success("Dependencies installed successfully.")
+        
+        except subprocess.CalledProcessError as e:
+            self.personality.HideBlockingMessage()
+            ASCIIColors.error(f"Error occurred while installing dependencies: {e}")
+            raise
+        except ImportError as e:
+            self.personality.HideBlockingMessage()
+            ASCIIColors.error(f"Error importing installed packages: {e}")
+            ASCIIColors.warning("Please make sure graphviz is installed on your system and added to PATH.")
+            raise
         except Exception as ex:
-            trace_exception(ex)
             self.personality.HideBlockingMessage()
+            ASCIIColors.error(f"An unexpected error occurred: {ex}")
+            trace_exception(ex)
+            raise
 
     def gen_regex_image(self,call_graph_str,nb):
         import graphviz
