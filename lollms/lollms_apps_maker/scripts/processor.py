@@ -361,7 +361,7 @@ disclaimer: [If needed, write a disclaimer. else null]
                 "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
                 context_details["discussion_messages"],
-            ],7
+            ],6
         )
         template= f"""```yaml
 name: {old_infos.get("name", "[the name of the app]")}
