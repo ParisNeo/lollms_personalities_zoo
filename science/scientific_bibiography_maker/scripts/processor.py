@@ -98,7 +98,7 @@ class Processor(APScript):
 
         if self.config.rag_vectorizer == "semantic":
             from lollmsvectordb.lollms_vectorizers.semantic_vectorizer import SemanticVectorizer
-            v = SemanticVectorizer(self.config.rag_vectorizer_model)
+            v = SemanticVectorizer(self.config.rag_vectorizer_model, self.config.rag_vectorizer_execute_remote_code)
         elif self.config.rag_vectorizer == "tfidf":
             from lollmsvectordb.lollms_vectorizers.tfidf_vectorizer import TFIDFVectorizer
             v = TFIDFVectorizer()

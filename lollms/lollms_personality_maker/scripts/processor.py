@@ -717,7 +717,7 @@ class Processor(APScript):
             try:
                 if self.personality.config.rag_vectorizer=="semantic":
                     from lollmsvectordb.lollms_vectorizers.semantic_vectorizer import SemanticVectorizer
-                    vectorizer = SemanticVectorizer(self.lollms.config.rag_vectorizer_model)
+                    vectorizer = SemanticVectorizer(self.personality.config.rag_vectorizer_model, self.personality.config.rag_vectorizer_execute_remote_code)
                 elif self.personality.config.rag_vectorizer=="tfidf":
                     from lollmsvectordb.lollms_vectorizers.tfidf_vectorizer import TFIDFVectorizer
                     vectorizer = TFIDFVectorizer()
