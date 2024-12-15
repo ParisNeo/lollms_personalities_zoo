@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 import re
-import importlib
+import json
 import requests
 from tqdm import tqdm
 import shutil
@@ -303,7 +303,7 @@ class Processor(APScript):
 
         crafted_prompt = self.build_prompt(
             [
-                self.system_full_header+f"icon imaginer is a personality icon description AI.",
+                "The code to generate is a json with two",
                 "The user describes a personality and the ai should describe a suitable icon for the ai personality",
                 "icon imaginer tries to express the personality of by describing a suitable eye catching icon",
                 "icon imaginer uses english to describe the icon.",
@@ -313,15 +313,18 @@ class Processor(APScript):
                 self.system_custom_header("context"),
                 discussion_messages,
                 self.system_custom_header("name")+f"{name}",
-                f"Answer with only the prompt with no extra comments. All the prompt should be written in a single line.",
-                "Only build short descriptions (less than 77 tokens)",
                 self.system_custom_header("examples") if examples!="" else "",
-                f"{examples}"
+                f"{examples}" if examples!="" else ""
             ],5
         )
-        sd_prompt = self.generate_text(crafted_prompt, callback=self.sink, accept_all_if_no_code_tags_is_present=True).strip().split("\n")[0]
+        template = """{
+"prompt": "[a short image generation prompt to generate the icon with style elements]"
+}
+        """
+        sd_prompt = self.generate_text(crafted_prompt, self.personality.image_files, template, callback=self.sink, accept_all_if_no_code_tags_is_present=True)
+        sd_prompt = json.loads(sd_prompt)["prompt"]
         self.step_end("Imagining Icon")
-        self.set_message_content(sd_prompt)
+        self.set_message_content("### Image generation prompt: "+sd_prompt)
         self.new_message("")
         ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
         self.add_chunk_to_message_content("")
@@ -505,11 +508,11 @@ class Processor(APScript):
 
 
 
-    def generate_personality(self, prompt, single_shot=False):
+    def generate_personality(self, main_prompt, single_shot=False):
         categories = [c.stem.lower() for c in Path(__file__).parent.parent.parent.parent.iterdir() if c.is_dir()]
         template = {
             "name": {
-                "prompt": "Based on this request: '{main_prompt}', generate a suitable name for the personality.",
+                "prompt": f"Based on the prompt, generate a suitable name for the personality.",
                 "default": ""
             },
             "author": {
@@ -522,26 +525,26 @@ class Processor(APScript):
                 "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
             },
             "category": {
-                "prompt": "Based on this request: '{main_prompt}', choose the most appropriate category from: "+",".join(categories)+".",
+                "prompt": f"Based on the prompt, choose the most appropriate category from: "+",".join(categories)+". Only write the most appropriate category name in the field category.",
                 "default": "generic"
             },
             "language": {
                 "default": self.personality_config.language
             },
             "personality_description": {
-                "prompt": "Based on this request: '{main_prompt}', write a brief description of the personality. Keep it under 3 sentences.",
+                "prompt": f"Based on the prompt, write a brief description of the personality. Keep it under 3 sentences.",
                 "default": ""
             },
             "disclaimer": {
-                "prompt": "Based on this request: '{main_prompt}', write a brief disclaimer mentioning any limitations. Keep it under 2 sentences.",
+                "prompt": f"Based on the prompt, write a brief disclaimer mentioning any limitations. Keep it under 2 sentences.",
                 "default": ""
             },
             "personality_conditioning": {
-                "prompt": """Based on this request: '{main_prompt}', define the personality's system message. The system message describes the personality and how it behaves. The message must be written in """+self.personality_config.language+".",
+                "prompt": f"""Based on the prompt, define the personality's system message. The system message describes the personality and how it behaves. The message must be written in """+self.personality_config.language+".",
                 "default": ""
             },
             "welcome_message": {
-                "prompt": "Based on this request: '{main_prompt}', create a welcome message introducing the personality's capabilities. Keep it friendly and professional, under 3 sentences. The message must be written in "+self.personality_config.language+".",
+                "prompt": f"Based on the prompt, create a welcome message introducing the personality's capabilities. Keep it friendly and professional, under 3 sentences. The message must be written in "+self.personality_config.language+".",
                 "default": ""
             },
             "model_temperature": {
@@ -562,20 +565,16 @@ class Processor(APScript):
             "dependencies": {
                 "default": []
             },
-            "anti_prompts": {
-                "default": []
-            },
         }
         if self.personality_config.generate_prompt_examples:
             template["prompts_list"]={
-                "prompt": "Based on this request: '{main_prompt}', list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. The prompts must be disposed one per line inside the markdown tag. The message must be written in "+self.personality_config.language+".",
+                "prompt": "Based on the prompt, list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. The prompts must be disposed one per line inside the markdown tag. The message must be written in "+self.personality_config.language+".",
                 "default": [],
-                "processor": lambda x: x.split('\n')
             }
         if self.config.debug and not self.personality.processor:
-            ASCIIColors.highlight(prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
+            ASCIIColors.highlight(self.system_custom_header("prompt")+main_prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
-        response = self.generate_structured_content(prompt, template, single_shot)
+        response = self.generate_structured_content(main_prompt, template, single_shot)
         if response["data"]["category"].strip().lower() not in categories:
             response["data"]["category"]="generic"
         return response
