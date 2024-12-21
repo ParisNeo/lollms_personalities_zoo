@@ -208,7 +208,7 @@ class Processor(APScript):
 
                             self.step_end(f"Processing file {file}")
 
-    def start_detection(self, prompt="", full_context=""):
+    def start_detection(self, prompt="", full_context="", client:Client=None):
         if show_yes_no_dialog("File processing request","Hi! I just received a request to start reading and documenting files on your PC.If this operation was not triggered by you, please press No and investigate your security.\nIf this is requested by you then pres yes to start.\nDo you want to continue?"):
             if self.personality_config.code_folder_path=="" or self.personality_config.docs_folder_path=="":
                 self.set_message_content("Please setup a code folder path, a docs folder path and optionally a tests folder path before trying to use this functionality")
