@@ -9,6 +9,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import show_yes_no_dialog
+from lollms.client_session import Client
 
 from pathlib import Path
 from typing import Callable, Any
@@ -228,7 +229,6 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
-    from lollms.client_session import Client
     def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
