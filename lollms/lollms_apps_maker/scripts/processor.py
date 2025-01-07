@@ -562,40 +562,21 @@ Infos: The client will be running on an server that is not the same as the one w
 
         if self.personality_config.update_mode=="rewrite":
             crafted_prompt = self.build_prompt([
-                self.system_full_header,
-                "You are Lollms Apps Maker best application maker ever.",
-                "Your objective is to update the HTML, JavaScript, and CSS code for a specific lollms application.",
+                self.system_custom_header("Documentation"),
                 self.get_lollms_infos(),
+                self.system_custom_header("Instruction"),
+                "Rewrite the code to fit the user prompt.",
                 backend_endpoints,
-                self.system_custom_header("Code"),
-                "index.html",
+                "ORIGINAL CODE:",
                 "```html",
                 original_content,
                 "```",
-                self.system_custom_header("context"),
-                prompt,
-                self.system_custom_header("⚠️ CRITICAL INSTRUCTIONS - READ CAREFULLY ⚠️"),
-                "FORBIDDEN RESPONSES - These will be rejected:",
-                '❌ Using "<!-- Rest of the HTML remains the same -->"',
-                '❌ Using "<!-- Rest of the code stays unchanged -->"',
-                "❌ Including any placeholder comments",
-                "❌ Splitting code into multiple blocks",
-                "❌ Providing partial code",
-                "",
-                "REQUIRED FORMAT:",
-                "1. List planned changes",
-                "2. Provide complete code in ONE BLOCK:",
-                "```html",
-                "<!DOCTYPE html>",
-                "<html>",
-                "[FULL CODE HERE - EVERY SINGLE LINE]",
-                "</html>",
-                "```",
-                "",
-                "⚠️ WARNING: If you use any placeholders or 'remains the same' comments, your response will be invalid and rejected.",
-                "YOU MUST REWRITE THE ENTIRE CODE, EVEN IF ONLY ONE LINE CHANGES.",
-                self.system_custom_header("Lollms Apps Maker")
+                "CRITICAL: ANY SHORTCUTS OR PLACEHOLDERS = INSTANT REJECTION",
+                "WRITE EVERY SINGLE LINE OF CODE. NO EXCEPTIONS.",
+                self.user_custom_header("user_prompt"),
+                prompt
             ])
+            
 
 
             code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)

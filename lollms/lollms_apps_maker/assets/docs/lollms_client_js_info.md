@@ -69,10 +69,16 @@ ELF_GENERATION_FORMAT.VLLM : Uses vllm API as backend (key is optional)
     ```
 
 
-0. **Properties:**
+0. **Delimiters:**
+Delimiters can be used while crafting a prompt to make the prompt match the format expected by the LLM.
+`lc.separatorTemplate()` : the separator between dialogue roles
 `lc.system_message()` : the system message keyword 
 `lc.user_message()` : the user message start keyword 
 `lc.ai_message()` : the ai message start keyword 
+`lc.custom_message()` : a custom message header
+
+Use these to structure the prompts. The last thing in the prompt must be lc.ai_message()
+Best way is to structure the prompt as a system prompt followed by user input or data followed by ai message. The Ai will respond.
 
 1. **Generate Text from a Prompt:**
 
@@ -99,15 +105,57 @@ const generated_text = await lc.generate_with_images(prompt, images);
 ```
 
 2. **Generate a single code from a Prompt:**
+```javascript
+// This is the full signature of generateCode method
+async generateCode(
+  prompt, 
+  template=null,
+  language="json",
+  images = [],  
+  {
+    n_predict = null,
+    temperature = 0.1,
+    top_k = 50,
+    top_p = 0.95,
+    repeat_penalty = 0.8,
+    repeat_last_n = 40,
+    streamingCallback = null
+  } = {}
+)
+```
 When you need to generate code, please use this function that allows a better generation of code, json, yaml etc...
 ```javascript
-// Generate  code
+// Generate  code from prompt (the prompt must contain just the generation instruction without delimiters)
 const code = await lc.generateCode(prompt);
+// the generated code is a string without the markdown delimiters so you can directly parse it if applicable
 if (code!=null){
   // Use the code
+  // for example for json, here you can directly parse the code
+  presentationData = JSON.parse(jsonStructure);
 }
 ```
 This is useful to recover structured data like json. Don't forget to give the format of the expected json in the prompt.
+Make sure you give an example of the sytructure to force the AI to use exact code
+
+  
+
+```javascript
+// Generate  code from prompt (the prompt must contain just the generation instruction without delimiters)
+const code = await lc.generateCode(prompt,
+                      // Example of template for jenerating a json with specific fields
+                      template=`{
+  "name":"string: the name",
+  "age":int: the age,
+}`,
+  language="json");
+
+// the generated code is a string without the markdown delimiters so you can directly parse it if applicable
+if (code!=null){
+  // Use the code
+  // for example for json, here you can directly parse the code
+  presentationData = JSON.parse(jsonStructure);
+}
+```
 
 2. **Generate a list of Codes from a Prompt:**
 When you need to generate a list of codes, please use this function that allows a better generation of multiple codes, json, yaml etc...
@@ -117,7 +165,8 @@ const codes = await lc.generateCodes(prompt);
 if (codes.length>0){
   // Use the code
   codes.forEach(code => {
-    console.log(code.content);
+    console.log(code.language); // The language json, python, c, etc
+    console.log(code.content); // The actual code that can be parsed if needed
   });
 }
 ```
@@ -129,17 +178,7 @@ The `LollmsClient` also provides functions for tokenization and detokenization, 
 1. **Tokenize a Prompt:**
 
 ```javascript
-async tokenize(prompt) {
-    /**
-     * Tokenizes the given prompt using the model's tokenizer.
-     *
-     * @param {string} prompt - The input prompt to be tokenized.
-     * @returns {Array} A list of tokens representing the tokenized prompt.
-     */
-    const output = await axios.post("/lollms_tokenize", {"prompt": prompt});
-    console.log(output.data.named_tokens);
-    return output.data.named_tokens; // Returns a list of named tokens
-}
+tokens = await lc.tokenize(prompt, return_named=false/*optional*/)
 ```
 
 - The `tokenize` function sends a prompt to the Lollms API and receives a response containing two types of tokens:
@@ -149,20 +188,10 @@ async tokenize(prompt) {
 2. **Detokenize a List of Tokens:**
 
 ```javascript
-async detokenize(tokensList) {
-    /**
-     * Detokenizes the given list of tokens using the model's tokenizer.
-     *
-     * @param {Array} tokensList - A list of tokens to be detokenized.
-     * @returns {string} The detokenized text as a string.
-     */
-    const output = await axios.post("/lollms_detokenize", {"tokens": tokensList});
-    console.log(output.data.text);
-    return output.data.text; // Returns the detokenized text
-}
+text = await detokenize(tokensList, return_named=false/*optional*/) 
 ```
 
-- The `detokenize` function takes a list of token IDs and sends it to the Lollms API, which returns the corresponding text string.
+- The `detokenize` function takes a list of token IDs and sends it to the Lollms API, which returns the corresponding text string or a named version of the tokens which is a list of the tokens and their corresponding text.
 
 
 Note:
