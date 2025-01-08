@@ -324,9 +324,9 @@ class Processor(APScript):
         sd_prompt = self.generate_text(crafted_prompt, self.personality.image_files, template, callback=self.sink, accept_all_if_no_code_tags_is_present=True)
         sd_prompt = json.loads(sd_prompt)["prompt"]
         self.step_end("Imagining Icon")
-        self.set_message_content("### Image generation prompt: "+sd_prompt)
+        self.set_message_content("### Image generation prompt:\n"+sd_prompt)
         self.new_message("")
-        ASCIIColors.yellow(f"Image generation prompt:{sd_prompt}")
+        ASCIIColors.yellow(f"Image generation prompt:\n{sd_prompt}")
         self.add_chunk_to_message_content("")
         # ----------------------------------------------------------------
         
