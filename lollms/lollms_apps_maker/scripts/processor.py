@@ -573,6 +573,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 "```",
                 "CRITICAL: ANY SHORTCUTS OR PLACEHOLDERS = INSTANT REJECTION",
                 "WRITE EVERY SINGLE LINE OF CODE. NO EXCEPTIONS.",
+                "Avoid asking the user to fill in the blancks and make sure the code you provide is complete.",
                 self.user_custom_header("user_prompt"),
                 prompt
             ])
@@ -656,22 +657,19 @@ Infos: The client will be running on an server that is not the same as the one w
                 # Stage the current version of index.html
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Backup before update")
-
+                
                 for code_block in codes:
-                    out_ = self.update_code(original_content, code_block["content"])
-                    if out_["hasQuery"]:
-                        out += f"Updated index file with new code\n"
-                    else:
-                        print(f"Warning: The AI did not manage to update the code!")
+                    original_code, new_code = self.parse_code_replacement(code_block["content"])
+                    original_content = self.update_code(original_content, original_code, new_code)
                 
                 # Write the updated content back to index.html
-                index_file_path.write_text(out_["updatedCode"], encoding='utf8')
+                index_file_path.write_text(original_content, encoding='utf8')
                 
                 # Stage and commit the changes
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Update index.html")
                 
-                out += f"Updated index file:\n```html\n{out_['updatedCode']}\n```\n"
+                out += f"Updated index file:\n```html\n{original_content}\n```\n"
             else:
                 out += "No sections were updated."
 
