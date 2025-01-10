@@ -625,14 +625,8 @@ Infos: The client will be running on an server that is not the same as the one w
                     "The ORIGINAL statement (<old_code>) should contain valid code from the orginal code. It should be a full statement and not just a fragment of a statement.",
                     "The SET statement (<new_code_snippet>) is mandatory. You should put the new lines of code just after it.",
                     "Make sure if possible to change full statements or functions. The code to SET must be fully working and without placeholders.",
-                    "If there is no ambiguity, just use a single line of code for each (first line to be changed and last line to be changed).",
-                    "When providing code changes, make sure to respect the indentation in Python. Only provide the changes, do not repeat unchanged code. Use comments to indicate the type of change.",
-                    "If too many changes needs to be done, and you think a full rewrite of the code is much more adequate, use this syntax:",
-                    "```python",
-                    "# FULL_REWRITE",
-                    "<new_full_code>",
-                    "```",
-                    "Select the best between full rewrite and replace according to the amount of text to update.",
+                    "To add code, use the same REPLACE syntax with the last line before where you must add you new code then in the SET rewrite that line and then the new lines to add.",
+                    "The code to SET must be fully working and without placeholders.",
                     "Update the code from the user suggestion",
                     self.system_custom_header("context"),
                     context_details["discussion_messages"],
@@ -660,7 +654,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 
                 for code_block in codes:
                     original_code, new_code = self.parse_code_replacement(code_block["content"])
-                    original_content = self.update_code(original_content, original_code, new_code)
+                    original_content = self.update_code_with_best_match(original_content, original_code, new_code)
                 
                 # Write the updated content back to index.html
                 index_file_path.write_text(original_content, encoding='utf8')
