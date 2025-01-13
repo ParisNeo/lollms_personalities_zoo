@@ -109,7 +109,6 @@ class Processor(APScript):
         prompt = self.build_prompt([
             self.personality_config.conditionning,
             context_details["documentation"] if self.personality_config.accept_documentation else "",
-            context_details["knowledge"] if self.personality_config.accept_knowledge else "",
             "\n".join([f"internet result at {i}:\n{c}" for i, c in zip(context_details["internet_search_infos"],context_details["internet_search_results"])]) if self.personality_config.accept_internet else "",
             context_details["discussion_messages"],
             

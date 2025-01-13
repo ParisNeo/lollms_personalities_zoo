@@ -264,7 +264,6 @@ class Processor(APScript):
             'To get this task done No extra text must be generated , no explanation , no comment , no question , no echo , only the notation representig the scenario.',
             'The graph description should end with {self.config.start_header_id_template}',
             context_details["documentation"],
-            context_details["knowledge"],
             context_details["user_description"],
             context_details["discussion_messages"] if self.personality_config.continuous_discussion else "",
             context_details["positive_boost"],

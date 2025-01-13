@@ -206,7 +206,6 @@ class Processor(APScript):
         full_prompt = header_text
         full_prompt += context_details["conditionning"]
         full_prompt += context_details["documentation"]
-        full_prompt += context_details["knowledge"]
         full_prompt += context_details["user_description"]
         full_prompt += context_details["discussion_messages"]
         full_prompt += context_details["positive_boost"]

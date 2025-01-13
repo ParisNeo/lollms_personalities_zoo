@@ -116,7 +116,6 @@ class Processor(APScript):
            f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}{self.personality_config.current_conditionning}",
            context_details["discussion_messages"],
            context_details["documentation"],
-           context_details["knowledge"],
            context_details["user_description"],
            context_details["discussion_messages"],
            f"{self.config.start_header_id_template}current user prompt:",

@@ -716,7 +716,6 @@ class Processor(APScript):
         prompt = self.build_prompt([
             context_details["conditionning"] if context_details["conditionning"] else "",
             f"{self.config.start_header_id_template}documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-            f"{self.config.start_header_id_template}knowledge:\n"+context_details["knowledge"] if context_details["knowledge"] else "",
             context_details["user_description"] if context_details["user_description"] else "",
             f"{self.config.start_header_id_template}positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
             f"{self.config.start_header_id_template}negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
