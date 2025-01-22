@@ -23,7 +23,7 @@ ai_message_prefix: 'assistant'
 # A text to put between user and chatbot messages
 link_text: '
 '
-welcome_message: ""
+welcome_message: "Hi, how can I selp you?"
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower: more deterministic
 
