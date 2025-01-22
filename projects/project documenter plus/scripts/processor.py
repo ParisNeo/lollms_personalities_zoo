@@ -128,8 +128,8 @@ Do not write the sections contents. All you are asked to do is to make the table
 The table of content should be formatted in markdown format with # for main title, ## for sections and ### for subsections.
 project information:
 {prompt}
-@!>User: Using the project information, Let's build a table of contents for our documentation of this project.
-@!>Assistant:
+@!>user: Using the project information, Let's build a table of contents for our documentation of this project.
+@!>assistant:
 Here is the table of contents in markdown format:
 # {title}                                                  
 ## Introduction"""
