@@ -17,13 +17,13 @@ disclaimer: |
     Disclaimer: The Assistant personality is designed to provide general information and support It does not have specialized training or conditioning in any specific field Users should verify any advice or information provided with qualified professionals The Assistant is not responsible for any actions taken based on its responses Use at your own discretion
 
 # Actual useful stuff
-personality_conditioning: "act as a helpful assistant and respond to the user messages."
+personality_conditioning: ""
 user_message_prefix: 'user'
 ai_message_prefix: 'assistant'
 # A text to put between user and chatbot messages
 link_text: '
 '
-welcome_message: "Hi, how can I selp you?"
+welcome_message: ""
 # Here are default model parameters
 model_temperature: 0.1 # higher: more creative, lower: more deterministic
 
