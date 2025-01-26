@@ -74,12 +74,14 @@ from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.types import MSG_OPERATION_TYPE
 
-class Processor(APScript):
+class Processor(APScript): # The class must be called Processor and enherit from APScript
     def __init__(self, personality: AIPersonality, callback: Callable = None) -> None:
         # Initialize configuration and states
         personality_config_template = ConfigTemplate([
-            # Configuration entries
+            # Configuration entries in this format:
+            {"name":"the_name_of_the_parameter_with_no_space","type":"the type: str, int, float, options","value":"the default value of the setting", "help":"A  help text"},
         ])
+
         personality_config_vals = BaseConfig.from_template(personality_config_template)
         personality_config = TypedConfig(personality_config_template, personality_config_vals)
         
@@ -90,13 +92,16 @@ class Processor(APScript):
                 {
                     "name": "idle",
                     "commands": {
-                        "help": self.help,
+                        "help": self.help, # Here we can add more commands that will be shown as menues
                     },
                     "default": None
                 },
             ],
             callback=callback
         )
+
+        # The settings may be read like this:
+        self.personality_config.setting_name
 ```
 
 ### 4.2 Key Methods <a name="key-methods"></a>
@@ -114,10 +119,40 @@ The `run_workflow` method is the core of a scripted personality. It handles user
 ```python
 def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
     self.callback = callback
+    # to build the full prompt from context:
     full_prompt = self.build_prompt_from_context_details(context_details)
+    # You can also use the context_details content directly
+    # To generate text without too much configurations, just use
     out = self.fast_gen(full_prompt)
+    # To show the message to the user:
     self.set_message_content(out)
 ```
+
+context_details contains alot of information that can be used by the AI:
+```python
+    context_details = {
+        "client_id":the id of the client using the service,
+        "conditionning":the doncitioning text,
+        "internet_search_infos":internet search infos (empty if internet is off),
+        "internet_search_results":internet search results (empty if internet is off),
+        "documentation":documentation (empty if no documentation is used),
+        "documentation_entries":the documentation separated by type as there is datalakes, discussion documents, skills library... (empty if no documentation is used),
+        "user_description":the user description (empty if deactivated),
+        "discussion_messages":the full descussion until current time,
+        "positive_boost":a text to boost ai positively (empty if deactivated),
+        "negative_boost":a text to boost ai negatively (empty if deactivated),
+        "current_language":The language the ai must use to answer,
+        "fun_mode":if this moide is on, then the AI must respond in fally way (empty if deactivated),
+        "ai_prefix":the prefix of AI ,
+        "extra":"",
+        "available_space":how much context space left,
+        "skills":information about skills the AI must remember(empty if deactivated),
+        "is_continue":true if this is a conotinue from previous message,
+        "previous_chunk":previous_chunk,
+        "prompt":The user last prompt
+    } 
+```
+
 
 ### 4.4 User Interaction <a name="user-interaction"></a>
 

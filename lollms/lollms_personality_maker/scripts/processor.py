@@ -574,7 +574,7 @@ class Processor(APScript):
         if self.config.debug and not self.personality.processor:
             ASCIIColors.highlight(self.system_custom_header("prompt")+main_prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
-        response = self.generate_structured_content(main_prompt, template, single_shot)
+        response = self.generate_structured_content(main_prompt, template, single_shot, True)
         if response["data"]["category"].strip().lower() not in categories:
             response["data"]["category"]="generic"
         return response
