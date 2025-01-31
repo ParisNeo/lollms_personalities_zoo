@@ -387,12 +387,12 @@ class Processor(APScript):
                 self.width=self.personality_config.width
                 self.height=self.personality_config.height
 
-            metadata_infos += self.add_collapsible_entry("Chosen resolution",f"{self.width}x{self.height}") 
+            metadata_infos += f"## Chosen resolution:\n{self.width}x{self.height}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             if self.personality_config.add_style:
                 styles = self.get_styles(initial_prompt,full_context)
-                metadata_infos += self.add_collapsible_entry("Chosen style",f"{styles}",open_by_default=True) 
+                metadata_infos += f"## Chosen style: {styles}"
                 self.set_message_content(f"{metadata_infos}")     
             else:
                 styles = None
@@ -433,7 +433,7 @@ class Processor(APScript):
 
             positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += self.add_collapsible_entry("Positive prompt",f"{positive_prompt}", open_by_default=True) 
+            metadata_infos += f"Positive prompt:\n{positive_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
@@ -458,7 +458,7 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += self.add_collapsible_entry("Negative prompt", f"{negative_prompt}", open_by_default=False) 
+            metadata_infos += f"Negative prompt:\n{negative_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
@@ -478,7 +478,7 @@ class Processor(APScript):
                 if sd_title:
                     sd_title = sd_title.strip().replace("</s>","").replace("<s>","")
                 self.step_end("Making up a title")
-                metadata_infos += self.add_collapsible_entry(f"{sd_title}","",open_by_default=False)
+                metadata_infos += f"{sd_title}"
                 self.set_message_content(f"{metadata_infos}")
                 
         else:
