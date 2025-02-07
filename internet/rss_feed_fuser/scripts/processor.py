@@ -187,7 +187,7 @@ class Processor(APScript):
                 "### News:",
             ]+links)
             ASCIIColors.yellow("Done URLs recovery")
-            self.set_message_content(output)
+            self.ui(output)
 
     def fuse_articles(self, prompt="", full_context="", client=None):
         output_folder = self.personality_config.output_folder
@@ -230,7 +230,7 @@ class Processor(APScript):
 </div>    
 <b>{'same' if answer else 'different'}<b><br>
 '''+previous_output
-                        self.set_message_content(out)
+                        self.ui(out)
                         if answer:
                             subjects[-1].append(second_feed)
                             processed.append(second_feed)
@@ -254,7 +254,7 @@ class Processor(APScript):
     <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
 </div>    
 '''+previous_output
-                self.set_message_content(out)
+                self.ui(out)
 
 
 
@@ -315,7 +315,7 @@ class Processor(APScript):
 '''
             out += self.build_a_folder_link(self.personality_config.output_folder, client,"Open output folder")
             out +=card
-            self.set_message_content(out)
+            self.ui(out)
         out = "<html><header></header><body>"+"\n"+out+"</body><html>"
         with open(output_folder/"news.html","w") as f:
             f.write(out)
@@ -346,8 +346,9 @@ class Processor(APScript):
             for index,feed in enumerate(feeds):
                 progress = ((index+1) / total_entries) * 100
                 answer = self.multichoice_question("Determine the category that suits this article the most.", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
+                
                 categorized[cats[answer]].append(feed)
-                self.set_message_content(f'''
+                self.ui(f'''
 Article classified as : {cats[answer]}
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
@@ -379,7 +380,7 @@ Article classified as : {cats[answer]}
         pages = internet_search(query, self.personality_config.internet_nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
         if len(pages)==0:
-            self.set_message_content("Failed to do internet search!!")
+            self.ui("Failed to do internet search!!")
             self.step_end("Performing internet search",False)
             return
         self.step_end("Performing internet search")
@@ -406,7 +407,7 @@ Article classified as : {cats[answer]}
                             ]),
                             "Document chunk"
                             )
-                self.set_message_content(page_text)
+                self.ui(page_text)
             else:
                 chunks = self.vectorize_and_query(page['content'], page['title'], page['url'], query)
                 content = "\n".join([c.text for c in chunks])
@@ -426,8 +427,8 @@ Article classified as : {cats[answer]}
                     ]),
                     "Document chunk"
                     )
-                self.set_message_content(page_text)
-            self.set_message_content(page_text)
+                self.ui(page_text)
+            self.ui(page_text)
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
@@ -449,7 +450,7 @@ Article classified as : {cats[answer]}
             "Document chunk",
             callback=self.sink
             )
-        self.set_message_content(page_text)
+        self.ui(page_text)
 
         self.step_start(f"Last composition")
         page_text = self.summarize_text(page_text,"\n".join([
@@ -465,7 +466,7 @@ Article classified as : {cats[answer]}
             "Document chunk",
             callback=self.sink
             )
-        self.set_message_content(page_text)
+        self.ui(page_text)
         self.step_end(f"Last composition")
 
         if self.personality_config.output_path:
