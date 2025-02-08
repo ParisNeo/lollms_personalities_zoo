@@ -337,3 +337,19 @@ class Processor(APScript):
             self.new_message("")
             out = self.yes_no("Is Paris in france?","You are smart")#, callback=self.sink)
             self.set_message_content(f"paris in france:{out}")
+            self.new_message("")
+            # Define the question, possible answers, and context
+            question = "What is the capital of France?"
+            possible_answers = ["Paris", "London", "Berlin", "Madrid"]
+            context = "France is a country in Western Europe."
+
+            # Create the multiple-choice question with a condition
+            condition = "The answer is not London."
+            question_with_condition = self.multichoice_question(
+                question=question,
+                possible_answers=possible_answers,
+                context=context,
+                conditionning=condition,
+                return_explanation=True
+            )
+            self.set_message_content(f"question_with_condition:{question_with_condition}")
