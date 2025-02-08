@@ -331,4 +331,9 @@ class Processor(APScript):
                 print(stat)
             tracemalloc.stop()
             self.json("json", {"test":"test"})
-
+        else:
+            out = self.generate_structured_content("generate a meal",template={"name":"The meal name","ingredients":"a list of ingrediants","steps":"a list of steps"})#, callback=self.sink)
+            self.json("Generated json",out)
+            self.new_message("")
+            out = self.yes_no("Is Paris in france?","You are smart")#, callback=self.sink)
+            self.set_message_content(f"paris in france:{out}")
