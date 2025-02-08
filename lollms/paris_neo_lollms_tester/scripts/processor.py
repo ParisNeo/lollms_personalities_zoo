@@ -323,7 +323,7 @@ class Processor(APScript):
             import tracemalloc
             tracemalloc.start()
             self.set_message_content("Testing ui")
-            self.ui(prompt)
+            self.set_message_html(prompt)
             snapshot = tracemalloc.take_snapshot()
             top_stats = snapshot.statistics('lineno')
             print("[ Top 10 ]")

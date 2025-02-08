@@ -149,7 +149,7 @@ class Processor(APScript):
          personality_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
          personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
          pth = "outputs/sd/Artbot_721.png"
-         self.ui('<img src="outputs/sd/Artbot_721.png">')
+         self.set_message_html('<img src="outputs/sd/Artbot_721.png">')
          self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
          self.new_message("Testing generation", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
          out = self.generate("explain what is to be human",50,callback = self.callback)

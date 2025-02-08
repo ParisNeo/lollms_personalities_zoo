@@ -351,7 +351,7 @@ class Processor(APScript):
                     escaped_url =  discussion_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
-                    self.ui(ui)
+                    self.set_message_html(ui)
                     self.set_message_content(output_text+f'\n![]({escaped_url})')
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
@@ -392,7 +392,7 @@ class Processor(APScript):
         
         output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client, "press this text to access personality path")
         self.set_message_content(output_text)
-        self.ui('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
+        self.set_message_html('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)

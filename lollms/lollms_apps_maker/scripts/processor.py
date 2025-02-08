@@ -1214,7 +1214,7 @@ The code contains description.yaml that describes the application, the author, t
     </ol>
 </div>
                 """
-                self.ui(out)
+                self.set_message_html(out)
                 client.discussion.set_metadata(metadata)
             elif choice == 2:
                 out = ""

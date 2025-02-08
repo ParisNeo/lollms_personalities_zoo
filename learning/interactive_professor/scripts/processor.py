@@ -203,7 +203,7 @@ Important guidelines:
 Provide the complete HTML code within a markdown code block, ready for immediate use. Do not include any explanations or descriptions outside the code block.
 
 """+self.ai_full_header
-            self.ui("""
+            self.set_message_html("""
 <div class="flex items-center justify-center h-screen bg-gray-100">
   <div class="relative w-24 h-24">
     <div class="absolute top-0 left-0 w-full h-full border-8 border-gray-200 rounded-full"></div>
@@ -221,7 +221,7 @@ Provide the complete HTML code within a markdown code block, ready for immediate
                     ASCIIColors.success(f'Found code: {code["type"]}')
                     if code["type"]=="html":
                         ui += code["content"]
-            self.ui(ui)
+            self.set_message_html(ui)
 
         self.set_message_content(out)
 

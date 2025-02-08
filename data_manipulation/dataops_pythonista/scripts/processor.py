@@ -235,7 +235,7 @@ class Processor(APScript):
                         '</script>',
                     ])
 
-                    self.ui(ui)
+                    self.set_message_html(ui)
                         
                     self.set_message_content(out)
                     done = True

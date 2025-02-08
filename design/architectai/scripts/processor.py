@@ -284,7 +284,7 @@ class Processor(APScript):
             
             file_html = self.make_selectable_photo(path.stem,f"/{pth}",{"name":path.stem,"type":"Imported image", "prompt":description})
             self.set_message_content(f"File added successfully\nImage description :\n{description}\nImage:\n![]({pth})", callback=callback)
-            self.ui(self.make_selectable_photos(file_html))
+            self.set_message_html(self.make_selectable_photos(file_html))
             self.finished_message()
         else:    
             self.set_message_content(f"File added successfully\n", callback=callback)

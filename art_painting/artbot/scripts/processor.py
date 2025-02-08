@@ -208,7 +208,7 @@ class Processor(APScript):
             output += f"##  Image description :\n{description}\n"
             self.set_message_content(output, callback=callback)
             photos_ui = self.make_selectable_photos(file_html)
-            self.ui(photos_ui)
+            self.set_message_html(photos_ui)
             self.finished_message()
         else:    
             self.set_message_content(f"File added successfully\n", callback=callback)
@@ -337,7 +337,7 @@ class Processor(APScript):
                 self.set_message_content(metadata_infos) 
 
         photos_ui = self.make_selectable_photos(self.make_selectable_photos(ui))
-        self.ui(photos_ui)
+        self.set_message_html(photos_ui)
 
         return infos
     

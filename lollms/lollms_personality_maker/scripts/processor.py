@@ -362,7 +362,7 @@ class Processor(APScript):
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
                     ui_code += self.make_selectable_photos(ui)
-                    self.ui(ui_code)
+                    self.set_message_html(ui_code)
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
                     shutil.copy("assets/logo.png",self.assets_path)
@@ -482,10 +482,10 @@ class Processor(APScript):
         self.step_end("Painting Icon")
         
         ui_code+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client,"press this text to access personality path")
-        self.ui(ui_code)
+        self.set_message_html(ui_code)
         full_page = header+'\n'+ui+"\n"+footer
         print(full_page)
-        self.ui(ui)
+        self.set_message_html(ui)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -618,7 +618,7 @@ class Processor(APScript):
         yaml_data = personality_infos["formatted_string"]
 
         ui_data = self.generate_html_from_dict(infos)
-        self.ui(ui_data)
+        self.set_message_html(ui_data)
         name = infos["name"]
         self.step_end("Building the yaml file")
         self.new_message("")

@@ -184,6 +184,6 @@ class Processor(APScript):
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
-        self.ui("<b>Tested ui</b>")
+        self.set_message_html("<b>Tested ui</b>")
         self.set_message_content("")
 

@@ -13,6 +13,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 from lollms.client_session import Client
+from ascii_colors import trace_exception
 
 if not PackageManager.check_package_installed("feedparser"):
     PackageManager.install_package("feedparser")
@@ -102,33 +103,49 @@ class Processor(APScript):
             f.write(text)
 
     def generate_thumbnail_html(self, feed):
-        if type(feed)==list:
+        # Handle cases where feed is None or not a list/dict
+        if not feed:
+            return ''
+        
+        # Extract thumbnails based on the type of feed
+        if isinstance(feed, list):
             thumbnails = feed
         else:
-            thumbnails = feed.get('media_thumbnail',[])
+            thumbnails = feed.get('media_thumbnail', [])
         
+        # Return empty HTML if no thumbnails are found
+        if not thumbnails:
+            return ''
+        
+        # Generate HTML for each thumbnail
         thumbnail_html = ''
         for thumbnail in thumbnails:
             try:
-                url = thumbnail['url']
-            except:
+                url = thumbnail.get('url', '')
+                if not url:
+                    continue  # Skip if URL is not available
+                
+                width = thumbnail.get('width', 500)
+                height = thumbnail.get('height', 200)
+                
+                # Append the thumbnail image HTML
+                thumbnail_html += f'<img src="{url}" width="{width}" height="{height}" alt="Thumbnail" style="margin-right: 10px;">'
+            except Exception as e:
+                # Log the error and continue with the next thumbnail
+                print(f"Error processing thumbnail: {e}")
                 continue
-            try:
-                width = thumbnail['width']
-            except:
-                width = 500
-            try:
-                height = thumbnail['height']
-            except:
-                height = 200
-            
-            thumbnail_html += f'<img src="{url}" width="{width}" height="{height}" alt="Thumbnail" style="margin-right: 10px;">'
         
+        # Return empty HTML if no valid thumbnails were processed
+        if not thumbnail_html:
+            return ''
+        
+        # Wrap the thumbnails in a card container
         card_html = f'''
-<div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
-    {thumbnail_html}
-</div>
+    <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
+        {thumbnail_html}
+    </div>
         '''
+        
         return card_html
 
 
@@ -183,11 +200,11 @@ class Processor(APScript):
                 json.dump(feeds, f,indent=4)
             # build output
             output = "\n".join([
-                "## RSS feeds recovered:",
-                "### News:",
+                "## RSS feeds recovered:\n",
+                "### News:\n",
             ]+links)
             ASCIIColors.yellow("Done URLs recovery")
-            self.ui(output)
+            self.set_message_html(output)
 
     def fuse_articles(self, prompt="", full_context="", client=None):
         output_folder = self.personality_config.output_folder
@@ -230,7 +247,7 @@ class Processor(APScript):
 </div>    
 <b>{'same' if answer else 'different'}<b><br>
 '''+previous_output
-                        self.ui(out)
+                        self.set_message_html(out)
                         if answer:
                             subjects[-1].append(second_feed)
                             processed.append(second_feed)
@@ -254,7 +271,7 @@ class Processor(APScript):
     <div style="width: {progress}%; height: 100%; background-color: #4CAF50; border-radius: 5px;"></div>
 </div>    
 '''+previous_output
-                self.ui(out)
+                self.set_message_html(out)
 
 
 
@@ -284,7 +301,11 @@ class Processor(APScript):
                 else:
                     content = scrape_and_save(feed['link'],self.personality.lollms_paths.personal_outputs_path/"tmp_scraping_file.txt")
 
-                    content = self.summarize_text("\n".join(content["texts"]),"summarize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.")
+                    try:
+                        content = self.sequential_summarize("\n".join(content["texts"]),"summarize the news article. Only extract the news information, do not add iny information that does not exist in the chunk.", "paragraphs")
+                    except Exception as ex:
+                        trace_exception(ex)
+                        content = ""
                     prompt+=f"Title: {feed['title']}\nContent:\n{content}\n"
 
             prompt += f"Don't make any comments, just do the summary. Analyze the content of the snippets and give a clear verified and elegant article summary.\nOnly report information from the snippet.\nDon't add information that is not found in the chunks.\nDon't add any dates that are not explicitely reported in the documents.{self.config.separator_template}{self.config.start_header_id_template}Today date:{datetime.now()}{self.config.separator_template}{self.config.start_header_id_template}summary:\n"
@@ -315,7 +336,7 @@ class Processor(APScript):
 '''
             out += self.build_a_folder_link(self.personality_config.output_folder, client,"Open output folder")
             out +=card
-            self.ui(out)
+            self.set_message_html(out)
         out = "<html><header></header><body>"+"\n"+out+"</body><html>"
         with open(output_folder/"news.html","w") as f:
             f.write(out)
@@ -348,7 +369,7 @@ class Processor(APScript):
                 answer = self.multichoice_question("Determine the category that suits this article the most.", cats,f"Title: {feed['title']}\nContent:\n{feed['description'] if hasattr(feed, 'description') else ''}\n")
                 
                 categorized[cats[answer]].append(feed)
-                self.ui(f'''
+                self.set_message_html(f'''
 Article classified as : {cats[answer]}
 <div style="width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 20px; font-family: Arial, sans-serif; margin-bottom: 20px; box-sizing: border-box;">
     <h3 style="margin-top: 0;">
@@ -380,7 +401,7 @@ Article classified as : {cats[answer]}
         pages = internet_search(query, self.personality_config.internet_nb_search_pages, buttons_to_press=self.personality_config.buttons_to_press, quick_search=self.personality_config.quick_search)
         processed_pages = ""
         if len(pages)==0:
-            self.ui("Failed to do internet search!!")
+            self.set_message_html("Failed to do internet search!!")
             self.step_end("Performing internet search",False)
             return
         self.step_end("Performing internet search")
@@ -392,7 +413,7 @@ Article classified as : {cats[answer]}
             tk = self.personality.model.tokenize(page_text)
             self.step_start(f"summerizing {page['title']}")
             if len(tk)<int(self.personality_config.zip_size) or self.personality_config.summary_mode!="RAG":
-                page_text = self.summarize_text(page_text,"\n".join([
+                page_text = self.sequential_summarize(page_text,"\n".join([
                                 f"Extract from the document any information related to the query. Write the output as a short article.",
                                 "The summary should contain exclusively information from the document chunk.",
                                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -404,15 +425,14 @@ Article classified as : {cats[answer]}
                                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                                 f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                                 f"{self.config.start_header_id_template}query: {query}"
-                            ]),
-                            "Document chunk"
+                            ])                            
                             )
-                self.ui(page_text)
+                self.set_message_html(page_text)
             else:
                 chunks = self.vectorize_and_query(page['content'], page['title'], page['url'], query)
                 content = "\n".join([c.text for c in chunks])
                 page_text = f"page_title:\n{page['title']}\npage_content:\n{content}"
-                page_text = self.summarize_text(page_text,"\n".join([
+                page_text = self.sequential_summarize(page_text,"\n".join([
                         f"Extract from the document any information related to the query. Write the output as a short article.",
                         "The summary should contain exclusively information from the document chunk.",
                         "Do not provide opinions nor extra information that is not in the document chunk",
@@ -424,17 +444,16 @@ Article classified as : {cats[answer]}
                         f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                         f"{'The article should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                         f"{self.config.start_header_id_template}query: {query}"
-                    ]),
-                    "Document chunk"
+                    ])
                     )
-                self.ui(page_text)
-            self.ui(page_text)
+                self.set_message_html(page_text)
+            self.set_message_html(page_text)
 
             self.step_end(f"Last composition")
             self.step_end(f"summerizing {page['title']}")
             processed_pages += f"{page['title']}\n{page_text}"
 
-        page_text = self.summarize_text(processed_pages,"\n".join([
+        page_text = self.sequential_summarize(processed_pages,"\n".join([
                 f"Extract from the document any information related to the query. Write the output as a short article.",
                 "The summary should contain exclusively information from the document chunk.",
                 "Do not provide opinions nor extra information that is not in the document chunk",
@@ -446,14 +465,12 @@ Article classified as : {cats[answer]}
                 f"{self.personality_config.contextual_zipping_text if self.personality_config.contextual_zipping_text!='' else ''}",
                 f"{'The summary should be written in '+self.personality_config.translate_to if self.personality_config.translate_to!='' else ''}"
                 f"{self.config.start_header_id_template}query: {query}"
-            ]),
-            "Document chunk",
-            callback=self.sink
+            ])
             )
-        self.ui(page_text)
+        self.set_message_html(page_text)
 
         self.step_start(f"Last composition")
-        page_text = self.summarize_text(page_text,"\n".join([
+        page_text = self.sequential_summarize(page_text,"\n".join([
                 f"Rewrite this document in a better way while respecting the following guidelines:",
                 f"{'Keep the same language.' if self.personality_config.keep_same_language else ''}",
                 f"{'Preserve the title of this document if provided.' if self.personality_config.preserve_document_title else ''}",
@@ -466,7 +483,7 @@ Article classified as : {cats[answer]}
             "Document chunk",
             callback=self.sink
             )
-        self.ui(page_text)
+        self.set_message_html(page_text)
         self.step_end(f"Last composition")
 
         if self.personality_config.output_path:
