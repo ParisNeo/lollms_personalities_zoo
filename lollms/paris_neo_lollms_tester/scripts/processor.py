@@ -352,4 +352,4 @@ class Processor(APScript):
                 conditionning=condition,
                 return_explanation=True
             )
-            self.set_message_content(f"question_with_condition:{question_with_condition}")
+            self.json(f"question_with_condition", question_with_condition)
