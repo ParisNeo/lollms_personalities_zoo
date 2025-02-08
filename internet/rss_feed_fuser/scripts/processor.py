@@ -518,7 +518,7 @@ Article classified as : {cats[answer]}
 
         self.callback = callback
         self.step_start("Understanding request")
-        if self.yes_no("Is the user asking for information that requires verification using internet search?", previous_discussion_text):
+        if self.yes_no("Is the user asking for information that requires verification using internet search?", previous_discussion_text, callback=self.sink):
             self.step_end("Understanding request")
             self.step("Decided to make an internet search")
             self.personality.step_start("Crafting internet search query")
