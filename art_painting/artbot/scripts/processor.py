@@ -433,7 +433,7 @@ class Processor(APScript):
 
             positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += f"Positive prompt:\n{positive_prompt}"
+            metadata_infos += f"\n### Positive prompt:\n{positive_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
@@ -458,7 +458,7 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += f"Negative prompt:\n{negative_prompt}"
+            metadata_infos += f"\n### Negative prompt:\n{negative_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
