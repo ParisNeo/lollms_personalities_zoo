@@ -282,7 +282,7 @@ class Processor(APScript):
         </html>
         '''
         
-        with open(output_folder / "news.html", "w") as f:
+        with open(output_folder / "news.html", "w", encoding="utf8") as f:
             f.write(output)
         
         self.set_message_html(output)
