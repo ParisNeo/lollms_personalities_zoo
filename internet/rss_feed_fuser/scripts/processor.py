@@ -11,6 +11,14 @@ from pathlib import Path
 import json
 from pathlib import Path
 from datetime import datetime
+
+import pipmaster as pm
+if not pm.is_installed("docling"):
+    pm.install("docling")
+if not pm.is_installed("feedparser"):
+    pm.install("feedparser")
+
+
 from feedparser import parse as feedparse
 
 from lollmsvectordb.text_document_loader import TextDocumentsLoader
@@ -21,9 +29,6 @@ from datetime import datetime
 import json
 from lollms.client_session import Client
 from ascii_colors import trace_exception
-import pipmaster as pm
-if not pm.is_installed("docling"):
-    pm.install("docling")
 
 from urllib.parse import urlparse
 
