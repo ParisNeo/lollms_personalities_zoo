@@ -28,8 +28,9 @@ if not pm.is_installed("docling"):
 from urllib.parse import urlparse
 
 from docling.document_converter import DocumentConverter
-if not PackageManager.check_package_installed("feedparser"):
-    PackageManager.install_package("feedparser")
+
+if not pm.is_installed("feedparser"):
+   pm.is_installed("feedparser")
 
 # Helper functions
 class Processor(APScript):
