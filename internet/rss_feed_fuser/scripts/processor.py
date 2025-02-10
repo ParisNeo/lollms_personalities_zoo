@@ -58,7 +58,12 @@ class Processor(APScript):
                 {"name":"rss_urls","type":"text","value":"https://feeds.bbci.co.uk/news/rss.xml, http://rss.cnn.com/rss/cnn_topstories.rss, https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml, https://www.theguardian.com/world/rss, https://www.reuters.com/rssfeed/topNews, http://feeds.foxnews.com/foxnews/latest, https://www.aljazeera.com/xml/rss/all.xml, https://www.bloomberg.com/politics/feeds/site.xml", "help":"Here you can put rss feed address to recover data."},
                 {"name":"categories","type":"text","value":"World News,Entertainment,Sport,Technology,Education,Medicine,Space,R&D,Politics,Music,Business,Peaple", "help":"The list of categories to help the AI organize the news."},
                 {"name":"keep_only_multi_articles_subjects","type":"bool","value":False, "help":"When this option is true, only articles that have more than one source are kept"},
-                
+
+
+                {"name":"memorization_prompt","type":"text","value":"Make sure you keep all important information as bullet points. If you find a new article url and title add it immediately to the memory.", "help":"The instructions about what to memorize from the articles"},
+                {"name":"task_prompt","type":"text","value":"Using the following memories about the articles write your own making sure you use only the information from the memories. do not explicitely mention the articles except for specifying a point or criticizing. Make sure you are factual and unbioased. Identify key consistent points made, as well as contrasting points of view made across multiple articles. Use this information to write a new, unbiased news article, keeping it as factual and centric as possible. It should be written in a tone and style that reads like a news article or news anchor script. the output mist be a html div. make sure you format the output correctly.", "help":"The task to be done (after extracting information into a memory)"},
+
+
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
                 {"name":"summary_mode","type":"str","value":"RAG", "options":["RAG","Full Summary"], "help":"If Rag is used then the AI will search for useful data before summerizing, else it's gonna read the whole page before summary. The first is faster, but the second allows accessing the whole information without compromize."},                
                 {"name":"zip_size","type":"int","value":1024, "help":"the maximum size of the summary in tokens"},
@@ -321,7 +326,10 @@ class Processor(APScript):
         for theme_key, theme_data in themes.items():
             if len(theme_data['urls']) > 1:
                 prompt = self.create_summary_prompt(theme_data)
-                summary = self.sequential_summarize(prompt, summary_context="If you find a new article url and title add it immediately to the memory.", task="Using the following memories about the articles write your own making sure you use only the information from the memories. Make sure you are factual and unbioased. Identify key consistent points made, as well as contrasting points of view made across multiple articles. Use this information to write a new, unbiased news article, keeping it as factual and centric as possible. It should be written in a tone and style that reads like a news article or news anchor script. the output mist be a html div. make sure you format the output correctly.",format="newpaper article")
+                summary = self.sequential_summarize(
+                                                        prompt, 
+                                                        summary_context=self.personality_config.memorization_prompt,
+                                                        task=self.personality_config.task_prompt,format="newspaper article")
                 theme_data['summary'] = summary
             else:
                 theme_data['summary'] = theme_data['content'].strip()
