@@ -11,6 +11,7 @@ from pathlib import Path
 import json
 from pathlib import Path
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 import pipmaster as pm
 if not pm.is_installed("docling"):
