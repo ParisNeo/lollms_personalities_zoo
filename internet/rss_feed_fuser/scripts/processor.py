@@ -321,8 +321,8 @@ class Processor(APScript):
         for theme_key, theme_data in themes.items():
             if len(theme_data['urls']) > 1:
                 prompt = self.create_summary_prompt(theme_data)
-                summary = self.sequential_summarize(prompt, task="Read the following articles. Identify key consistent points made, as well as contrasting points of view made across multiple articles. Use this information to write a new, unbiased news article, keeping it as factual and centric as possible. It should be written in a tone and style that reads like a news article or news anchor script.",format="newpaper article")
-                theme_data['summary'] = self.extract_text_from_tag(summary, tag_name="SUMMARY").strip()
+                summary = self.sequential_summarize(prompt, summary_context="If you find a new article url and title add it immediately to the memory.", task="Using the following memories about the articles write your own making sure you use only the information from the memories. Make sure you are factual and unbioased. Identify key consistent points made, as well as contrasting points of view made across multiple articles. Use this information to write a new, unbiased news article, keeping it as factual and centric as possible. It should be written in a tone and style that reads like a news article or news anchor script. the output mist be a html div. make sure you format the output correctly.",format="newpaper article")
+                theme_data['summary'] = summary
             else:
                 theme_data['summary'] = theme_data['content'].strip()
 
