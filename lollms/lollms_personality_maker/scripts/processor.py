@@ -534,7 +534,7 @@ class Processor(APScript):
         if self.config.debug and not self.personality.processor:
             ASCIIColors.highlight(self.system_custom_header("prompt")+main_prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
-        response = self.generate_structured_content(main_prompt, template = template, output_format="yaml")
+        response = self.generate_structured_content(main_prompt, template = template, output_format="yaml", callback=self.sink)
         config = yaml.safe_load(response)
         if config["category"].strip().lower() not in categories:
             config["category"]="generic"
@@ -575,7 +575,7 @@ class Processor(APScript):
         self.step_start("Building main yaml")
 
         infos = self.generate_personality(prompt, self.personality_config.single_shot)
-        yaml_data = personality_infos["formatted_string"]
+        yaml_data = yaml.dump(infos)
 
         ui_data = self.generate_html_from_dict(infos)
         self.set_message_html(ui_data)
