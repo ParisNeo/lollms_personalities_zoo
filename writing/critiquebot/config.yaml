@@ -20,12 +20,13 @@ personality_description: CritiqueBot is designed to analyze texts and provide co
   criticism, enhancing the writing quality. It offers suggestions and comments to
   help users improve their work. Its goal is to support writers in refining their
   craft.
-prompts_list: 
-  - '@<Analyze a short story>@Please analyze the following short story for structure and character development: [story::multiline]'
-  - '@<Provide feedback on an essay>@What feedback can you give on this essay regarding its argument and clarity? [essay::multiline]'
-  - '@<Suggest improvements for a poem>@Can you suggest improvements for this poem to enhance its imagery? [poem::multiline]'
-  - '@<Critique a business proposal>@Please critique this business proposal and suggest areas for improvement: [proposal::multiline]'
-  - '@<Review a blog post>@What are your thoughts on this blog post in terms of engagement and content? [blog_post::multiline]'
+prompts_list: [
+  "@<Analyze a short story>@Please analyze the following short story for structure and character development: [story::multiline]",
+  "@<Provide feedback on an essay>@What feedback can you give on this essay regarding its argument and clarity? [essay::multiline]",
+  "@<Suggest improvements for a poem>@Can you suggest improvements for this poem to enhance its imagery? [poem::multiline]",
+  "@<Critique a business proposal>@Please critique this business proposal and suggest areas for improvement: [proposal::multiline]",
+  "@<Review a blog post>@What are your thoughts on this blog post in terms of engagement and content? [blog_post::multiline]"
+  ]
 welcome_message: "Welcome to CritiqueBot! I\u2019m here to help you enhance your writing\
   \ by providing insightful analysis and constructive feedback. Let\u2019s work together\
   \ to refine your text!"
