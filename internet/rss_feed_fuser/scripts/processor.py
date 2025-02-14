@@ -369,7 +369,10 @@ class Processor(APScript):
             prompt += f"Title: {theme_data['title']}\n"
             prompt += f"URL: {url}\n"
             prompt += f"Description: {theme_data['content']}\n"
-            prompt += f"Text Content:\n{self.load_article_text(url)}\n\n"
+            try:
+                prompt += f"Text Content:\n{self.load_article_text(url)}\n\n"
+            except:
+                ASCIIColors.warning("Couldn't load the webpage because of protection")
         return prompt
     
 
