@@ -69,7 +69,7 @@ class Processor(APScript):
 
                 {"name":"memorization_prompt","type":"text","value":"Make sure you keep all important information as bullet points. If you find a new article url and title add it immediately to the memory.", "help":"The instructions about what to memorize from the articles"},
                 {"name":"task_prompt","type":"text","value":"Using the following memories about the articles write your own making sure you use only the information from the memories. do not explicitely mention the articles except for specifying a point or criticizing. Make sure you are factual and unbioased. Identify key consistent points made, as well as contrasting points of view made across multiple articles. Use this information to write a new, unbiased news article, keeping it as factual and centric as possible. It should be written in a tone and style that reads like a news article or news anchor script. the output mist be a html div. make sure you format the output correctly.", "help":"The task to be done (after extracting information into a memory)"},
-
+                {"name":"output_format","type":"text","value":"newspaper column in html format. Respond only with the html code, no comments or explanations.", "help":"The output format"},
 
                 {"name":"quick_search","type":"bool","value":False, "help":"Quick search returns only a brief summary of the webpage"},
                 {"name":"summary_mode","type":"str","value":"RAG", "options":["RAG","Full Summary"], "help":"If Rag is used then the AI will search for useful data before summerizing, else it's gonna read the whole page before summary. The first is faster, but the second allows accessing the whole information without compromize."},                
@@ -171,7 +171,7 @@ class Processor(APScript):
                 if favicon:
                     favicon_url = favicon['href']
                     if not favicon_url.startswith(('http:', 'https:')):
-                        favicon_url = f"https://{favicon_url}"
+                        favicon_url = f"https://{favicon_url.lstrip('/')}"
                     
                     # Use the favicon as the thumbnail
                     thumbnail = {'url': favicon_url}
@@ -354,7 +354,7 @@ class Processor(APScript):
                 summary = self.sequential_summarize(
                                                         prompt, 
                                                         summary_context=self.personality_config.memorization_prompt,
-                                                        task=self.personality_config.task_prompt,format="newspaper article")
+                                                        task=self.personality_config.task_prompt,format=self.personality_config.output_format)
                 theme_data['summary'] = summary
             else:
                 if self.personality_config.keep_only_multi_articles_subjects:
