@@ -593,7 +593,7 @@ class Processor(APScript):
                     output += f'                            <strong>Summary:</strong> {full_summary}\n'
                     output += '                        </div>\n'
                     output += '                        <div class="flex space-x-2 mb-4">\n'
-                    output += f'                            <button onclick="copyToClipboard(\'summary-{theme_key}\')" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded hover:bg-blue-200">Copy Summary</button>\n'
+                    output += f'                            <button onclick="copyToClipboard_{theme_key}(\'summary-{theme_key}\')" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded hover:bg-blue-200">Copy Summary</button>\n'
                     output += '                        </div>\n'
                 else:
                     output += f'                        <p class="text-gray-600 text-sm mb-4">{theme_data.get("content", "")[:150]}...</p>\n'
@@ -622,7 +622,7 @@ class Processor(APScript):
 
         output += '    </div>\n'
         output += '    <script>\n'
-        output += '        function copyToClipboard(elementId) {\n'
+        output += f'        function copyToClipboard_{theme_key}(elementId) '+'{\n'
         output += '            const element = document.getElementById(elementId);\n'
         output += '            const text = element.textContent || element.innerText;\n'
         output += '            const fallbackCopy = () => {\n'
