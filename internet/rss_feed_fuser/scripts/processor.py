@@ -163,7 +163,7 @@ class Processor(APScript):
                     return ''
                 
                 # Fetch the website's HTML to find the favicon
-                response = requests.get(f"https://{base_url}")
+                response = requests.get(f"https://{base_url}",timeout=3)
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
                 # Look for the favicon in the HTML
@@ -176,7 +176,7 @@ class Processor(APScript):
                     # Use the favicon as the thumbnail
                     thumbnail = {'url': favicon_url}
             except Exception as e:
-                print(f"Error fetching favicon: {e}")
+                ASCIIColors.error(f"Error fetching favicon: {e}")
                 return ''
         
         if not thumbnail:
@@ -230,6 +230,7 @@ class Processor(APScript):
         for rss_feed in rss_feeds:
             feed = feedparse(rss_feed)
             for p in feed.entries[:self.personality_config.nb_rss_feeds_per_source]:
+                self.step(f"Processing {p.title}")
                 content = p.get('summary', p.get('description', ''))
                 thumbnail_html = self.generate_thumbnail_html(p)
                 if content:
@@ -257,6 +258,7 @@ class Processor(APScript):
                     '''
                     links.append(card)
         
+        self.step("Saving the news json file")
         # Save feeds to JSON for later use in fuse_articles
         with open(output_folder / "news_data.json", "w") as f:
             json.dump(feeds, f, indent=4)
@@ -282,6 +284,7 @@ class Processor(APScript):
         </html>
         '''
         
+        self.step("Saving the news html file")
         with open(output_folder / "news.html", "w", encoding="utf8") as f:
             f.write(output)
         
@@ -679,10 +682,15 @@ class Processor(APScript):
         Main function to scrape, fuse, and categorize news.
         """
         self.new_message("")
+        self.set_message_content("Recovering all RSS feeds ...")
+        self.set_message_content("Recovering the rss feeds ...")
         self.recover_all_rss_feeds()
         self.new_message("")
+        self.set_message_content("Fusing articles ...")
+        self.set_message_content("Fusing articles ...")
         self.fuse_articles()
-        self.new_message("")
+        self.set_message_content("Categorizing the news ...")
+        self.set_message_content("Categorizing the news ...")
         self.categorize_news()
 
 
