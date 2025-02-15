@@ -328,8 +328,23 @@ class Processor(APScript):
                 self.update_double_progress(i, total_feeds, j-i, total_feeds - i, feed['title'], other_feed['title'])
             
             processed.add(i)
-        self.set_message_html("Summarizing fused articles...")
+        nb_fused_articles = 0
+        for theme_key, theme_data in themes.items():
+            if len(theme_data['urls']) > 1:
+                nb_fused_articles += 1
+
+        self.set_message_html(f"""<div class="flex justify-center items-end">
+            <p><span animate-pulse text-xl font-semibold mr-2>{nb_fused_articles} themes are being built out of the articles...</spam></div>
+        </style>
+
+        <script>
+        // Simulate loading delay for demonstration purposes.
+        setTimeout(function() {{
+        document.querySelector('span').textContent = 'Summary complete!';
+        }}, 30 * nb_fused_articles);
+        </script>""")
         # Generate summaries for themes with multiple articles
+        toremove = []
         for theme_key, theme_data in themes.items():
             if len(theme_data['urls']) > 1:
                 prompt = self.create_summary_prompt(theme_data)
@@ -339,7 +354,13 @@ class Processor(APScript):
                                                         task=self.personality_config.task_prompt,format="newspaper article")
                 theme_data['summary'] = summary
             else:
-                theme_data['summary'] = theme_data['content'].strip()
+                if self.personality_config.keep_only_multi_articles_subjects:
+                    toremove.append(theme_key)
+                else:
+                    theme_data['summary'] = theme_data['content'].strip()
+                    
+        # Remove themes that are no longer needed using a dictionary comprehension.
+        theme_data = {key: value for key, (value) in themes.items() if not key in toremove}
 
         # Save the fused data to a JSON file
         with open(output_folder / "fused_articles.json", "w") as f:
