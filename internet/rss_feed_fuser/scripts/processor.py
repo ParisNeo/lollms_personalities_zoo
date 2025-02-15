@@ -171,7 +171,7 @@ class Processor(APScript):
                 if favicon:
                     favicon_url = favicon['href']
                     if not favicon_url.startswith(('http:', 'https:')):
-                        favicon_url = f"https://{base_url}{favicon_url}"
+                        favicon_url = f"https://{favicon_url}"
                     
                     # Use the favicon as the thumbnail
                     thumbnail = {'url': favicon_url}
@@ -296,7 +296,7 @@ class Processor(APScript):
         """
         output_folder = Path(self.personality_config.output_folder)
         if not output_folder.exists():
-            print("Output folder does not exist. Please configure a valid path.")
+            self.set_message_content("Output folder does not exist. Please configure a valid path.")
             return
         
         with open(output_folder / "news_data.json", "r") as f:
@@ -363,7 +363,7 @@ class Processor(APScript):
                     theme_data['summary'] = theme_data['content'].strip()
                     
         # Remove themes that are no longer needed using a dictionary comprehension.
-        theme_data = {key: value for key, (value) in themes.items() if not key in toremove}
+        themes = {key: value for key, value in themes.items() if not key in toremove}
 
         # Save the fused data to a JSON file
         with open(output_folder / "fused_articles.json", "w") as f:
