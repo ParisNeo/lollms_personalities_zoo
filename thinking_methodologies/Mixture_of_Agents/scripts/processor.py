@@ -8,6 +8,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 import subprocess
 import json
 from typing import Callable, Any
@@ -85,7 +86,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -107,13 +108,13 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.personality.info("Generating")
         self.callback = callback
         models_to_use = self.personality_config.models_to_use
         model_outputs = []
-        context_details["conditionning"]=self.personality_config.agents_system_message
+        context_details.conditionning=self.personality_config.agents_system_message
         rounds = []
         for round in range(self.personality_config.n_rounds):
             self.step_start(f"Processing round {round+1}")
@@ -136,7 +137,7 @@ class Processor(APScript):
                 self.step_end(f"using model {model_infos}")
             self.step_end(f"Processing round {round+1}")
             rounds.append(model_outputs)
-        context_details["conditionning"]=self.personality_config.master_system_message
+        context_details.conditionning=self.personality_config.master_system_message
         #Now move to master model
         binding_name, model_name = self.personality_config.master_model.split("::")
         self.select_model(binding_name, model_name)

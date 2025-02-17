@@ -166,7 +166,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -188,8 +188,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
@@ -207,7 +207,7 @@ class Processor(APScript):
             self.function_definitions.append(update_class_in_file_function(self.personality_config.project_path))
 
         if self.personality_config.project_path=="":
-            context_details["extra"]=f"{self.personality.app.config.start_header_id_template}infos{self.personality.app.config.end_header_id_template}Project pathg not configured and need to be updated in the personality configuration section."
+            context_details.extra=f"{self.personality.app.config.start_header_id_template}infos{self.personality.app.config.end_header_id_template}Project pathg not configured and need to be updated in the personality configuration section."
 
 
         out = self.interact_with_function_call(context_details, self.function_definitions)

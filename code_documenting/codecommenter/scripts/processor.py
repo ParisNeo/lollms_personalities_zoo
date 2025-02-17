@@ -13,8 +13,8 @@ from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
-
 from lollms.utilities import discussion_path_to_url
+from lollms.prompting import LollmsContextDetails
 import subprocess
 from typing import Callable, Any
 from functools import partial
@@ -157,7 +157,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -179,8 +179,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
@@ -192,7 +192,7 @@ class Processor(APScript):
                 "Use this header for the file information comment at the top of the generated file.",
                 self.personality_config.header_template
             ])
-        prompt = self.build_prompt_from_context_details(context_details,infos)
+        prompt = context_details.build_prompt(self.personality.app.template, infos)
         out = self.generate(prompt)
 
         self.set_message_content(out)

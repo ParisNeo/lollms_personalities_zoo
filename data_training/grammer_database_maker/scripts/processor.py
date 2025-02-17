@@ -4,6 +4,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.utilities import find_first_available_file_index
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
+from lollms.prompting import LollmsContextDetails
 import subprocess
 import requests
 from bs4 import BeautifulSoup
@@ -164,7 +165,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -186,8 +187,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
         if self.personality_config.data_folder!="":
             self.build_db()

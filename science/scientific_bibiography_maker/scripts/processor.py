@@ -7,6 +7,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.functions.bibliography import arxiv_pdf_search
+from lollms.prompting import LollmsContextDetails
 
 from lollmsvectordb import TextDocumentsLoader
 import requests
@@ -367,7 +368,7 @@ class Processor(APScript):
                 "Answer with only the keywords (do not use multiple keywords, just three at maximum)",
                 "We will do multiple passes of search so be very specific and do consize",
                 self.system_custom_header('context discussion'),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("user prompt") + prompt,
                 previous_keywords,
                 self.ai_custom_header("keywords")
@@ -381,7 +382,7 @@ class Processor(APScript):
                 ASCIIColors.error("The AI failed to build a keywords list. Using the prompt as keywords")
                 keywords=prompt 
             return keywords       
-    def search(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
+    def search(self, previous_discussion_text, prompt, context_details:LollmsContextDetails=None, client:Client=None):
 
 
         #Prepare full report
@@ -549,7 +550,7 @@ class Processor(APScript):
             self.set_message_content("No article found about this subject!\nLet me try another query!")
 
 
-    def search_organize_and_summarize(self, previous_discussion_text, prompt, context_details:dict=None, client:Client=None):
+    def search_organize_and_summarize(self, previous_discussion_text, prompt, context_details:LollmsContextDetails=None, client:Client=None):
         report, articles_checking_text, download_folder = self.search(previous_discussion_text, prompt, context_details=context_details, client=client)
         report = classify_reports(report)
         self.json("Report",report)
@@ -561,7 +562,7 @@ class Processor(APScript):
         self.summarize_report(report, download_folder, client)
 
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -587,6 +588,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.prepare()
 

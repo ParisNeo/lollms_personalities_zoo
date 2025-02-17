@@ -7,6 +7,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.tti.sd.lollms_sd import LollmsSD
+from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename, discussion_path_to_url
@@ -541,7 +542,7 @@ class Processor(APScript):
         return config
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -563,8 +564,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
 
         self.word_callback = callback

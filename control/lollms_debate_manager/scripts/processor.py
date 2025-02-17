@@ -14,6 +14,7 @@ from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
 from lollms.functions.list_personalities import list_personalities_function
 from lollms.functions.summon_personality import summon_personality_function
+from lollms.prompting import LollmsContextDetails
 
 
 from lollms.utilities import discussion_path_to_url
@@ -160,7 +161,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -182,8 +183,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.function_definitions = [
             list_personalities_function(self, client),
             summon_personality_function(self, callback, previous_discussion_text, context_details, client),
@@ -207,12 +208,12 @@ class Processor(APScript):
             while not self.yes_no("should we stop the debate?", prompt):
                 # TODO: add more functions to call
                 out = self.interact_with_function_call(context_details, self.function_definitions, callback = self.sink)
-                prompt_data, content, tokens, context_details, internet_search_infos = self.personality.app.prepare_query(client.client_id)
-                ASCIIColors.info(f"prompt has {self.config.ctx_size-context_details['available_space']} tokens")
-                ASCIIColors.info(f"warmup for generating up to {min(context_details['available_space'],self.config.max_n_predict)} tokens")
+                context_details = self.personality.app.prepare_query(client.client_id)
+                ASCIIColors.info(f"prompt has {self.config.ctx_size-context_details.available_space} tokens")
+                ASCIIColors.info(f"warmup for generating up to {min(context_details.available_space,self.config.max_n_predict)} tokens")
 
         else:
-            prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
+            prompt +="interruption{self.config.separator_template}{self.config.start_header_id_template}Remark: Do not start the debate. Just answer the user and talk to him until he ask for starting the debate.\n"+"{self.config.start_header_id_template}"+context_details.ai_prefix.replace("{self.config.start_header_id_template}","").replace(":","")+":"
             out = self.interact_with_function_call(context_details, minimal_function_definitions, callback = self.sink)
 
         self.set_message_content(out)

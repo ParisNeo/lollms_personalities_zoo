@@ -11,6 +11,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.databases.discussions_database import Discussion
 import subprocess
 from typing import Callable, Any
+from lollms.prompting import LollmsContextDetails
 import sys
 import io
 def execute_code(code):
@@ -99,7 +100,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -121,8 +122,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.personality.info("Generating")
         self.callback = callback
         header_text = f"{self.config.start_header_id_template}Extra infos:\n"
@@ -153,8 +154,8 @@ class Processor(APScript):
             prompt = self.build_prompt(
                 [
                     header_text,
-                    context_details["conditionning"],
-                    context_details["discussion_messages"],
+                    context_details.conditionning,
+                    context_details.discussion_messages,
                     execution_output,
                     "{self.config.separator_template}{self.config.start_header_id_template}ElasticExplorer:",
                 ],
@@ -164,7 +165,7 @@ class Processor(APScript):
             out = self.fast_gen(prompt, callback=self.sink)
             self.set_message_content(out)
             self.add_chunk_to_message_content("")
-            context_details["discussion_messages"] += f"{self.config.start_header_id_template}ElasticExplorer:\n"+ out
+            context_details.discussion_messages += f"{self.config.start_header_id_template}ElasticExplorer:\n"+ out
             code_blocks = self.extract_code_blocks(out)
             execution_output = ""
             if len(code_blocks)>0:
@@ -174,7 +175,7 @@ class Processor(APScript):
                     if code_blocks[i]["type"]=="python":
                         nb_codes += 1
                         code = code_blocks[i]["content"].replace("\_","_")
-                        discussion:Discussion = self.personality.app.session.get_client(context_details["client_id"]).discussion 
+                        discussion:Discussion = self.personality.app.session.get_client(context_details.client_id).discussion 
                         try:
                             stdout, stderr = execute_code(code)
 

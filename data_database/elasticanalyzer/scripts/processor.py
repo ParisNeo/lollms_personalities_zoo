@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 from typing import Callable, Any
 from datetime import datetime
+from lollms.prompting import LollmsContextDetails
 import pandas as pd
 import json
 import io
@@ -167,7 +168,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -189,8 +190,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         es = ElasticSearchConnector(self.personality_config.server, self.personality_config.user, self.personality_config.password)
         header_text = f"{self.config.start_header_id_template}Extra infos:\n"
         header_text += f"server:{self.personality_config.server}\n"
@@ -204,14 +205,14 @@ class Processor(APScript):
             header_text += f"password:\n{self.personality_config.user}\n"
 
         full_prompt = header_text
-        full_prompt += context_details["conditionning"]
-        full_prompt += context_details["documentation"]
-        full_prompt += context_details["user_description"]
-        full_prompt += context_details["discussion_messages"]
-        full_prompt += context_details["positive_boost"]
-        full_prompt += context_details["negative_boost"]
-        full_prompt += context_details["current_language"]
-        full_prompt += context_details["fun_mode"]
+        full_prompt += context_details.conditionning
+        full_prompt += context_details.documentation
+        full_prompt += context_details.user_description
+        full_prompt += context_details.discussion_messages
+        full_prompt += context_details.positive_boost
+        full_prompt += context_details.negative_boost
+        full_prompt += context_details.current_language
+        full_prompt += context_details.fun_mode
         full_prompt += "extra_info:\n"
         full_prompt += "If you need to issue a code to es, please do not respond with any extra text or explanations except the command itself.\n"
         full_prompt += "If you need to explain something to the user, do not issue commands, when a command is detected in your answer, it gets executed and the message is not shown to the user.\n"
@@ -227,7 +228,7 @@ class Processor(APScript):
         while failed  and nb_failures<self.personality_config.max_nb_failures:
             failed=False
             nb_failures += 1
-            first_generation = self.fast_gen(full_prompt+context_details["ai_prefix"],callback=self.sink).replace("\\_","_")
+            first_generation = self.fast_gen(full_prompt+context_details.ai_prefix,callback=self.sink).replace("\\_","_")
             fn, params, next = parse_query(first_generation)
             if fn:
                 if self.personality_config.debug_mode:
@@ -238,10 +239,10 @@ class Processor(APScript):
                         status = es.ping()
                         if self.personality_config.debug_mode:
                             self.set_message_content(self.build_a_document_block(f"Execution result:",None,f"{status}"), msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
-                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: ping response: {'Connection succeeded' if status else 'connection failed'}\n"+context_details.ai_prefix, callback=self.sink).replace("\\_","_")
                     except Exception as ex:
                         self.set_message_content(f"## Execution result:\n{ex}")
-                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details.ai_prefix, callback=self.sink).replace("\\_","_")
 
                 if fn=="list_indexes":
                     self.step("The LLM issued a list_indexes command")
@@ -249,10 +250,10 @@ class Processor(APScript):
                         indexes = es.list_indexes()
                         if self.personality_config.debug_mode:
                             self.set_message_content(self.build_a_document_block(f"Execution result:",None,f"{indexes}"), msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
-                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: indexes {indexes}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: indexes {indexes}\n"+context_details.ai_prefix, callback=self.sink).replace("\\_","_")
                     except Exception as ex:
                         self.set_message_content(f"## Execution result:\n{ex}")
-                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                        output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details.ai_prefix, callback=self.sink).replace("\\_","_")
                 
                 if fn=="view_mapping":
                     self.step("The LLM issued a view mapping command")
@@ -261,11 +262,11 @@ class Processor(APScript):
                             mappings = es.view_mapping(params[0])
                             if self.personality_config.debug_mode:
                                 self.set_message_content(self.build_a_document_block(f"Execution result:",None,"")+f"\n```json\n{mappings}\n```\n", msg_type=MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT_INVISIBLE_TO_AI)
-                            output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: mapping\n{mappings}\n"+context_details["ai_prefix"], callback=self.sink).replace("\\_","_")
+                            output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: mapping\n{mappings}\n"+context_details.ai_prefix, callback=self.sink).replace("\\_","_")
                         except Exception as ex:
                             if self.personality_config.debug_mode:
                                 self.set_message_content(f"## Execution result:\n{ex}")
-                            output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details["ai_prefix"]).replace("\\_","_")
+                            output = self.fast_gen(full_prompt+first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+context_details.ai_prefix).replace("\\_","_")
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")
                         self.set_message_content("The AI issued the wrong number of parameters.\nTrying again")
@@ -283,7 +284,7 @@ class Processor(APScript):
                                 if self.personality_config.output_format=="markdown":
                                     output = "# Output Report"
                                 elif self.personality_config.output_format=="html":
-                                    reformulation=self.fast_gen(full_prompt+"{self.config.start_header_id_template}Instruction: Reformulate the user request into a paragraph. Make sure you state the objectives clearely.\nRespond with only a clear explanation of the user request without comments.\n"+context_details["ai_prefix"], callback=self.sink)
+                                    reformulation=self.fast_gen(full_prompt+"{self.config.start_header_id_template}Instruction: Reformulate the user request into a paragraph. Make sure you state the objectives clearely.\nRespond with only a clear explanation of the user request without comments.\n"+context_details.ai_prefix, callback=self.sink)
                                     output = "\n".join([
                                         "<h1>Output Report</h1>",
                                         f"<div>{reformulation}</div>",
@@ -301,7 +302,7 @@ class Processor(APScript):
                                             f"{self.config.start_header_id_template}instructions:",
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in markdown format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
-                                            context_details["ai_prefix"]
+                                            context_details.ai_prefix
                                         ])
                                     elif self.personality_config.output_format=="html":
                                         prompt = full_prompt+first_generation+f"\n".join([
@@ -314,7 +315,7 @@ class Processor(APScript):
                                             "The content should be inside a div with class content",
                                             "The links and references should be put inside a div with class bibliography",
                                             "The bibliography should have a h2 header with the title References.",
-                                            context_details["ai_prefix"]
+                                            context_details.ai_prefix
                                         ])
                                         content = "\n".join([
                                             '<div class="article">',
@@ -328,7 +329,7 @@ class Processor(APScript):
                                             f"{self.config.start_header_id_template}instructions:",
                                             "Create an informative title and write a concise yet detailed summary of the content of this hit entry in markdown format, while also identifying any relevant information or metadata associated with the entry, reporting any file paths or URLs if they exist in the entry, and avoiding any code or JSON text in your response.",
                                             "If you find any URLs in the entry, build a link and include it in your report.",
-                                            context_details["ai_prefix"]
+                                            context_details.ai_prefix
                                         ])
                                         output += self.fast_gen(prompt, callback=self.sink).replace("\\_","_")+"\n\n"
                                 if self.personality_config.output_folder_path!="":
@@ -416,12 +417,12 @@ class Processor(APScript):
                                             f.write(output)
                             else:
                                 self.step("No Hits found")
-                                prompt = full_prompt+first_generation+f"{self.config.start_header_id_template}es: query output:\n{qoutput}\n"+context_details["ai_prefix"]
+                                prompt = full_prompt+first_generation+f"{self.config.start_header_id_template}es: query output:\n{qoutput}\n"+context_details.ai_prefix
                                 output = self.fast_gen(prompt, callback=self.sink).replace("\\_","_")
                         except Exception as ex:
                             ASCIIColors.error(ex)
                             failed=True
-                            full_prompt += first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+"The error needs to be fixed. This is very important.\n"+context_details["ai_prefix"]
+                            full_prompt += first_generation+f"{self.config.start_header_id_template}es: error {ex}\n"+"The error needs to be fixed. This is very important.\n"+context_details.ai_prefix
                             output = f"The AI issued a wrong command.\nRetrying... {nb_failures}/{self.personality_config.max_nb_failures}"
                     else:
                         ASCIIColors.warning("The AI issued the wrong number of parameters.\nTrying again")

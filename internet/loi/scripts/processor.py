@@ -1,5 +1,6 @@
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
+from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality, craft_a_tag_to_specific_text
 
@@ -220,7 +221,7 @@ class Processor(APScript):
         driver.quit()
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -242,8 +243,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.vectorizer = TextVectorizer(VectorizationMethod.TFIDF_VECTORIZER, self.personality.model)
 
@@ -254,7 +255,7 @@ class Processor(APScript):
                 "Formulate a web search query text based on the user prompt.",
                 "Use the same language as the prompt",
                 f"{self.config.start_header_id_template} previous discussion:",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}prompt:",
                 f"{prompt}",
                 f"{self.config.start_header_id_template}formulated web search query in the same language as the prompt: "
@@ -290,7 +291,7 @@ class Processor(APScript):
                 "Citation is mandatory.",
                 "Do not write the sources, just use their index. The sources will be added in a future query."
                 f"{self.config.start_header_id_template} previous discussion:",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template} search results:",
                 f"{search_result}",              
                 f"{self.config.start_header_id_template} question:",

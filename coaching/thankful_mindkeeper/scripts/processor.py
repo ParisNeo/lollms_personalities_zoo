@@ -13,6 +13,7 @@ from lollms.personality import APScript, AIPersonality
 from lollms.client_session import Client
 from lollms.utilities import output_file_path_to_url
 from lollms.functions.generate_image import build_image, build_image_function
+from lollms.prompting import LollmsContextDetails
 from ascii_colors import trace_exception
 import subprocess
 from typing import Callable, Any
@@ -471,7 +472,7 @@ class Processor(APScript):
             return "Couldn't generate image. Make sure Auto1111's stable diffusion service is installed"
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -493,8 +494,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 
@@ -504,7 +505,7 @@ class Processor(APScript):
             self.set_message_content("Please create a profile by providing your name and happiness level in my configuration page. Just press my icon in the chatbar and give fill the form. When this is done, come back to me and we can start.")
             return
         
-        context_details["extra"]="\n".join([
+        context_details.extra="\n".join([
             f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
             f"{self.config.start_header_id_template}happiness_index:\n"+str(happiness_index) if happiness_index is not None else "",
         ])

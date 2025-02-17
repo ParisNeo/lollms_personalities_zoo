@@ -38,10 +38,6 @@ personality_conditioning: |
   Provide a satisfactory answer fulfilling the user request
   You must use the same language as the user's request  
 
-  ## Extra information
-  Today's date is {{date}}
-  Current time is {{time}}
-
 
 #Welcome message to be sent to the user when a new discussion is started
 welcome_message: |               

@@ -19,6 +19,7 @@ from lollms.functions.generate_image import build_image_function
 from lollms.functions.peripherals import move_mouse_to_position_function, press_mouse_button_function, type_text_function
 from lollms.functions.timers import set_timer_with_alert_function
 from lollms.functions.music_gen import open_and_fill_udio_function, open_and_fill_suno_function
+from lollms.prompting import LollmsContextDetails
 
 from typing import Callable, Any
 from functools import partial
@@ -185,7 +186,7 @@ class Processor(APScript):
 
 
         
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -207,8 +208,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         # self.process_state(prompt, previous_discussion_text, callback, context_details, client)
         if self.personality_config.clean_images_between_sessions:

@@ -2,6 +2,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 import subprocess
 from pathlib import Path
 import os
@@ -108,7 +109,7 @@ class Processor(APScript):
                                 ).strip()    
         
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         Runs the workflow for processing the model input and output.
 
@@ -123,6 +124,8 @@ class Processor(APScript):
         Returns:
             None
         """
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         bot_says = ""
         self.callback = callback
         # 1 first ask the model to formulate a query

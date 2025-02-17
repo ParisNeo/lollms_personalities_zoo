@@ -162,8 +162,8 @@ class Processor(APScript):
 
     def run_workflow(self, context_details: Dict[str, Any] = None, client:Client = None, callback: Callable = None):
 
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         
         self.callback = callback
         self.step_start("Starting project build workflow.")

@@ -9,6 +9,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image_from_simple_prompt
 from lollms.functions.select_image_file import select_image_file_function
@@ -284,7 +285,7 @@ class Processor(APScript):
             "Answer with the plan without any extra explanation or comments.",
             "The plan must be a markdown text with headers and organized elements.",
             self.system_custom_header("context"),
-            context_details["discussion_messages"],
+            context_details.discussion_messages,
             self.system_custom_header("Lollms Apps Planner")
         ])
         if len(self.personality.image_files)>0:
@@ -309,7 +310,7 @@ class Processor(APScript):
                 "Build the description.yaml file.",
                 "Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
             ],7
         )
         template =f"""```yaml
@@ -360,7 +361,7 @@ disclaimer: [If needed, write a disclaimer. else null]
                 "If the user explicitely proposed a name, use that name. If not, fill in the blacks and imagine the best possible app from the context.",
                 "Your sole objective is to build the description.yaml file. Do not ask the user for any extra information and only respond with the yaml content in a yaml markdown tag.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
             ],6
         )
         template= f"""```yaml
@@ -416,7 +417,7 @@ disclaimer: {old_infos.get("disclaimer", "[If needed, write a disclaimer. else n
                 ]),
                 "Start by building a plan then write the full index.html file without any further explanations."  if self.personality_config.create_a_plan is None else "Write the full index.html file without any further explanations.",                        
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],                     
+                context_details.discussion_messages,                     
                 lollms_infos,
                 backend_endpoints,
             ],6
@@ -474,7 +475,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 "Start by building a plan."  if self.personality_config.create_a_plan is None else "",                        
                 lollms_infos,
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 
                 self.system_custom_header("Lollms Apps Maker")
             ],
@@ -629,7 +630,7 @@ Infos: The client will be running on an server that is not the same as the one w
                     "The code to SET must be fully working and without placeholders.",
                     "Update the code from the user suggestion",
                     self.system_custom_header("context"),
-                    context_details["discussion_messages"],
+                    context_details.discussion_messages,
                     self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "<file_name>index.html</file_name>",
@@ -786,7 +787,7 @@ Infos: The client will be running on an server that is not the same as the one w
                     "Select the best between full rewrite and replace according to the amount of text to update.",
                     "Update the code from the user suggestion",
                     self.system_custom_header("context"),
-                    context_details["discussion_messages"],
+                    context_details.discussion_messages,
                     self.get_lollms_infos(),
                     self.system_custom_header("Code"),
                     "<file_name>server.py</file_name>",
@@ -1052,7 +1053,7 @@ Infos: The client will be running on an server that is not the same as the one w
         self.step_end("Initializing Git repository")
 
     
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -1074,8 +1075,8 @@ Infos: The client will be running on an server that is not the same as the one w
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         # Load project
         metadata = client.discussion.get_metadata()

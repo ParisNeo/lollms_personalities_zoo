@@ -12,6 +12,7 @@ from typing import Dict, Any, Callable
 from pathlib import Path
 from PIL import Image
 from lollms.client_session import Client
+from lollms.prompting import LollmsContextDetails
 
 
 class Processor(APScript):
@@ -346,12 +347,12 @@ class Processor(APScript):
             self.set_message_content("Lollms can no longer run without setting tti service in lollms settings.\nPlease go to settings page, then in services zoo select a TTI service from the available list.\nYou may need to configure the TTI service if it requires configurations or api key etc...")
             raise Exception("NO TTI service is on")
 
-    def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
+    def main_process(self, initial_prompt, full_context, context_details:LollmsContextDetails=None, client:Client=None):
         metadata = client.discussion.get_metadata()
         sd_title = metadata.get("sd_title","unnamed")
         metadata_infos=""
         try:
-            full_context = context_details["discussion_messages"]
+            full_context = context_details.discussion_messages
         except:
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
@@ -370,7 +371,7 @@ class Processor(APScript):
                                     f"{self.config.start_header_id_template}discussion:",
                                     full_context,
                                     initial_prompt,
-                                    context_details["ai_prefix"],
+                                    context_details.ai_prefix,
                     ],2)
                     self.print_prompt("Discussion",prompt)
 
@@ -559,7 +560,7 @@ class Processor(APScript):
 
         return {"status":False, "message":"Unknown operation"}
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -581,8 +582,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.main_process(prompt, previous_discussion_text,context_details,client)
 
