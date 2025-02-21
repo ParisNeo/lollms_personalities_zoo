@@ -1189,7 +1189,7 @@ The code contains description.yaml that describes the application, the author, t
                     out +="I'll use the default icon as you did not activate icon generation. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
                     icon_url = ""
                 out += f"""<a href="/apps/{infos['name'].replace(' ','_')}/index.html">Click here to test the application</a>"""
-                self.ui(out)
+                self.set_message_html(out)
                 # Show the user everything that was created
                 out = f"""
 <div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
