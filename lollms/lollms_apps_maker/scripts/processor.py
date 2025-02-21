@@ -1188,7 +1188,7 @@ The code contains description.yaml that describes the application, the author, t
                 else:
                     out +="I'll use the default icon as you did not activate icon generation. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
                 out += f"""<a href="/apps/{infos['name'].replace(' ','_')}/index.html">Click here to test the application</a>"""
-                self.set_message_content_invisible_to_ai(out)
+                self.ui(out)
                 # Show the user everything that was created
                 out = f"""
 <div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
