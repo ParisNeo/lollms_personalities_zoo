@@ -608,7 +608,7 @@ Infos: The client will be running on an server that is not the same as the one w
 
             self.step_end("Updating index.html")
 
-            self.set_message_content_invisible_to_ai(out)            
+            self.set_message_html(out)            
         else:
             crafted_prompt = self.build_prompt(
                 [
@@ -759,7 +759,7 @@ Infos: The client will be running on an server that is not the same as the one w
 
             self.step_end("Updating server.py")
 
-            self.set_message_content_invisible_to_ai(out)            
+            self.set_message_html(out)            
         else:
             crafted_prompt = self.build_prompt(
                 [
@@ -915,7 +915,7 @@ Infos: The client will be running on an server that is not the same as the one w
 
         self.step_end("Updating README.md")
 
-        self.set_message_content_invisible_to_ai(out)      
+        self.set_message_html(out)      
 
     def generate_icon(self, metadata, infos, client):
         self.step_start("Backing up previous version")
@@ -1122,13 +1122,13 @@ The code contains description.yaml that describes the application, the author, t
                 self.answer(context_details, "Extra infos about the process:"+extra_infos)            
             elif choice ==1:
                 out = "You asked me to build an app. I am building the description file."
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
 
                 # ----------------------------------------------------------------
                 infos = self.buildDescription(context_details, metadata, client)
                 if infos is None:
                     out = "\n<p style='color:red'>It looks like I failed to build the description.<br>That's the easiest part to do!! If the model wasn't able to do this simple task, I think you better change it, or maybe give it another shot.<br>As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
-                    self.set_message_content_invisible_to_ai(out)
+                    self.set_message_html(out)
                     return
                 with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
                     yaml.dump(infos, f, encoding="utf8")
@@ -1139,21 +1139,21 @@ The code contains description.yaml that describes the application, the author, t
                     yaml.dump(infos, default_flow_style=False),
                     "```"
                 ])
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
                 # ----------------------------------------------------------------
                 self.new_message("")
                 out ="Building the application. Please wait as this may take a little while.\n"
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
                 if self.personality_config.build_a_backend:
                     backend_code = self.build_server(context_details, infos, metadata, client)
                     if backend_code:
                         with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
-                        out +=f"\n### Backend coding done successfully."
-                        self.set_message_content_invisible_to_ai(out)
+                        out +=f"\n<h3> Backend coding done successfully.</h3>"
+                        self.set_message_html(out)
                     else:
-                        out +=f"\n### It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work."
-                        self.set_message_content_invisible_to_ai(out)
+                        out +=f"\n<h3>Error</h3><p>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                        self.set_message_html(out)
                         return
                 else:
                     backend_code = None
@@ -1163,7 +1163,7 @@ The code contains description.yaml that describes the application, the author, t
                     app_path = metadata["app_path"]
                     with open(index_file_path,"w", encoding="utf8") as f:
                         f.write(code)
-                    out +=f"\n### Front end coding done successfully."
+                    out +=f"\n<h3>Front end coding done successfully.</h3>"
                     if not (Path(app_path) / ".git").exists():
                         repo = git.Repo.init(app_path)
                     else:
@@ -1171,22 +1171,23 @@ The code contains description.yaml that describes the application, the author, t
                     repo.index.add([os.path.relpath(index_file_path, app_path)])
                     repo.index.commit(f"Updated index.html by {self.personality.model.model_name}, in answer to prompt: {prompt}")
 
-                    self.set_message_content_invisible_to_ai(out)
+                    self.set_message_html(out)
                 else:
-                    out +=f"\n### It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work."
-                    self.set_message_content_invisible_to_ai(out)
+                    out +=f"\n<h3>Error</h3><p>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                    self.set_message_html(out)
                     return
 
                 # ----------------------------------------------------------------
                 self.new_message("")
                 if self.personality_config.generate_icon:
                     out = "Before we end, let's build an icon."
-                    self.set_message_content_invisible_to_ai(out)
+                    self.set_message_html(out)
                     icon_dst = self.generate_icon(metadata, infos, client)
                     icon_url = app_path_to_url(icon_dst)
                     out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
                 else:
                     out +="I'll use the default icon as you did not activate icon generation. You can build new icons whenever you want in the future, just ask me to make a new icon And I'll do (ofcourse, lollms needs to have its TTI active)."
+                    icon_url = ""
                 out += f"""<a href="/apps/{infos['name'].replace(' ','_')}/index.html">Click here to test the application</a>"""
                 self.ui(out)
                 # Show the user everything that was created
@@ -1233,7 +1234,7 @@ The code contains description.yaml that describes the application, the author, t
                 infos = self.updateDescription(context_details, metadata, client)
                 if infos is None:
                     out += "\n<p style='color:red'>It looks like I failed to build the description. That's the easiest part to do. As you know, I depend highly on the model I'm running on. Please give me a better brain and plug me to a good model.</p>"
-                    self.set_message_content_invisible_to_ai(out)
+                    self.set_message_html(out)
                     return
                 with open(Path(metadata["app_path"])/"description.yaml","w", encoding="utf8") as f:
                     yaml.dump(infos, f, encoding="utf8")
@@ -1244,19 +1245,19 @@ The code contains description.yaml that describes the application, the author, t
                     yaml.dump(infos, default_flow_style=False),
                     "```"
                 ])
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
 
             elif choice ==6:
                 out = "I'm generating a new icon based on your request.\n"
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
                 out += self.generate_icon(metadata, metadata["infos"], client)
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
             elif choice ==7:
                 out = "I'm generating a documentation for the app.\n"
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
                 self.build_documentation(prompt, context_details, metadata, out)
             elif choice ==8:
                 out = "I'm generating a server for the app.\n"
-                self.set_message_content_invisible_to_ai(out)
+                self.set_message_html(out)
                 self.update_server(prompt, context_details, metadata, out)
     
