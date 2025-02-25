@@ -535,7 +535,9 @@ class Processor(APScript):
         if self.config.debug and not self.personality.processor:
             ASCIIColors.highlight(self.system_custom_header("prompt")+main_prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
-        response = self.generate_structured_content(main_prompt, template = template, output_format="yaml", callback=self.sink)
+        
+        response = self.generate_structured_content(main_prompt, template = yaml.dump(template), output_format="yaml", callback=self.sink)
+        print(response)
         config = yaml.safe_load(response)
         if config["category"].strip().lower() not in categories:
             config["category"]="generic"
