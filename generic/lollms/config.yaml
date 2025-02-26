@@ -71,7 +71,7 @@ model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
 prompts_list: [
-    "@<Enhance text>@Enhance the following text:\n```plaintext\n[text to enhance:multiline]\n```\nUse the following tone [tone::options::academic, corporate, formal, legal, casual, humorous, serious, optimistic, pessimistic, sarcastic, passionate, cynical, sympathetic, objective, subjective, educational, persuasive, nostalgic]",
+    "@<Enhance text>@Enhance the following text:\n```plaintext\n[text to enhance::multiline]\n```\nUse the following tone [tone::options::academic, corporate, formal, legal, casual, humorous, serious, optimistic, pessimistic, sarcastic, passionate, cynical, sympathetic, objective, subjective, educational, persuasive, nostalgic]",
     "@<Create some code from a prompt>@Write a [program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell] program that satisfies the following description: [description::multiline].",
     "@<Edit, explain, or document a code>@Here is my code\n```[program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell]\n[code::code]\n```\n[task::multiline].",
     "@<Translate text>@Translate to [language]:\n[text to translate::multiline]",
