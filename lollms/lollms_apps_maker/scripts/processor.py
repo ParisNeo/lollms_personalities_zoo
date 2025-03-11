@@ -313,7 +313,8 @@ class Processor(APScript):
                 context_details.discussion_messages,
             ],7
         )
-        template =f"""```yaml
+        template =f"""
+```yaml
 name: [Give a name to the application using the user provided information]
 description: [Here you can make a detailed description of the application. do not use : or lists, just plain text in a single paragraph.]
 version: 1.0
@@ -340,10 +341,27 @@ disclaimer: [If needed, write a disclaimer. else null]
             metadata["infos"]=infos
             client.discussion.set_metadata(metadata)
             self.step_end("Building description.yaml")
+            out =  """
+<div class="max-w-md mx-auto my-2">
+    <div class="bg-blue-500 text-white rounded-lg py-2 px-4 inline-block shadow-md">
+        Description built successfully.
+    </div>
+</div>
+    """             
+            self.set_message_html(out)            
             return infos
         else:
+            out =  """
+    <div class="max-w-md mx-auto my-2">
+        <div class="bg-red-500 text-white rounded-lg py-2 px-4 inline-block shadow-md">
+            Couldn't build description
+        </div>
+    </div>
+    """             
+            self.set_message_html(out)            
             self.step_end("Building description.yaml", False)
             return None
+
 
     def updateDescription(self, context_details, metadata, client:Client):
         if "app_path" in metadata and  metadata["app_path"] and "infos" in metadata:
@@ -526,7 +544,19 @@ Infos: The client will be running on an server that is not the same as the one w
             """)
             return
 
-        out = ""
+        out +=  """
+<div class="max-w-md mx-auto my-2">
+    <div class="bg-blue-500 text-white rounded-lg py-2 px-4 inline-block shadow-md flex items-center space-x-2">
+        <span>You asked me to update the index.html code. Let's go ...</span>
+        <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
+        </div>
+    </div>
+</div>
+"""             
+        self.set_message_html(out)    
         
         app_path = Path(metadata["app_path"])
         index_file_path = app_path / "index.html"
@@ -575,13 +605,14 @@ Infos: The client will be running on an server that is not the same as the one w
                 "CRITICAL: ANY SHORTCUTS OR PLACEHOLDERS = INSTANT REJECTION",
                 "WRITE EVERY SINGLE LINE OF CODE. NO EXCEPTIONS.",
                 "Avoid asking the user to fill in the blancks and make sure the code you provide is complete.",
-                self.user_custom_header("user_prompt"),
-                prompt
+                self.user_custom_header("user"),
+                prompt,
+                self.ai_custom_header("assistant"),
             ])
             
 
 
-            code, full_response = self.generate_code(crafted_prompt, self.personality.image_files,temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
+            code, full_response = self.generate_code(crafted_prompt, self.personality.image_files, language="html", temperature=0.1, top_k=10, top_p=0.98, debug=True, return_full_generated_code=True)
             self.add_chunk_to_message_content("\n")
             if self.config.debug:
                 ASCIIColors.yellow("--- Code file ---")
@@ -601,7 +632,14 @@ Infos: The client will be running on an server that is not the same as the one w
                 repo.index.add([os.path.relpath(index_file_path, app_path)])
                 repo.index.commit("Update index.html")
                 
-                out += full_response
+                out += """
+<div class="max-w-md mx-auto my-2">
+    <div class="bg-blue-500 text-white rounded-lg py-2 px-4 inline-block shadow-md flex items-center space-x-2">
+        <span>I finished coding</span>
+        <span class="text-xl">😊</span>
+    </div>
+</div>
+"""
             else:
                 self.step_end("Updating index.html", False)
                 out += "No sections were updated."
@@ -934,6 +972,8 @@ Infos: The client will be running on an server that is not the same as the one w
         except Exception:
             pass        
         self.step_end("Backing up previous version")
+        out = self.build_message_element_with_thinking_animation("I am generating an icon")
+        self.set_message_html(out)        
         if self.personality_config.generate_icon:
             try:
                 self.step_start("Generating icon")
@@ -955,7 +995,7 @@ Infos: The client will be running on an server that is not the same as the one w
                 # Stage and commit the icon
                 self.step_start("Commiting to git")
                 repo.index.add([os.path.relpath(icon_dst, app_path)])
-                repo.index.commit("Add icon.png")        
+                repo.index.commit("Add icon.png")
                 self.step_end("Commiting to git")
             except:
                 self.step_start("Using default icon")
@@ -1097,6 +1137,9 @@ The code contains description.yaml that describes the application, the author, t
 """+self.get_lollms_infos()
             self.answer(context_details, "Extra infos about the process:"+extra_infos)            
         else:
+            self.step_start("Analyzing the query")
+            out =  self.build_message_element_with_thinking_animation("Let me analyze your query")
+            self.set_message_html(out)            
             options=[
                     "The context content is engaging in casual discussion about the webapp or a generic unrelated thought",
                     "asking to build a new webapp",
@@ -1111,6 +1154,7 @@ The code contains description.yaml that describes the application, the author, t
             choice = self.multichoice_question("Based on the context content, select the most appropriate affirmation about the context given that you build and edit webapps.", options, prompt)
             if choice>=0 and choice<len(options):
                 self.step(options[choice])
+            self.step_end("Analyzing the query")
             if choice == 0:
                 extra_infos="""
 The Lollms apps maker is a lollms personality built for making lollms specific apps.
@@ -1121,7 +1165,7 @@ The code contains description.yaml that describes the application, the author, t
 """+self.get_lollms_infos()
                 self.answer(context_details, "Extra infos about the process:"+extra_infos)            
             elif choice ==1:
-                out = "You asked me to build an app. I am building the description file."
+                out +=  self.build_info_message("You asked me to build an app. I am building the description file.")
                 self.set_message_html(out)
 
                 # ----------------------------------------------------------------
@@ -1139,20 +1183,20 @@ The code contains description.yaml that describes the application, the author, t
                     yaml.dump(infos, default_flow_style=False),
                     "```"
                 ])
-                self.set_message_html(out)
+                self.set_message_content(out)
                 # ----------------------------------------------------------------
                 self.new_message("")
-                out ="Building the application. Please wait as this may take a little while.\n"
+                out = self.build_info_message("Building the application. Please wait as this may take a little while.")
                 self.set_message_html(out)
                 if self.personality_config.build_a_backend:
                     backend_code = self.build_server(context_details, infos, metadata, client)
                     if backend_code:
                         with open(Path(metadata["app_path"])/"server.py","w", encoding="utf8") as f:
                             f.write(backend_code)
-                        out +=f"\n<h3> Backend coding done successfully.</h3>"
+                        out +=self.build_info_message("Back end coding done successfully.")
                         self.set_message_html(out)
                     else:
-                        out +=f"\n<h3>Error</h3><p>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                        out += self.build_error_message("It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.")
                         self.set_message_html(out)
                         return
                 else:
@@ -1163,7 +1207,7 @@ The code contains description.yaml that describes the application, the author, t
                     app_path = metadata["app_path"]
                     with open(index_file_path,"w", encoding="utf8") as f:
                         f.write(code)
-                    out +=f"\n<h3>Front end coding done successfully.</h3>"
+                    out +=self.build_info_message("Front end coding done successfully.")
                     if not (Path(app_path) / ".git").exists():
                         repo = git.Repo.init(app_path)
                     else:
@@ -1173,15 +1217,13 @@ The code contains description.yaml that describes the application, the author, t
 
                     self.set_message_html(out)
                 else:
-                    out +=f"\n<h3>Error</h3><p>It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.</p>"
+                    out +=self.build_error_message("It looks like I failed to build the code. I think the model you are using is not smart enough to do the task. I remind you that the quality of my output depends highly on the model you are using. Give me a better brain if you want me to do better work.")
                     self.set_message_html(out)
                     return
 
                 # ----------------------------------------------------------------
                 self.new_message("")
                 if self.personality_config.generate_icon:
-                    out = "Before we end, let's build an icon."
-                    self.set_message_html(out)
                     icon_dst = self.generate_icon(metadata, infos, client)
                     icon_url = app_path_to_url(icon_dst)
                     out += "\n" + f'\n<img src="{icon_url}" style="width: 200px; height: 200px;">'
@@ -1192,30 +1234,50 @@ The code contains description.yaml that describes the application, the author, t
                 self.set_message_html(out)
                 # Show the user everything that was created
                 out = f"""
-<div class="panels-color bg-gray-100 p-6 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-4">Application Created Successfully!</h2>
-    <a href="/apps/{infos['name'].replace(' ','_')}/index.html" target="_blank"><img  src ="{icon_url}" style="width: 200px; height: 200px;"></a>
-    <p class="mb-4">Your application <a href="/apps/{infos['name'].replace(' ','_')}/index.html"  target="_blank"><span class="font-semibold">{infos['name']}</span></a> has been created in the following directory:</p>
-    <pre class="panel-color p-2 rounded">{metadata["app_path"]}</pre>
-    <h3 class="text-xl font-bold mt-6 mb-2">Files created:</h3>
-    <ul class="list-disc list-inside">
+<div class="max-w-2xl mx-auto my-8 bg-white p-6 rounded-xl shadow-lg ring-1 ring-gray-100">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+        <span class="text-green-500 mr-2">✓</span> Application Created Successfully!
+    </h2>
+    
+    <div class="flex items-center mb-6">
+        <a href="/apps/{infos['name'].replace(' ','_')}/index.html" target="_blank" class="mr-4">
+            <img src="{icon_url}" class="w-24 h-24 rounded-lg shadow-md object-cover">
+        </a>
+        <p class="text-gray-700">
+            Your application 
+            <a href="/apps/{infos['name'].replace(' ','_')}/index.html" target="_blank" 
+               class="font-semibold text-blue-600 hover:underline">
+                {infos['name']}
+            </a> 
+            has been created in:
+        </p>
+    </div>
+    
+    <pre class="bg-gray-50 text-gray-800 p-3 rounded-lg font-mono text-sm mb-6">{metadata['app_path']}</pre>
+    
+    <h3 class="text-xl font-semibold text-gray-800 mb-3">Files Created:</h3>
+    <ul class="list-disc list-inside text-gray-700 mb-6 space-y-1">
         <li>description.yaml</li>
         <li>index.html</li>
         <li>icon.png</li>
         <li>.gitignore</li>
         <li>README.md</li>
     </ul>
-    <h3 class="text-xl font-bold mt-6 mb-2">Git Repository:</h3>
-    <p>A Git repository has been initialized in the application folder with an initial commit.</p>
-    <h3 class="text-xl font-bold mt-6 mb-2">Next Steps:</h3>
-    <ol class="list-decimal list-inside">
-        <li>Refresh the apps zoo and you should find this app at category {infos['category']}</li>
+    
+    <h3 class="text-xl font-semibold text-gray-800 mb-3">Git Repository:</h3>
+    <p class="text-gray-700 mb-6">A Git repository has been initialized with an initial commit.</p>
+    
+    <h3 class="text-xl font-semibold text-gray-800 mb-3">Next Steps:</h3>
+    <ol class="list-decimal list-inside text-gray-700 space-y-2">
+        <li>Refresh the apps zoo to find this app in category 
+            <span class="font-medium text-blue-600">{infos['category']}</span>
+        </li>
         <li>Review the created files and make any necessary adjustments.</li>
-        <li>Test the application by opening the index.html file in a web browser.</li>
-        <li>Continue development by making changes and committing them to the Git repository.</li>
+        <li>Test the application by opening index.html in a browser.</li>
+        <li>Continue development by making changes and committing to Git.</li>
     </ol>
 </div>
-                """
+"""
                 self.set_message_html(out)
                 client.discussion.set_metadata(metadata)
             elif choice == 2:
@@ -1248,16 +1310,16 @@ The code contains description.yaml that describes the application, the author, t
                 self.set_message_html(out)
 
             elif choice ==6:
-                out = "I'm generating a new icon based on your request.\n"
+                out = self.build_message_element_with_thinking_animation("I'm generating a new icon based on your request.")
                 self.set_message_html(out)
                 out += self.generate_icon(metadata, metadata["infos"], client)
                 self.set_message_html(out)
             elif choice ==7:
-                out = "I'm generating a documentation for the app.\n"
+                out = self.build_message_element_with_thinking_animation("I'm generating a documentation for the app.")
                 self.set_message_html(out)
                 self.build_documentation(prompt, context_details, metadata, out)
             elif choice ==8:
-                out = "I'm generating a server for the app.\n"
+                out = self.build_message_element_with_thinking_animation("I'm generating a server for the app.")
                 self.set_message_html(out)
                 self.update_server(prompt, context_details, metadata, out)
     
