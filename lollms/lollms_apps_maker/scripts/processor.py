@@ -810,7 +810,8 @@ Infos: The client will be running on an server that is not the same as the one w
                 repo.index.commit("Backup before update")
 
                 for code_block in codes:
-                    out_ = self.update_code(original_content, code_block["content"])
+                    original_code, new_code = self.parse_code_replacement(code_block["content"])
+                    out_ = self.update_code_with_best_match(original_content, original_code, new_code)
                     if out_["hasQuery"]:
                         out += f"Updated server file with new code\n"
                     else:
