@@ -7,6 +7,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.tti.sd.lollms_sd import LollmsSD
+from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename, discussion_path_to_url
@@ -362,7 +363,7 @@ class Processor(APScript):
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
                     ui_code += self.make_selectable_photos(ui)
-                    self.ui(ui_code)
+                    self.set_message_html(ui_code)
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
                     shutil.copy("assets/logo.png",self.assets_path)
@@ -482,10 +483,10 @@ class Processor(APScript):
         self.step_end("Painting Icon")
         
         ui_code+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client,"press this text to access personality path")
-        self.ui(ui_code)
+        self.set_message_html(ui_code)
         full_page = header+'\n'+ui+"\n"+footer
         print(full_page)
-        self.ui(ui)
+        self.set_message_html(ui)
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -511,76 +512,39 @@ class Processor(APScript):
     def generate_personality(self, main_prompt, single_shot=False):
         categories = [c.stem.lower() for c in Path(__file__).parent.parent.parent.parent.iterdir() if c.is_dir()]
         template = {
-            "name": {
-                "prompt": f"Based on the prompt, generate a suitable name for the personality.",
-                "default": ""
-            },
-            "author": {
-                "default": self.personality.config.user_name
-            },
-            "creation_date": {
-                "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-            },
-            "last_update_date": {
-                "default": datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-            },
-            "category": {
-                "prompt": f"Based on the prompt, choose the most appropriate category from: "+",".join(categories)+". Only write the most appropriate category name in the field category.",
-                "default": "generic"
-            },
-            "language": {
-                "default": self.personality_config.language
-            },
-            "personality_description": {
-                "prompt": f"Based on the prompt, write a brief description of the personality. Keep it under 3 sentences.",
-                "default": ""
-            },
-            "disclaimer": {
-                "prompt": f"Based on the prompt, write a brief disclaimer mentioning any limitations. Keep it under 2 sentences.",
-                "default": ""
-            },
-            "personality_conditioning": {
-                "prompt": f"""Based on the prompt, define the personality's system message. The system message describes the personality and how it behaves. The message must be written in """+self.personality_config.language+".",
-                "default": ""
-            },
-            "welcome_message": {
-                "prompt": f"Based on the prompt, create a welcome message introducing the personality's capabilities. Keep it friendly and professional, under 3 sentences. The message must be written in "+self.personality_config.language+".",
-                "default": ""
-            },
-            "model_temperature": {
-                "default": 0.1
-            },
-            "model_top_k": {
-                "default": 50
-            },
-            "model_top_p": {
-                "default": 0.90
-            },
-            "model_repeat_penalty": {
-                "default": 1.0
-            },
-            "model_repeat_last_n": {
-                "default": 40
-            },
-            "dependencies": {
-                "default": []
-            },
+            "name": f"Based on the prompt, generate a suitable name for the personality.",
+            "author": self.personality.config.user_name,
+            "creation_date": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+            "last_update_date": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+            "category":f"Based on the prompt, choose the most appropriate category from: "+",".join(categories)+". Only write the most appropriate category name in the field category.",
+            "language": self.personality_config.language,
+            "personality_description": f"Based on the prompt, write a brief description of the personality. Keep it under 3 sentences.",
+            "disclaimer": f"Based on the prompt, write a brief disclaimer mentioning any limitations. Keep it under 2 sentences.",
+            "personality_conditioning": f"""Based on the prompt, define the personality's system message. The system message describes the personality and how it behaves. The message must be written in """+self.personality_config.language+".",
+            "welcome_message": f"Based on the prompt, create a welcome message introducing the personality's capabilities. Keep it friendly and professional, under 3 sentences. The message must be written in "+self.personality_config.language+".",
+            "model_temperature": 0.1,
+            "model_top_k": 50,
+            "model_top_p": 0.90,
+            "model_repeat_penalty": 1.0,
+            "model_repeat_last_n": 40,
+            "dependencies": []
         }
         if self.personality_config.generate_prompt_examples:
-            template["prompts_list"]={
-                "prompt": "Based on the prompt, list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. The prompts must be disposed one per line inside the markdown tag. The message must be written in "+self.personality_config.language+".",
-                "default": [],
-            }
+            template["prompts_list"]="Based on the prompt, list 5 example user prompts with placeholders for the user to fill placed between []. Each prompt has the following structure @<prompt title>@prompt text with placeholders [placeholder_name::placeholder type (str, float, int, multiline, code)] You can use as many placeholders as needed. The prompts must be disposed one per line inside the markdown tag. The message must be written in "+self.personality_config.language+"."
+            
         if self.config.debug and not self.personality.processor:
             ASCIIColors.highlight(self.system_custom_header("prompt")+main_prompt,"source_document_title", ASCIIColors.color_yellow, ASCIIColors.color_red, False)
 
-        response = self.generate_structured_content(main_prompt, template, single_shot, True)
-        if response["data"]["category"].strip().lower() not in categories:
-            response["data"]["category"]="generic"
-        return response
+        
+        response = self.generate_structured_content(main_prompt, template = yaml.dump(template), output_format="yaml", callback=self.sink)
+        print(response)
+        config = yaml.safe_load(response)
+        if config["category"].strip().lower() not in categories:
+            config["category"]="generic"
+        return config
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -602,8 +566,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
 
         self.word_callback = callback
@@ -613,12 +577,11 @@ class Processor(APScript):
         # ----------------------------------------------------------------
         self.step_start("Building main yaml")
 
-        personality_infos = self.generate_personality(prompt, self.personality_config.single_shot)
-        infos = personality_infos["data"]
-        yaml_data = personality_infos["formatted_string"]
+        infos = self.generate_personality(prompt, self.personality_config.single_shot)
+        yaml_data = yaml.dump(infos)
 
         ui_data = self.generate_html_from_dict(infos)
-        self.ui(ui_data)
+        self.set_message_html(ui_data)
         name = infos["name"]
         self.step_end("Building the yaml file")
         self.new_message("")

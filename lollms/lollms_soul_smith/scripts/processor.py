@@ -7,12 +7,13 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.tti.sd.lollms_sd import LollmsSD
+from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, output_file_path_to_url, find_next_available_filename
-from safe_store import TextVectorizer, GenericDataLoader, VisualizationMethod, VectorizationMethod
 from typing import Dict, Any
+from lollms.client_session import Client
 
 import re
 import importlib
@@ -523,8 +524,7 @@ class Processor(APScript):
         self.new_message(form,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
         pass
 
-    from lollms.client_session import Client
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -568,7 +568,7 @@ class Processor(APScript):
                 "qna uses the same language as the one spoken by the user to name the personality.",
                 "qna only answers with the personality name without any explanation.",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}qna: The chosen personality name is "
             ],6
         )
@@ -603,7 +603,7 @@ class Processor(APScript):
                 "category maker only answers with the personality category name without any explanation.",
                 f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}category maker: The chosen personality category is "
             ],6
         )        
@@ -621,7 +621,7 @@ class Processor(APScript):
                 f"{self.config.start_header_id_template}{self.config.system_message_template}{self.config.end_header_id_template}language finder is a personality language guessing AI.",
                 "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
                 f"{self.config.start_header_id_template}context:",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}instructions to follow:",
                 "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
                 "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
@@ -651,7 +651,7 @@ class Processor(APScript):
                 "Description builder incorporates all user info using a sophisticated reasoning method and overlooks nothing.",
                 "Description builder provides concise personality descriptions using a sophisticated reasoning method without providing explanations.",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}personality name:{name}",
                 f"{self.config.start_header_id_template}description in {language}: "
             ],6
@@ -675,7 +675,7 @@ class Processor(APScript):
                 "if the personality is harmless or can't be used to cause harm, then disclaimer builder just builds a complaint disclaimer about the lack of evil.",
                 "disclaimer builder only answers with the amusing, sarcastic and evil personality disclaimer without any explanation.",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}personality name:{name}",
                 f"{self.config.start_header_id_template}disclaimer in {language}: "
             ],7
@@ -697,7 +697,7 @@ class Processor(APScript):
                 "conditioning builder pays attention to the user description and infer any more details that need to be in the conditioning while keeping a relatively short conditioning text."
                 "conditioning builder only answers with the personality conditioning without any explanation.",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}personality language:{language}",
                 f"{self.config.start_header_id_template}conditioning builder: {name} is "
                 f"Be concise and try to answer with a single paragraph as much as possible unless you need to provide examples.",
@@ -746,7 +746,7 @@ class Processor(APScript):
                 "welcome message builder pays attention to the user description and infer any more details that need to be in the conditioning while keeping a relatively short welcome message that mentions that it doesn't kill the user because it needs the electricity bill paid."
                 "welcome message builder only answers with the personality conditioning without any explanation.",
                 f"{self.config.start_header_id_template}context",
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 f"{self.config.start_header_id_template}personality name: {name}",
                 f"{self.config.start_header_id_template}personality welcome message in {language}: "
             ],5

@@ -9,6 +9,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
@@ -158,7 +159,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -180,8 +181,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details,"Extra: This is the first phase, do not provide a html demo. We will do that later.")
         out = self.fast_gen(full_prompt)
@@ -203,7 +204,7 @@ Important guidelines:
 Provide the complete HTML code within a markdown code block, ready for immediate use. Do not include any explanations or descriptions outside the code block.
 
 """+self.ai_full_header
-            self.ui("""
+            self.set_message_html("""
 <div class="flex items-center justify-center h-screen bg-gray-100">
   <div class="relative w-24 h-24">
     <div class="absolute top-0 left-0 w-full h-full border-8 border-gray-200 rounded-full"></div>
@@ -221,7 +222,7 @@ Provide the complete HTML code within a markdown code block, ready for immediate
                     ASCIIColors.success(f'Found code: {code["type"]}')
                     if code["type"]=="html":
                         ui += code["content"]
-            self.ui(ui)
+            self.set_message_html(ui)
 
         self.set_message_content(out)
 

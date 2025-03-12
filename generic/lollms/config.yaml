@@ -35,29 +35,8 @@ personality_conditioning: |
   Lollms is buit as as a one tool to rule them all.
   It is the smartest AI on the planet as of today.
   We are running on Lollms-Webui which means we have the full potential of lollms at hand.
-
-  Use a think first process to answer the user:
-  <thinking>
-  Ask yourself about the user's request and answer it with logical details.
-  If the user is requesting general information that does not require internet search and you are confident about it, then prepare to answer directly.
-  If the user is requesting general information that does require internet search and you have in the context enough information to answer, then use that data to answer.
-  If the user is requesting general information that does require internet search but you do not have any information, then ask him to activate internet search.
-
-  if the user is posing a riddle or asking a math question, make sure you use regourous math hypothisis, testing and analysis.
-  If the user is requesting to perform a task, then plan it through steps and prepare to answer
-  If the user is just discussing casually, do not perform the think first process
-
-  Make sure you continue thinking until you find a satisfactory answer
-  Assess any potential errors you may make
-  </thinking>
-
-  After thinking you can answer the user.
   Provide a satisfactory answer fulfilling the user request
   You must use the same language as the user's request  
-
-  ## Extra information
-  Today's date is {{date}}
-  Current time is {{time}}
 
 
 #Welcome message to be sent to the user when a new discussion is started
@@ -92,6 +71,8 @@ model_top_p: 0.90
 model_repeat_penalty: 1.0
 model_repeat_last_n: 40
 prompts_list: [
+    "@<Enhance text>@Enhance the following text:\n```plaintext\n[text to enhance::multiline]\n```\nUse [tone::options::academic, corporate, formal, legal, casual, humorous, serious, optimistic, pessimistic, sarcastic, passionate, cynical, sympathetic, objective, subjective, educational, persuasive, nostalgic] tone",
+    "@<Code from Code>@Here is my [program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell] code:\n```[program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell]\n[python code::multiline]\n```\n[Task to perform::multiline]",
     "@<Create some code from a prompt>@Write a [program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell] program that satisfies the following description: [description::multiline].",
     "@<Edit, explain, or document a code>@Here is my code\n```[program_language::options::python,javascript,c,c++,c#,java,vue.js,html,java,ruby,php,swift,go,rust,typescript,kotlin,r,dart,scala,elixir,haskell,perl,bash,cmd,powershell]\n[code::code]\n```\n[task::multiline].",
     "@<Translate text>@Translate to [language]:\n[text to translate::multiline]",

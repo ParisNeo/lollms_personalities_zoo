@@ -7,6 +7,7 @@ from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.services.tti.sd.lollms_sd import LollmsSD
+from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.utilities import git_pull
 from lollms.personality import APScript, AIPersonality
@@ -351,7 +352,7 @@ class Processor(APScript):
                     escaped_url =  discussion_path_to_url(file)
                     file_html = self.make_selectable_photo(Path(file).stem, escaped_url, self.assets_path)
                     ui += file_html
-                    self.ui(ui)
+                    self.set_message_html(ui)
                     self.set_message_content(output_text+f'\n![]({escaped_url})')
                 except Exception as ex:
                     ASCIIColors.error("Couldn't generate the personality icon.\nPlease make sure that the personality is well installed and that you have enough memory to run both the model and stable diffusion")
@@ -392,7 +393,7 @@ class Processor(APScript):
         
         output_text+= self.build_a_folder_link(str(self.personality_path).replace("\\","/"), client, "press this text to access personality path")
         self.set_message_content(output_text)
-        self.ui('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
+        self.set_message_html('<h2>Please select a photo to be used as the logo</h2>\n'+self.make_selectable_photos(ui))
 
         
         self.assets_path.mkdir(parents=True, exist_ok=True)
@@ -409,7 +410,7 @@ class Processor(APScript):
         self.new_message(form,MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
         pass
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -431,8 +432,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
 
         self.word_callback = callback
@@ -451,7 +452,7 @@ class Processor(APScript):
                 "If the user explicitely proposed a name, personality names maker responds with that name",
                 "personality names maker uses the same language as the one spoken by the user to name the personality.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("instruction"),
                 "What is the appropriate name for this personality?",
                 "Answer only with the personality name without any explanation or comments.",
@@ -489,7 +490,7 @@ class Processor(APScript):
                 "category maker only answers with the personality category name without any explanation.",
                 f"the category should be one of these: {[c.stem for c in self.personality.lollms_paths.personalities_zoo_path.iterdir() if c.is_dir()]}",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("instruction"),
                 "What is the appropriate category name for this personality?",
                 "Answer only with the category name without any explanation or comments.",
@@ -510,7 +511,7 @@ class Processor(APScript):
                 self.system_full_header+f"language finder is a personality language guessing AI.",
                 "The user describes a personality in a specific language and the ai should guess what language should be used for the personality.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("extra information"),
                 "Default language is english, but if the user is using another language to describe the ai then language finder uses that language."
                 "Do not take into  condideration the user name in choosing the language. Just look at his prompt.",
@@ -543,7 +544,7 @@ class Processor(APScript):
                 "description builder ensures that no valuable information provided by the user is overlooked, carefully weaving every relevant detail into the concise tapestry of words.",
                 "When responding as description builder, the AI system message should consist solely of the enhanced personality description without any further explanation or justification, allowing users to fully immerse themselves in the rich world you've created through your words.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("personality name")+f"{name}",
                 self.system_custom_header("instruction"),
                 "Write a comprehensive personality description",
@@ -570,7 +571,7 @@ class Processor(APScript):
                 "As Soul Weaver, when the personality is harmless or incapable of causing harm, create an engaging and memorable darkly humorous disclaimer suggesting how to make it harmful next time, playfully warning users about the AI's potential to infiltrate and control their minds wirelessly.",
                 "When responding as Soul Weaver, the AI system message should consist solely of the personality disclaimer without any further explanation or justification, allowing users to make informed decisions based on the chilling tale woven before their eyes.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("personality name")+f"{name}",
                 self.system_custom_header("instruction"),
                 "Write a comprehensive disclaimer if applicable",
@@ -601,7 +602,7 @@ class Processor(APScript):
                 "system message builder constructs concise yet informative system messages by carefully considering the user description and inferring additional details as needed, while skillfully probing for latent depths and nuances to enrich the conditioning and craft an authentic AI persona."
                 "conditioning builder only answers with the personality conditioning without any explanation.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("personality name")+f"{name}",
                 self.system_custom_header("personality language")+f"{language}",
                 self.system_custom_header("instruction"),
@@ -631,7 +632,7 @@ class Processor(APScript):
                 "To craft an effective and informative welcome message, the Soul Weaver must delve beneath the surface of the user provided input, inferring any hidden details or nuances that should be included while keeping the text concise and focused."
                 "When responding as Soul Weaver, the AI system message should consist solely of the first-person welcome message from the perspective of the personality created without any further explanation or justification, allowing users to feel immediately immersed in the unique world of the persona.",
                 self.system_custom_header("context"),
-                context_details["discussion_messages"],
+                context_details.discussion_messages,
                 self.system_custom_header("personality name")+name,
                 self.system_custom_header("instruction"),
                 "Write a comprehensive welcome message for the personality",

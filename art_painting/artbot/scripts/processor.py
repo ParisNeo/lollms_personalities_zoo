@@ -12,6 +12,7 @@ from typing import Dict, Any, Callable
 from pathlib import Path
 from PIL import Image
 from lollms.client_session import Client
+from lollms.prompting import LollmsContextDetails
 
 
 class Processor(APScript):
@@ -208,7 +209,7 @@ class Processor(APScript):
             output += f"##  Image description :\n{description}\n"
             self.set_message_content(output, callback=callback)
             photos_ui = self.make_selectable_photos(file_html)
-            self.ui(photos_ui)
+            self.set_message_html(photos_ui)
             self.finished_message()
         else:    
             self.set_message_content(f"File added successfully\n", callback=callback)
@@ -337,7 +338,7 @@ class Processor(APScript):
                 self.set_message_content(metadata_infos) 
 
         photos_ui = self.make_selectable_photos(self.make_selectable_photos(ui))
-        self.ui(photos_ui)
+        self.set_message_html(photos_ui)
 
         return infos
     
@@ -346,12 +347,12 @@ class Processor(APScript):
             self.set_message_content("Lollms can no longer run without setting tti service in lollms settings.\nPlease go to settings page, then in services zoo select a TTI service from the available list.\nYou may need to configure the TTI service if it requires configurations or api key etc...")
             raise Exception("NO TTI service is on")
 
-    def main_process(self, initial_prompt, full_context, context_details:dict=None, client:Client=None):
+    def main_process(self, initial_prompt, full_context, context_details:LollmsContextDetails=None, client:Client=None):
         metadata = client.discussion.get_metadata()
         sd_title = metadata.get("sd_title","unnamed")
         metadata_infos=""
         try:
-            full_context = context_details["discussion_messages"]
+            full_context = context_details.discussion_messages
         except:
             ASCIIColors.warning("Couldn't extract full context portion")    
         if self.personality_config.imagine:
@@ -370,7 +371,7 @@ class Processor(APScript):
                                     f"{self.config.start_header_id_template}discussion:",
                                     full_context,
                                     initial_prompt,
-                                    context_details["ai_prefix"],
+                                    context_details.ai_prefix,
                     ],2)
                     self.print_prompt("Discussion",prompt)
 
@@ -433,7 +434,7 @@ class Processor(APScript):
 
             positive_prompt = self.generate(prompt, self.personality_config.max_generation_prompt_size, callback=self.sink).strip().replace("</s>","").replace("<s>","")
             self.step_end("Imagining positive prompt")
-            metadata_infos += f"Positive prompt:\n{positive_prompt}"
+            metadata_infos += f"\n### Positive prompt:\n{positive_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================
             # ====================================================================================
@@ -458,7 +459,7 @@ class Processor(APScript):
                 self.step_end("Imagining negative prompt")
             else:
                 negative_prompt = self.personality_config.fixed_negative_prompts
-            metadata_infos += f"Negative prompt:\n{negative_prompt}"
+            metadata_infos += f"\n### Negative prompt:\n{negative_prompt}"
             self.set_message_content(f"{metadata_infos}")     
             # ====================================================================================            
             if self.personality_config.build_title:
@@ -559,7 +560,7 @@ class Processor(APScript):
 
         return {"status":False, "message":"Unknown operation"}
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -581,8 +582,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.main_process(prompt, previous_discussion_text,context_details,client)
 

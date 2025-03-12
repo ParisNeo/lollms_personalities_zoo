@@ -162,8 +162,8 @@ class Processor(APScript):
 
     def run_workflow(self, context_details: Dict[str, Any] = None, client:Client = None, callback: Callable = None):
 
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         
         self.callback = callback
         self.step_start("Starting project build workflow.")
@@ -378,7 +378,7 @@ class Processor(APScript):
     '''
 
                     self.current_response  += formatted_info
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return json_response
                 except Exception as ex:
                     trace_exception(ex)
@@ -527,7 +527,7 @@ class Processor(APScript):
 </div>
 '''
                 self.current_response  += formatted_info
-                self.ui(self.current_response)
+                self.set_message_html(self.current_response)
                 return json_response
             except Exception as ex:
                 trace_exception(ex)
@@ -671,7 +671,7 @@ class Processor(APScript):
 '''
 
                 self.current_response  += formatted_info
-                self.ui(self.current_response)
+                self.set_message_html(self.current_response)
                 return json_response
             except Exception as ex:
                 trace_exception(ex)
@@ -751,7 +751,7 @@ class Processor(APScript):
     </div>
 </div>
 '''
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return True
                 except Exception as e:
                     self.current_response  += f'''
@@ -765,7 +765,7 @@ class Processor(APScript):
     </div>
 </div>
 '''
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return False
 
     # **************************** edit a file ************************************************************
@@ -795,7 +795,7 @@ class Processor(APScript):
     </div>
 </div>
 '''
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return True
                 except Exception as e:
                     self.current_response  += f'''
@@ -809,7 +809,7 @@ class Processor(APScript):
     </div>
 </div>
 '''
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return False
 
 
@@ -831,7 +831,7 @@ class Processor(APScript):
 """
 
                     self.current_response  += output_html
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     
                     # Ask AI to analyze the output
                     analysis_prompt = f"""
@@ -867,7 +867,7 @@ Example:
     </div>
 </div>
 '''
-                            self.ui(self.current_response)
+                            self.set_message_html(self.current_response)
 
                             self.step_end(f"Executing command: {command}")
                             return True
@@ -884,7 +884,7 @@ Example:
     </div>
 </div>
 '''
-                            self.ui(self.current_response)          
+                            self.set_message_html(self.current_response)          
                             self.step_end(f"Executing command: {command}", False)
                             return False
                     except json.JSONDecodeError:
@@ -902,7 +902,7 @@ Example:
 
                     
                     self.current_response  += error_html
-                    self.ui(self.current_response)                         
+                    self.set_message_html(self.current_response)                         
                     return False
 
     def run_application(self, context_memory, task):
@@ -922,7 +922,7 @@ Example:
 """
 
                     self.current_response  += output_html
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     
                     # Ask AI to analyze the application output
                     analysis_prompt = f"""
@@ -960,7 +960,7 @@ Respond with a JSON containing:
     </div>
 </div>
 '''
-                            self.ui(self.current_response)               
+                            self.set_message_html(self.current_response)               
                             return True
                         else:
                             self.step_end(f"Running application with command: {command}", False)
@@ -978,7 +978,7 @@ Respond with a JSON containing:
     </div>
 </div>
 '''
-                            self.ui(self.current_response)   
+                            self.set_message_html(self.current_response)   
                             for todo_entry in analysis.get("todo"):
                                 if todo_entry["task_type"]=="edit_file":
                                     self.edit_file(context_memory, todo_entry, analysis.get('message', 'Unknown error'))
@@ -996,7 +996,7 @@ Error:
 </textarea>
 """
                     self.current_response  += error_html
-                    self.ui(self.current_response)
+                    self.set_message_html(self.current_response)
                     return False
 
     def execute_task(self, context_memory, task: Dict[str, Any]) -> bool:

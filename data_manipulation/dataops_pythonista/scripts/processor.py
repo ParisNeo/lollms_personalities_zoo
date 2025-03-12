@@ -8,6 +8,7 @@ from lollms.helpers import ASCIIColors
 from fastapi import Request
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 import subprocess
 from typing import Callable, Any
 import random
@@ -150,7 +151,7 @@ class Processor(APScript):
         self.set_message_content(out)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -172,8 +173,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         previous_error =""
         code = ""
         self.callback = callback
@@ -187,9 +188,9 @@ class Processor(APScript):
             while not done and fails < self.personality_config.max_fails:
                 self.step_start(f"Building code, attempt {fails}")
                 try:
-                    print(context_details["discussion_messages"])
+                    print(context_details.discussion_messages)
                     module, code = self.build_and_execute_python_code(
-                        context_details["discussion_messages"],
+                        context_details.discussion_messages,
                         "\n".join([
                         f"Build a python function called reply_to_user to perform the user request given the list of files that he provides:",
                         "The output should be crafted out of the data contained in one or multiple files depending on the user demand.",
@@ -235,7 +236,7 @@ class Processor(APScript):
                         '</script>',
                     ])
 
-                    self.ui(ui)
+                    self.set_message_html(ui)
                         
                     self.set_message_content(out)
                     done = True

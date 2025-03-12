@@ -15,6 +15,7 @@ from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
 from lollms.functions.take_a_photo import take_a_photo_function
+from lollms.prompting import LollmsContextDetails
 
 from lollms.utilities import discussion_path_to_url
 import subprocess
@@ -165,7 +166,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -187,11 +188,11 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
-        if context_details["is_continue"]:
-            full_prompt = self.build_prompt_from_context_details(context_details, suppress= ["ai_prefix"])
+        if context_details.is_continue:
+            full_prompt = context_details.build_prompt(self.personality.app.template, suppress= ["ai_prefix"])
         else:
             custom_entries = self.system_custom_header("important information") + "\n"
             if self.personality_config.mode=="discussion_long":
@@ -203,7 +204,7 @@ class Processor(APScript):
             if self.personality_config.use_explainer:
                 custom_entries +="Explanation Mode: Explain your reasoning and what you are about to change before giving the code."
 
-            full_prompt = self.build_prompt_from_context_details(context_details, custom_entries)
+            full_prompt = context_details.build_prompt(self.personality.app.template, custom_entries)
         if len(self.personality_config.models_to_use)>0:
             out = self.mix_it_up(full_prompt,self.personality_config.models_to_use.split(","), self.personality_config.master_model, nb_rounds=self.personality_config.nb_rounds, callback=self.sink)
             self.json("Rounds details",out)
@@ -214,6 +215,6 @@ class Processor(APScript):
             if nb_tokens >= self.config.max_n_predict-1:
                 out = out+self.fast_gen(full_prompt+out)
 
-        if not context_details["is_continue"]:
+        if not context_details.is_continue:
             self.set_message_content(out)
 

@@ -13,6 +13,7 @@ import re
 import importlib
 import sys
 from typing import Callable, Any
+from lollms.prompting import LollmsContextDetails
 class Processor(APScript):
     """
     A class that processes model inputs and outputs.
@@ -219,7 +220,7 @@ class Processor(APScript):
            
             
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -241,8 +242,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
         self.callback = callback
         """
@@ -263,13 +264,13 @@ class Processor(APScript):
             '{self.config.start_header_id_template}text2graph(simple workdlow)=Start -> Process Data -> Analyze Results -> End{self.config.start_header_id_template}',
             'To get this task done No extra text must be generated , no explanation , no comment , no question , no echo , only the notation representig the scenario.',
             'The graph description should end with {self.config.start_header_id_template}',
-            context_details["documentation"],
-            context_details["user_description"],
-            context_details["discussion_messages"] if self.personality_config.continuous_discussion else "",
-            context_details["positive_boost"],
-            context_details["negative_boost"],
-            context_details["current_language"],
-            context_details["fun_mode"],
+            context_details.documentation,
+            context_details.user_description,
+            context_details.discussion_messages if self.personality_config.continuous_discussion else "",
+            context_details.positive_boost,
+            context_details.negative_boost,
+            context_details.current_language,
+            context_details.fun_mode,
             f"{self.config.start_header_id_template}text2graph({prompt})=",
         ],11)
 

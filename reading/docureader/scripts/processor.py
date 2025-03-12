@@ -9,6 +9,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from lollms.client_session import Client
 from lollms.functions.tts.read_text_from_file import read_text_from_file_function
 from lollms.functions.writing.create_text_file import create_file_function
@@ -156,7 +157,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -178,8 +179,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         start_header_id_template    = self.personality.config.start_header_id_template
         end_header_id_template      = self.personality.config.end_header_id_template
         system_message_template     = self.personality.config.system_message_template
@@ -190,7 +191,7 @@ class Processor(APScript):
 
         # TODO: add more functions to call
         if len(self.personality.text_files)>0:
-            context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}Text file already received from user."
+            context_details.extra=f"{start_header_id_template}extra infos{end_header_id_template}Text file already received from user."
             self.function_definitions = [
                 read_text_from_file_function(self.personality.text_files[0] ,self.personality.app.tts, self),
                 create_file_function(client)
@@ -198,7 +199,7 @@ class Processor(APScript):
 
             out = self.interact_with_function_call(context_details, self.function_definitions,separate_output=True)
         else:
-            context_details["extra"]=f"{start_header_id_template}extra infos{end_header_id_template}There are no text files to read, the user needs to press the add a file buitton then send a file to be read. We support any text file format like pdf or docx etc.."
+            context_details.extra=f"{start_header_id_template}extra infos{end_header_id_template}There are no text files to read, the user needs to press the add a file buitton then send a file to be read. We support any text file format like pdf or docx etc.."
             self.function_definitions = [
                 create_file_function(client)
             ]

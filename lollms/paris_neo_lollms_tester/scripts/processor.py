@@ -9,6 +9,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from lollms.client_session import Client
 from lollms.functions.generate_image import build_image, build_image_function
 from lollms.functions.select_image_file import select_image_file_function
@@ -158,7 +159,7 @@ class Processor(APScript):
         self.set_message_content(self.personality.help)
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -180,8 +181,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         if self.personality_config.test_ui:
             prompt='''
@@ -323,7 +324,7 @@ class Processor(APScript):
             import tracemalloc
             tracemalloc.start()
             self.set_message_content("Testing ui")
-            self.ui(prompt)
+            self.set_message_html(prompt)
             snapshot = tracemalloc.take_snapshot()
             top_stats = snapshot.statistics('lineno')
             print("[ Top 10 ]")
@@ -331,4 +332,25 @@ class Processor(APScript):
                 print(stat)
             tracemalloc.stop()
             self.json("json", {"test":"test"})
+        else:
+            out = self.generate_structured_content("generate a meal",template={"name":"The meal name","ingredients":"a list of ingrediants","steps":"a list of steps"})#, callback=self.sink)
+            self.json("Generated json",out)
+            self.new_message("")
+            out = self.yes_no("Is Paris in france?","You are smart")#, callback=self.sink)
+            self.set_message_content(f"paris in france:{out}")
+            self.new_message("")
+            # Define the question, possible answers, and context
+            question = "What is the capital of France?"
+            possible_answers = ["Paris", "London", "Berlin", "Madrid"]
+            context = "France is a country in Western Europe."
 
+            # Create the multiple-choice question with a condition
+            condition = "The answer is not London."
+            question_with_condition = self.multichoice_question(
+                question=question,
+                possible_answers=possible_answers,
+                context=context,
+                conditionning=condition,
+                return_explanation=True
+            )
+            self.json(f"question_with_condition", question_with_condition)

@@ -10,6 +10,7 @@ from typing import Any
 from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from lollms.client_session import Client
 from lollms.utilities import output_file_path_to_url
 from lollms.functions.generate_image import build_image, build_image_function
@@ -679,7 +680,7 @@ class Processor(APScript):
             return f'<img src="{personality_path_to_url(path)}" width="80%"></img>'
 
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -701,8 +702,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.get_or_create_user_profile()
         user_id = self.user_profile_db.get_user_id_by_name(self.personality_config.user_profile_name)
@@ -714,21 +715,21 @@ class Processor(APScript):
         course_step = self.user_profile_db.get_current_course_step(user_id)
 
         prompt = self.build_prompt([
-            context_details["conditionning"] if context_details["conditionning"] else "",
-            f"{self.config.start_header_id_template}documentation:\n"+context_details["documentation"] if context_details["documentation"] else "",
-            context_details["user_description"] if context_details["user_description"] else "",
-            f"{self.config.start_header_id_template}positive_boost:\n"+context_details["positive_boost"] if context_details["positive_boost"] else "",
-            f"{self.config.start_header_id_template}negative_boost:\n"+context_details["negative_boost"] if context_details["negative_boost"] else "",
-            f"{self.config.start_header_id_template}current_language:\n"+context_details["current_language"] if context_details["current_language"] else "",
-            f"{self.config.start_header_id_template}fun_mode:\n"+context_details["fun_mode"] if context_details["fun_mode"] else "",
-            f"{self.config.start_header_id_template}discussion_window:\n"+context_details["discussion_messages"] if context_details["discussion_messages"] else "",
+            context_details.conditionning if context_details.conditionning else "",
+            f"{self.config.start_header_id_template}documentation:\n"+context_details.documentation if context_details.documentation else "",
+            context_details.user_description if context_details.user_description else "",
+            f"{self.config.start_header_id_template}positive_boost:\n"+context_details.positive_boost if context_details.positive_boost else "",
+            f"{self.config.start_header_id_template}negative_boost:\n"+context_details.negative_boost if context_details.negative_boost else "",
+            f"{self.config.start_header_id_template}current_language:\n"+context_details.current_language if context_details.current_language else "",
+            f"{self.config.start_header_id_template}fun_mode:\n"+context_details.fun_mode if context_details.fun_mode else "",
+            f"{self.config.start_header_id_template}discussion_window:\n"+context_details.discussion_messages if context_details.discussion_messages else "",
             f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
             f"{self.config.start_header_id_template}happiness_index:\n"+str(course_step) if course_step is not None else "",
-            f"{self.config.start_header_id_template}"+context_details["ai_prefix"].replace("{self.config.start_header_id_template}","").replace(":","")+":"
+            f"{self.config.start_header_id_template}"+context_details.ai_prefix.replace("{self.config.start_header_id_template}","").replace(":","")+":"
         ], 
         8)
 
-        context_details["extra"]="\n".join([
+        context_details.extra="\n".join([
             f"{self.config.start_header_id_template}memory_data:\n"+memory_data if memory_data is not None else "",
             f"{self.config.start_header_id_template}happiness_index:\n"+str(course_step) if course_step is not None else "",
         ])

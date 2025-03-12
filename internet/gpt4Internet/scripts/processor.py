@@ -4,6 +4,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 from typing import Any, List, Optional, Type, Callable, Dict, Any, Union
 
 from safe_store import TextVectorizer, VectorizationMethod, VisualizationMethod
@@ -207,7 +208,7 @@ class Processor(APScript):
         # Close the browser
         driver.quit()
 
-    def run_workflow(self, prompt:str, previous_discussion_text:str="", callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None, context_details:dict=None, client:Client=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         Runs the workflow for processing the model input and output.
 

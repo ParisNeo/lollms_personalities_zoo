@@ -6,6 +6,7 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PromptReshaper, git_pull, File_Path_Generator
 from lollms.client_session import Client
+from lollms.prompting import LollmsContextDetails
 import pipmaster as pm
 from typing import Any
 
@@ -243,7 +244,7 @@ The generation ai has no access to the previous text so do not do references and
 
 
         
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -265,8 +266,8 @@ The generation ai has no access to the previous text so do not do references and
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         self.callback = callback
         self.process_state(prompt, previous_discussion_text, callback, context_details, client)
 

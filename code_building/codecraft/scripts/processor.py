@@ -86,7 +86,7 @@ class Processor(APScript):
         super().add_file(path, client, callback)
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -108,8 +108,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         if context_details is None:
             self.set_message_content("<b>The context details is none. This is probably due to the fact that you are using an old version of lollms. Please upgrade lollms to use this persona.</b>")
             return ""
@@ -117,26 +117,26 @@ class Processor(APScript):
         self.callback = callback
         if self.template is not None:
             crafted_prompt=self.build_prompt([
-                                    context_details["conditionning"],
-                                    context_details["user_description"],
+                                    context_details.conditionning,
+                                    context_details.user_description,
                                     f"{self.config.start_header_id_template}template: \n"+self.template,
-                                    context_details["documentation"],
-                                    context_details["discussion_messages"],
-                                    context_details["positive_boost"],
-                                    context_details["negative_boost"],
-                                    context_details["current_language"],
-                                    context_details["ai_prefix"],
+                                    context_details.documentation,
+                                    context_details.discussion_messages,
+                                    context_details.positive_boost,
+                                    context_details.negative_boost,
+                                    context_details.current_language,
+                                    context_details.ai_prefix,
             ],5)
         else:
             crafted_prompt=self.build_prompt([
-                                    context_details["conditionning"],
-                                    context_details["user_description"],
-                                    context_details["documentation"],
-                                    context_details["discussion_messages"],
-                                    context_details["positive_boost"],
-                                    context_details["negative_boost"],
-                                    context_details["current_language"],
-                                    context_details["ai_prefix"],
+                                    context_details.conditionning,
+                                    context_details.user_description,
+                                    context_details.documentation,
+                                    context_details.discussion_messages,
+                                    context_details.positive_boost,
+                                    context_details.negative_boost,
+                                    context_details.current_language,
+                                    context_details.ai_prefix,
             ],4)
 
         out = self.fast_gen(crafted_prompt)

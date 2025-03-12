@@ -10,6 +10,7 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import show_yes_no_dialog
 from lollms.client_session import Client
+from lollms.prompting import LollmsContextDetails
 
 from pathlib import Path
 from typing import Callable, Any
@@ -229,7 +230,7 @@ class Processor(APScript):
         """
         super().add_file(path, client, callback)
 
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -251,8 +252,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
         output = self.fast_gen(previous_discussion_text)
         self.set_message_content(output)
 

@@ -4,6 +4,7 @@ from lollms.personality import APScript, AIPersonality, LoLLMsAction, LoLLMsActi
 from lollms.utilities import PackageManager
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
+from lollms.prompting import LollmsContextDetails
 
 from functools import partial
 if PackageManager.check_package_installed("pyautogui"):
@@ -291,7 +292,7 @@ class Processor(APScript):
             self.step_end("Planning operation", False)        
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -313,8 +314,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
         ASCIIColors.info("Generating")
         self.callback = callback

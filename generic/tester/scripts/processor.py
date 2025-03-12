@@ -6,6 +6,7 @@ from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
+from lollms.prompting import LollmsContextDetails
 import json
 from typing import Callable, Any
 import shutil
@@ -149,7 +150,7 @@ class Processor(APScript):
          personality_path:Path = self.personality.lollms_paths.personal_outputs_path / self.personality.personality_folder_name
          personality_path="/".join(str(personality_path).replace('\\','/').split('/')[-2:])
          pth = "outputs/sd/Artbot_721.png"
-         self.ui('<img src="outputs/sd/Artbot_721.png">')
+         self.set_message_html('<img src="outputs/sd/Artbot_721.png">')
          self.new_message(self.make_selectable_photo("721", "outputs/sd/Artbot_721.png", params="param1:0"), MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
          self.new_message("Testing generation", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_SET_CONTENT)
          out = self.generate("explain what is to be human",50,callback = self.callback)
@@ -160,7 +161,7 @@ class Processor(APScript):
     
 
     from lollms.client_session import Client
-    def run_workflow(self,  context_details:dict=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
+    def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
         """
         This function generates code based on the given parameters.
 
@@ -182,8 +183,8 @@ class Processor(APScript):
         Returns:
             None
         """
-        prompt = context_details["prompt"]
-        previous_discussion_text = context_details["discussion_messages"]
+        prompt = context_details.prompt
+        previous_discussion_text = context_details.discussion_messages
 
         self.callback = callback
         self.process_state(prompt, previous_discussion_text, callback)

@@ -121,7 +121,7 @@ class Processor(APScript):
     def run_workflow(self, context_details: dict = None, client: Client = None, callback: callable = None):
         self.callback = callback
         full_prompt = self.build_prompt_from_context_details(context_details)
-        if self.yes_no("Is the user asking to start scanning the network?", context_details["prompt"]):
+        if self.yes_no("Is the user asking to start scanning the network?", context_details.prompt):
             self.start_scanning(from_discussion=True)
         else:
             self.set_message_content(self.generate(full_prompt))
