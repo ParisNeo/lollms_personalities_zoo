@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 from lollms.helpers import ASCIIColors, trace_exception
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate, InstallOption
-from lollms.services.tti.sd.lollms_sd import LollmsSD
 from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
