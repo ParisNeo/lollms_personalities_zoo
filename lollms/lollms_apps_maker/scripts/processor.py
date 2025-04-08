@@ -1182,7 +1182,8 @@ The code contains description.yaml that describes the application, the author, t
                     "Here is the metadata built for this app:",
                     "```yaml",
                     yaml.dump(infos, default_flow_style=False),
-                    "```"
+                    "```",
+                    ""
                 ])
                 self.set_message_content(out)
                 # ----------------------------------------------------------------
@@ -1306,7 +1307,8 @@ The code contains description.yaml that describes the application, the author, t
                     "Here is the metadata built for this app:",
                     "```yaml",
                     yaml.dump(infos, default_flow_style=False),
-                    "```"
+                    "```",
+                    ""
                 ])
                 self.set_message_html(out)
 
