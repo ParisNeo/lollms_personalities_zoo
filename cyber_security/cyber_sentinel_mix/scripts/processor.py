@@ -5,8 +5,6 @@ from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
 from lollms.prompting import LollmsContextDetails
 
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 import json

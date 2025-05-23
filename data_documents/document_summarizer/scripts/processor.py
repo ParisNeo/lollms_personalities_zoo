@@ -11,8 +11,6 @@ from lollms.personality import APScript, AIPersonality
 from lollms.prompting import LollmsContextDetails
 import subprocess
 from typing import Callable, Any
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
 from pathlib import Path
 # Helper functions
 class Processor(APScript):

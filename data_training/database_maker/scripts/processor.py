@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import re
 from typing import Callable, Any
+from safe_store import parse_document, SafeStore
 
 def remove_indexing_from_markdown(markdown_text):
     # Define a regular expression pattern to match numbered and hyphenated lists at the beginning of the line
@@ -113,11 +114,7 @@ class Processor(APScript):
             callback=callback
         )
         
-        self.data_store = TextVectorizer(
-            vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,  # =VectorizationMethod.BM25_VECTORIZER,
-            data_visualization_method=VisualizationMethod.PCA,  # VisualizationMethod.PCA,
-            save_db=False
-        )
+        self.data_store = SafeStore()
 
     from lollms.client_session import Client
     def run_workflow(self,  context_details:LollmsContextDetails=None, client:Client=None,  callback: Callable[[str | list | None, MSG_OPERATION_TYPE, str, AIPersonality| None], bool]=None):
@@ -144,7 +141,6 @@ class Processor(APScript):
         """
         prompt = context_details.prompt
         previous_discussion_text = context_details.discussion_messages
-        from lollmsvectordb.text_document_loader import TextDocumentsLoader
         # Preparing callback
         self.callback = callback
         
@@ -158,13 +154,9 @@ class Processor(APScript):
         document_files = [v for v in data_folder_path.iterdir()]
         self.step_start(f"Loading files")
         for file_path in document_files:
-            document_text = TextDocumentsLoader.read_file(file_path)
-            self.data_store.add_document(file_path, document_text, chunk_size=512, overlap_size=128)
+            document_text = parse_document(file_path)
+            self.data_store.add_text(file_path, document_text)
         self.step_end(f"Loading files")
-        # Index the vector store
-        self.step_start(f"Indexing files")
-        self.data_store.index()
-        self.step_end(f"Indexing files")
         
         #processing
         if "continue" in prompt.lower():

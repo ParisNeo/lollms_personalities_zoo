@@ -4,11 +4,8 @@ from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
 from lollms.prompting import LollmsContextDetails
+from safe_store import chunk_text, parse_document
 
-
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
-from lollmsvectordb.database_elements.document import Document
 import subprocess
 from pathlib import Path
 import json
@@ -94,18 +91,13 @@ class Processor(APScript, FileSystemEventHandler):
     
     def process_file(self, file):
                 self.step_start(f"Processing {file.name}")
-                data = TextDocumentsLoader.read_file(file)
-                dd = TextChunker(
-                    self.personality_config.chunk_size,
-                    self.personality_config.chunk_overlap,
-                    model= self.personality.app.model                   
-                )
+                data = parse_document(file)
                 import hashlib
                 hasher = hashlib.md5()
                 hasher.update(data.encode("utf8"))
                          
-                chunks = dd.get_text_chunks(
-                            data, Document(hasher.hexdigest(), str(file), str(file) )
+                chunks = chunk_text(
+                            data
                             )
                 n_chunks = len(chunks)
                 for i, chunk in enumerate(chunks):

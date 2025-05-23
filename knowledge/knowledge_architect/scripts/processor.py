@@ -26,12 +26,8 @@ import sqlite3
 from pathlib import Path
 from typing import List, Tuple
 from lollms.utilities import PackageManager
-if not PackageManager.check_package_installed("lollmsvectordb"):
-    PackageManager.install_or_update("lollmsvectordb")
 
-from lollmsvectordb.directory_binding import DirectoryBinding
-from lollmsvectordb.text_chunker import TextChunker
-from lollmsvectordb.vectorizers.tfidf_vectorizer import TFIDFVectorizer
+from safe_store import SafeStore
 
 
 class QNADatabase:
@@ -148,13 +144,7 @@ class Processor(APScript):
                             callback=callback
                         )
 
-        self.vector_database = TFIDFVectorizer()
-        self.db = None
-        self.data_store = TextVectorizer(
-            vectorization_method=VectorizationMethod.TFIDF_VECTORIZER,  # =VectorizationMethod.BM25_VECTORIZER,
-            data_visualization_method=VisualizationMethod.PCA,  # VisualizationMethod.PCA,
-            save_db=False
-        )        
+        self.data_store = SafeStore()        
 
     def settings_updated(self):
         self.db = DirectoryBinding(self.personality_config.personality_path, self.vector_database)

@@ -7,8 +7,6 @@ from lollms.types import MSG_OPERATION_TYPE
 from lollms.internet import internet_search, scrape_and_save
 from typing import Callable, Any
 
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 from datetime import datetime

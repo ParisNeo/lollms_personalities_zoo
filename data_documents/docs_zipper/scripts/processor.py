@@ -3,9 +3,6 @@ from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
-
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 from lollms.client_session import Client

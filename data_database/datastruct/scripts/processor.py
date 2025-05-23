@@ -9,7 +9,6 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.personality import APScript, AIPersonality
 from lollms.utilities import PackageManager
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
 import subprocess
 from typing import Callable, Any
 from lollms.client_session import Client

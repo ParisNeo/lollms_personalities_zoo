@@ -22,9 +22,6 @@ if not pm.is_installed("feedparser"):
 
 
 from feedparser import parse as feedparse
-
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
 import subprocess
 from pathlib import Path
 from datetime import datetime

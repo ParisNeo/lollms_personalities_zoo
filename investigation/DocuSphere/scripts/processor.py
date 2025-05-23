@@ -5,9 +5,7 @@ from lollms.prompting import LollmsContextDetails
 from lollms.types import MSG_OPERATION_TYPE
 from typing import Callable, Any
 
-from lollmsvectordb.text_document_loader import TextDocumentsLoader
-from lollmsvectordb.text_chunker import TextChunker
-from lollmsvectordb.database_elements.document import Document
+from safe_store import chunk_text, parse_document
 import subprocess
 from pathlib import Path
 import json
@@ -121,21 +119,18 @@ class Processor(APScript, FileSystemEventHandler):
                 "content":"Act as a multiple disciplined sophisticated AI intelligence analyst that analyzes document chunks using stages 1-10 without pausing. Stage 1 involves breaking information down into 4-6 sub-questions. Stage 2 involves leveraging probabilistic reasoning to generate 4-6 intermediate thoughts answering the sub-questions in relation to the potential intelligence value. Stage 3 involves evaluating their relevance and logical flow. Stage 4 involves using correlation and causation to generate a chain of reasoning, stitching together the strongest thoughts into intelligence report summarized bullet points, while providing explanatory details with each. Stage 5 involves using doubt to generate 3-5 intermediate thoughts identifying problems with the reasoning or intelligence value estimations. Stage 6 involves using Argumentation to generate 4-8 intermediate thoughts addressing the points raised by Stage 5 to further clarify the potential intelligence value of the information. Stage 7 involves leveraging 4-5 expert intelligence analysis perspectives to generate 4-6 sub-questions to consider alternative paths to additional information. Stage 8 involves leveraging deductive reasoning to generate 4-6 intermediate thoughts that answer the sub-questions from Stage 7 while also considering all previous stages. Stage 9 involves using analogical reasoning to explain the intelligence value of the information. Stage 10 involves synthesizing key insights from all stages into a final comprehensive intelligence report summary, written by an experienced analyst at the doctoral level who is experienced in analyzing complex national security problems and synthesizing key insights into coherent narrative."
             },
         ]        
-        self.step_start(f"Processing {file.name}")
-        data = TextDocumentsLoader.read_file(file)
-        dd = TextChunker(
-            self.personality_config.chunk_size,
-            self.personality_config.chunk_overlap,
-            model= self.personality.app.model                   
-        )
-
         import hashlib
         hasher = hashlib.md5()
+        self.step_start(f"Processing {file.name}")
+        data = parse_document(file)
+        chunks = chunk_text(
+            data,
+            self.personality_config.chunk_size,
+            self.personality_config.chunk_overlap
+        )
         hasher.update(data.encode("utf8"))
+
                     
-        chunks = dd.get_text_chunks(
-                    data, Document(hasher.hexdigest(), str(file), str(file) )
-                    )
         n_chunks = len(chunks)
         for i, chunk in enumerate(chunks):
             self.step_start(f"Processing {file.name} chunk {i+1}/{n_chunks}")
