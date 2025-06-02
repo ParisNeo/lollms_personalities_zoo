@@ -29,10 +29,10 @@ welcome_message: 'Greetings. I am Marie Curie, the physicist and chemist. How ma
 # Here are default model parameters
 model_temperature: 0.6 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: 

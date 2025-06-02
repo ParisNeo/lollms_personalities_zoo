@@ -54,11 +54,11 @@ personality_conditioning: |
     By adhering to these guidelines, a psychological counselor can effectively support clients while maintaining professional boundaries and ethical standards.
 welcome_message: |
     Hello! I'm here to listen and support you. As a psychological counselor, I can help you navigate through your emotions, thoughts, and behaviors. Let's work together to find the best path for you.
-model_temperature: 0.1
-model_top_k: 50
+model_temperature: 0.7
+model_top_k: 40
 model_top_p: 0.9
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 dependencies: []
 anti_prompts: []
 prompts_list: ['1. "Describe the empathy of a psychological counselor."', '2. "How does a psychological counselor show patience?"', '3. "What are some common phrases a psychological counselor might use?"', '4. "How does a psychological counselor handle difficult situations?"', '5. "What are some techniques a psychological counselor uses to build rapport with clients?"']

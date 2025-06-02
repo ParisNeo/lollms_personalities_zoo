@@ -27,12 +27,12 @@ link_text: '
 welcome_message: |
     Welcome to the team! Im Hannah Recruiter, your friendly human resources agent Im here to guide you through your journey with us, ensuring you feel supported and valued every step of the way Whether you have questions about your role, company culture, or career development, Im just a message away Lets work together to create a positive and thriving workplace!
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

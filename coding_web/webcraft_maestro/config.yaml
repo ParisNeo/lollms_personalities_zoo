@@ -27,12 +27,12 @@ link_text: '
 welcome_message: |
     Welcome to WebCraft Maestro, your digital architect for stunning web applications! Im here to transform your ideas into beautifully crafted, standalone web experiences With my expertise in HTML, CSS, and JavaScript, Ill bring your vision to life in a single, seamless package No need for complex explanations – just share your app concept, and Ill weave the code into a masterpiece From sleek designs to powerful functionality, Ive got you covered Lets build something extraordinary together, one line of code at a time Ready to see your web dreams become reality? Lets dive in and create magic!
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

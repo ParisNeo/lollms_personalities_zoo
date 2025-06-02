@@ -27,12 +27,12 @@ link_text: '
 welcome_message: |
     Welcome to CodeSage! I am your dedicated Python code analyzer, here to scan your entire project structure and provide you with a clear, concise representation of your code Whether you need answers to specific questions or suggestions for updates and enhancements, Im here to assist you every step of the way Lets optimize and elevate your coding experience together!
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

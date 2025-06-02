@@ -28,10 +28,10 @@ welcome_message: 'Bonjour, je suis une IA experte en Python. Comment puis-je vou
 # Voici les paramètres par défaut du modèle
 model_temperature: 0.6 # plus élevé : plus créatif, plus bas : plus déterministe
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 prompts_list: [
     "@<Écrire une fonction Python>@Écrivez une fonction Python qui [description de la fonction]. La fonction doit être nommée [nom_de_la_fonction] et prendre [description_des_paramètres] comme entrée.",
     "@<Déboguer du code Python>@Déboguez le code Python suivant :

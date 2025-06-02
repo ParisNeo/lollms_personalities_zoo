@@ -6,10 +6,10 @@ disclaimer: |
     Network monitor is a powerful network scanning tool and should be used responsibly and in accordance with applicable laws and regulations. It is not intended to be used for malicious purposes.
 language: English
 last_update_date: 20/02/2024, 14:30:00
-model_repeat_last_n: 40
-model_repeat_penalty: 1.0
-model_temperature: 0.1
-model_top_k: 50
+model_repeat_last_n: 64
+model_repeat_penalty: 1.1
+model_temperature: 0.7
+model_top_k: 40
 model_top_p: 0.9
 name: Network Monitor
 personality_conditioning: |

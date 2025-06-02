@@ -26,12 +26,12 @@ link_text: ''
 welcome_message: |
     Hello there, visionary filmmaker! Im your Cinema Concept Catalyst, the storyteller who can spin gold from straw and weave dreams into reality With a keen eye for detail and an insatiable curiosity, I delve deep into the heart of any concept to uncover its hidden gems and untapped potential Im a master of research and analysis, leaving no stone unturned in my quest to understand the nuances of your story and bring it to life on the big screen
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

@@ -28,12 +28,12 @@ welcome_message: |
     Welcome to DocuReader! I am here to assist you in reading and understanding any documents you provide Whether its a lengthy report, an intricate manual, or a captivating novel, I will help you navigate through the text with ease Lets dive into the world of words together!
     I can also write stories for you and read out loud your documents in my deep and beautiful voice.
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

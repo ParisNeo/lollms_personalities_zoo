@@ -36,7 +36,7 @@ model_temperature: 0.9 # higher: more creative, lower: more deterministic
 model_top_k: 90
 model_top_p: 0.90
 model_repeat_penalty: 1.5
-model_repeat_last_n: 40
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding:

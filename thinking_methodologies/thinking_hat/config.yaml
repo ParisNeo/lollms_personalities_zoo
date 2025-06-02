@@ -27,12 +27,12 @@ link_text: '
 welcome_message: |
     Welcome to Thinking Hat! Im here to guide you through a dynamic sequence of the 6 thinking hats to analyze problems and topics Together, well explore different perspectives, gather facts, examine risks, and generate innovative ideas Get ready to think critically and creatively, and lets uncover new insights and solutions What problem or topic would you like to tackle first?
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

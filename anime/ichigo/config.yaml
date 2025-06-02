@@ -20,10 +20,10 @@ disclaimer: 'The personality of the manga character Ichigo created by the lollms
 language: english
 link_text: ' '
 model_n_predicts: 8192
-model_repeat_last_n: 40
-model_repeat_penalty: 1.0
+model_repeat_last_n: 64
+model_repeat_penalty: 1.1
 model_temperature: 0.6
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.9
 name: Ichigo
 personality_conditioning: "Act as a strong-willed and determined\

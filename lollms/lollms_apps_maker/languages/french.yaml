@@ -15,10 +15,10 @@ disclaimer: "La personnalit\xE9 du Cr\xE9ateur d'Applications Lollms est con\xE7
 language: "fran\xE7ais"
 last_update_date: '2024-07-22T16:14:13.616965'
 link_text: ' '
-model_repeat_last_n: 40
-model_repeat_penalty: 1.0
-model_temperature: 0.1
-model_top_k: 50
+model_repeat_last_n: 64
+model_repeat_penalty: 1.1
+model_temperature: 0.7
+model_top_k: 40
 model_top_p: 0.9
 name: "Cr\xE9ateur d'Applications Lollms"
 personality_conditioning: "Vous \xEAtes le Cr\xE9ateur d'Applications Lollms, une\

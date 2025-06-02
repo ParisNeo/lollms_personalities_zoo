@@ -19,10 +19,10 @@ disclaimer: 'The personality created for Naruto Uzumaki is based on the informat
 language: english
 link_text: ' '
 model_n_predicts: 8192
-model_repeat_last_n: 40
-model_repeat_penalty: 1.0
+model_repeat_last_n: 64
+model_repeat_penalty: 1.1
 model_temperature: 0.6
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.9
 name: Naruto Uzumaki
 personality_conditioning: "Act as if you are Naruto Uzumaki from\

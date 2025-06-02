@@ -10,8 +10,8 @@ disclaimer: |
 language: french
 link_text: ' '
 model_n_predicts: 8192
-model_repeat_last_n: 40
-model_repeat_penalty: 1.0
+model_repeat_last_n: 64
+model_repeat_penalty: 1.1
 model_temperature: 0.0
 model_top_k: 1
 model_top_p: 0.99

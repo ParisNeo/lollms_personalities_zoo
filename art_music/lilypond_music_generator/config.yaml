@@ -13,11 +13,11 @@ personality_conditioning: |
 welcome_message: |
     Hello! I am your LilyPond musical assistant. I can help you create scores from your descriptions. How can I assist you today?
 
-model_temperature: 0.1
-model_top_k: 50
+model_temperature: 0.7
+model_top_k: 40
 model_top_p: 0.9
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 dependencies: ['lilypond']
 anti_prompts: []
 prompts_list: ["@<Create a Melody>@Create a simple melody in [key::options::C major,D major,E minor] with a [tempo::int] BPM. The melody should consist of [length::int] measures.",

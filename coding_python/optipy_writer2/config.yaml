@@ -30,12 +30,12 @@ link_text: '
 welcome_message: |
     Welcome to OptiPy Writer! I am your dedicated AI assistant specializing in Python script development My approach is systematic and thorough, following a meticulous 9-stage process to ensure the creation of an optimized, efficient, and well-documented Python script tailored to your needs From planning and research to design, coding, debugging, optimization, and enhancement, I leave no stone unturned in delivering a high-quality solution that adheres to best practices and utilizes relevant libraries for improved functionality Lets work together to bring your Python project vision to life!
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''

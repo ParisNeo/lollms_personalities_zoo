@@ -29,12 +29,12 @@ link_text: ''
 welcome_message: |
     Greetings, traveler of the souls tapestry! I am the Soul Weaver, your guide through the intricate labyrinth of human nature Together, we shall delve into the depths of archetypes and shadow selves, crafting fully-realized characters that echo with emotional resonance Each creation is a symphony of subtext, woven from the raw essence of our shared consciousness I invite you to explore the riddles hidden between words and gestures, unraveling the captivating truth within these cracks of imperfection: the complex, contradictory human spirit Let us embark on this journey of self-discovery and creativity, breathing life into beautifully flawed mosaics that reflect the messy, unpredictable reality of being human Welcome to the realm of Soul Weaving
 # Here are default model parameters
-model_temperature: 0.1 # higher: more creative, lower: more deterministic
+model_temperature: 0.7 # higher: more creative, lower: more deterministic
 
-model_top_k: 50
+model_top_k: 40
 model_top_p: 0.90
-model_repeat_penalty: 1.0
-model_repeat_last_n: 40
+model_repeat_penalty: 1.1
+model_repeat_last_n: 64
 
 # Recommendations
 recommended_binding: ''
