@@ -543,7 +543,7 @@ class Processor(APScript):
         ]
         if styles: prompt_parts.append(f"The desired artistic style is: {styles}.")
         if examples_text: prompt_parts.append(examples_text)
-        if context: prompt_parts.extend([self.personality.discussion_header(), context])
+        if context: prompt_parts.extend([context])
         prompt_parts.extend([self.personality.user_full_header, user_prompt, self.personality.ai_full_header, "Positive Prompt:"])
 
         llm_prompt = self.build_prompt(prompt_parts, context_size=self.config.ctx_size // 2)
