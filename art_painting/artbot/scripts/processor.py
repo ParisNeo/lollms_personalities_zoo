@@ -187,7 +187,7 @@ class Processor(APScript):
             return
 
         # Start the summary message block
-        self.new_message("Regenerating artwork...", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_BY_STEP)
+        self.step_start(f"Regenerating artwork...")
         generation_summary = f"### Regenerating: {last_title}\n"
         generation_summary += f"- **Resolution:** {last_width}x{last_height}\n"
         generation_summary += f"- **Positive Prompt:**\n```text\n{last_positive}\n```\n"
@@ -224,6 +224,7 @@ class Processor(APScript):
             if self.personality_config[CONFIG_KEYS["SHOW_INFOS"]] and final_metadata:
                 self.json("Regeneration Metadata", final_metadata)
 
+        self.step_end(f"Regenerating artwork...")
         self.finished_message(client_id=client.client_id) # Finish the summary message block
 
 
@@ -297,7 +298,7 @@ class Processor(APScript):
             self.step("Proceeding with image generation request.")
 
         # 3. Prepare for Generation - Start Summary Message
-        self.new_message("Preparing artwork generation...", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_BY_STEP)
+        self.step_start("Preparing artwork generation...")
         generation_summary = "### Artwork Generation Plan\n"
         self.set_message_content(generation_summary)
 
@@ -449,6 +450,7 @@ class Processor(APScript):
             self.set_message_content(generation_summary)
             self.warning("Image generation (painting) is disabled in settings.")
 
+        self.step_end("Preparing artwork generation...")
         self.finished_message(client_id=client.client_id) # Finish the summary message block
 
     # --- Helper Methods for LLM Interaction ---
@@ -770,7 +772,7 @@ class Processor(APScript):
             title = f"Variation of {image_path.stem}"
 
             # Start summary message
-            self.new_message(f"Generating variation for {image_path.name}...", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_STEP_BY_STEP)
+            self.step_start(f"Generating variation for {image_path.name}...")
             generation_summary = f"### Variation: {title}\n"
             generation_summary += f"- **Resolution:** {width}x{height}\n"
             generation_summary += f"- **Positive Prompt:**\n```text\n{positive_prompt}\n```\n"
