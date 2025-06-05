@@ -225,7 +225,6 @@ class Processor(APScript):
                 self.json("Regeneration Metadata", final_metadata)
 
         self.step_end(f"Regenerating artwork...")
-        self.finished_message(client_id=client.client_id) # Finish the summary message block
 
 
     def show_tti_settings_command(self, prompt: str, client: Client):
@@ -291,7 +290,6 @@ class Processor(APScript):
                 )
                 self.print_prompt("Discussion Prompt", discussion_prompt)
                 response = self.fast_gen(discussion_prompt, max_generation_size=self.personality_config[CONFIG_KEYS["MAX_PROMPT_SIZE"]], callback=self.add_chunk_to_message_content)
-                self.finished_message(client_id=client.client_id)
                 self.step_end("Generating discussion response...")
                 return
 
@@ -355,7 +353,6 @@ class Processor(APScript):
                  self.step_end("Imagining Prompt Details...", False)
                  generation_summary += "\n---\n**Error:** Failed to generate positive prompt. Cannot proceed. ❌"
                  self.set_message_content(generation_summary)
-                 self.finished_message(client_id=client.client_id)
                  return
             self.step_end("Generating Positive Prompt...")
             generation_summary += f"- **Positive Prompt:**\n```text\n{positive_prompt}\n```\n"
@@ -451,7 +448,6 @@ class Processor(APScript):
             self.warning("Image generation (painting) is disabled in settings.")
 
         self.step_end("Preparing artwork generation...")
-        self.finished_message(client_id=client.client_id) # Finish the summary message block
 
     # --- Helper Methods for LLM Interaction ---
 
@@ -691,7 +687,6 @@ class Processor(APScript):
         if output_html:
             self.new_message("", MSG_OPERATION_TYPE.MSG_OPERATION_TYPE_UI)
             self.set_message_html(f"<div style='text-align:center;'>{output_html}</div>")
-            self.finished_message()
 
     # --- File Handling ---
 
@@ -732,12 +727,10 @@ class Processor(APScript):
                 else:
                      self.warning("Captioning enabled, but the current LLM binding does not support image interrogation.")
 
-            self.finished_message()
             return True
 
         except Exception as e:
             self.error(f"Error processing uploaded file {path.name}: {e}")
-            self.finished_message()
             return False
 
     # --- Custom Request Handler ---
@@ -793,7 +786,6 @@ class Processor(APScript):
             if generated_files:
                 generation_summary = generation_summary.replace("Generating variation...", f"Variation Complete ({len(generated_files)} image(s)) ✅")
                 self.set_message_content(generation_summary)
-                self.finished_message(client_id=client.client_id) # Finish summary block
                 self._display_images(generated_files, title)
                 if self.personality_config[CONFIG_KEYS["SHOW_INFOS"]] and final_metadata:
                     self.json("Variation Metadata", final_metadata)
@@ -801,7 +793,6 @@ class Processor(APScript):
             else:
                 generation_summary = generation_summary.replace("Generating variation...", "Variation Failed ❌")
                 self.set_message_content(generation_summary)
-                self.finished_message(client_id=client.client_id) # Finish summary block
                 return {"status": False, "error": "Variation generation failed."}
 
         elif operation == "set_as_input":
