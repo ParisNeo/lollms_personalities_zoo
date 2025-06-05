@@ -472,7 +472,7 @@ class Processor(APScript):
                 f"Your task is to select one or more artistic styles from the provided list that best suit the user's request for {self.personality_config[CONFIG_KEYS['PRODUCTION_TYPE']]}.",
                 "Consider the user's prompt and any relevant discussion context.",
                 "Output only the comma-separated names of the selected styles.",
-                self.personality.discussion_header(),
+                
                 context,
                 self.personality.user_full_header,
                 user_prompt,
@@ -496,7 +496,6 @@ class Processor(APScript):
                 "Common resolutions are 512x512, 768x768, 1024x1024, 1024x768, 768x1024, 1536x1024, 1024x1536.",
                 f"The current default is {default_resolution[0]}x{default_resolution[1]}.",
                 "Output ONLY the resolution in the format `width, height` (e.g., `1024, 768`).",
-                self.personality.discussion_header(),
                 context,
                 self.personality.user_full_header,
                 user_prompt,
@@ -562,7 +561,7 @@ class Processor(APScript):
                 "Focus on common issues like deformities (ugly, mutation, extra limbs/fingers), bad quality (blurry, low quality), unwanted elements (text, signature, watermark), and things contradicting the style or request.",
                 "Use comma separation. Add emphasis with multiple brackets like (((word))).",
                 "Do NOT explain the prompt, just output the negative keywords.",
-                self.personality.discussion_header(), context,
+                context,
                 self.personality.user_full_header, f"Positive Prompt: {positive_prompt}",
                 f"Style: {styles}" if styles else "", self.personality.ai_full_header, "Negative Prompt Keywords:"
             ],
