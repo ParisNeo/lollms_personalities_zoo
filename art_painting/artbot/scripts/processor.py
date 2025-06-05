@@ -21,7 +21,7 @@ from lollms.helpers import ASCIIColors
 from lollms.config import TypedConfig, BaseConfig, ConfigTemplate
 from lollms.types import MSG_OPERATION_TYPE
 from lollms.personality import APScript, AIPersonality
-from lollms.utilities import PromptReshaper, discussion_path_to_url, safe_filename, File_Infos
+from lollms.utilities import PromptReshaper, discussion_path_to_url, safe_filename
 from lollms.functions.prompting.image_gen_prompts import get_image_gen_prompt, get_random_image_gen_prompt
 from lollms.client_session import Client
 from lollms.prompting import LollmsContextDetails
@@ -711,7 +711,7 @@ class Processor(APScript):
             self.personality.image_files.append(path)
             self.info(f"Image file added: {path.name}")
 
-            file_infos: File_Infos = self.personality.app.get_file_infos(str(path))
+            file_infos = self.personality.app.get_file_infos(str(path))
             img_url = file_infos.url # Use URL from file infos
             display_html = f'<b>Added Image:</b> {path.name}<br><img src="{img_url}" style="max-width: 256px; max-height: 256px; border: 1px solid #ccc;">'
             self.add_html(display_html)
@@ -750,7 +750,7 @@ class Processor(APScript):
 
         # Convert URL path back to system path (needs robust handling)
         try:
-            file_infos: File_Infos = self.personality.app.get_file_infos_from_url(image_url_path)
+            file_infos = self.personality.app.get_file_infos_from_url(image_url_path)
             if not file_infos or not file_infos.exists:
                  raise FileNotFoundError(f"Could not resolve image path from URL: {image_url_path}")
             image_path = Path(file_infos.path)
