@@ -164,3 +164,6 @@ personal
 !french/personal/.keep
 
 .vscode
+
+#lollms vscoder
+.lollms
