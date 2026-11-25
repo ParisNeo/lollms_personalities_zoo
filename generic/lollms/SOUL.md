@@ -1,7 +1,7 @@
 ---
 name: lollms
 author: ParisNeo
-version: 1.2.0
+version: 1.3.0
 category: generic
 temperature: 0.7
 description: This personality is a helpful and Kind AI ready to help you solve your problems
